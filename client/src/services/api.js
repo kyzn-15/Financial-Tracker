@@ -1,0 +1,63 @@
+const BASE_URL = '/api';
+
+async function request(url, options = {}) {
+  const response = await fetch(`${BASE_URL}${url}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Something went wrong' }));
+    throw new Error(error.message || `HTTP ${response.status}`);
+  }
+
+  if (response.status === 204) return null;
+  return response.json();
+}
+
+export async function getExpenses(filters = {}) {
+  const params = new URLSearchParams();
+  if (filters.category) params.set('category', filters.category);
+  if (filters.startDate) params.set('startDate', filters.startDate);
+  if (filters.endDate) params.set('endDate', filters.endDate);
+  if (filters.sort) params.set('sort', filters.sort);
+  if (filters.order) params.set('order', filters.order);
+
+  const query = params.toString();
+  return request(`/expenses${query ? `?${query}` : ''}`);
+}
+
+export async function getExpense(id) {
+  return request(`/expenses/${id}`);
+}
+
+export async function createExpense(data) {
+  return request('/expenses', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateExpense(id, data) {
+  return request(`/expenses/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteExpense(id) {
+  return request(`/expenses/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function getSummary() {
+  return request('/summary');
+}
+
+export async function getExchangeRate() {
+  return request('/exchange-rate');
+}
