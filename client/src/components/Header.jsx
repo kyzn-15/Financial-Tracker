@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const FALLBACK_MYR_TO_IDR = 4500;
+
 export default function Header({ exchangeRate, activeTab }) {
   const [time, setTime] = useState('');
 
@@ -24,10 +26,19 @@ export default function Header({ exchangeRate, activeTab }) {
     return () => clearInterval(interval);
   }, []);
 
-  const rateDisplay = exchangeRate?.myrToIdr
-    ? Number(exchangeRate.myrToIdr).toLocaleString('en', { maximumFractionDigits: 0 })
-    : '—';
-    
+  const isLiveRate = exchangeRate && !exchangeRate.usingFallback;
+  const rateValue = isLiveRate ? exchangeRate.myrToIdr : FALLBACK_MYR_TO_IDR;
+  const rateDisplay = Number(rateValue).toLocaleString('en', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const rateBadgeClass = exchangeRate
+    ? (isLiveRate ? 'header__rate-badge header__rate-badge--live' : 'header__rate-badge header__rate-badge--fallback')
+    : 'header__rate-badge';
+  const rateTitle = exchangeRate
+    ? (isLiveRate ? 'Live exchange rate from API' : 'Using safety fallback rate (API unavailable)')
+    : 'Loading exchange rate…';
+
   const getTabTitle = () => {
     switch (activeTab) {
       case 'add': return 'Add Expense';
@@ -43,7 +54,7 @@ export default function Header({ exchangeRate, activeTab }) {
         {getTabTitle()}
       </h2>
       <div className="header__info">
-        <div className="header__rate-badge">
+        <div className={rateBadgeClass} title={rateTitle}>
           <span>💱</span>
           <span>1 MYR = <span className="rate-value">{rateDisplay}</span> IDR</span>
         </div>

@@ -15,14 +15,20 @@ function isCacheValid() {
   return Date.now() - cache.fetchedAt < CACHE_TTL_MS;
 }
 
+export const FALLBACK_MYR_TO_IDR = 4500;
+
 /**
  * Fetch the latest MYR→IDR exchange rate.
- * Returns { myrToIdr, idrToMyr } or null on failure.
+ * Returns { myrToIdr, idrToMyr, usingFallback }.
  */
 export async function getExchangeRate() {
   // Return cached rate if still valid
   if (isCacheValid()) {
-    return { myrToIdr: cache.myrToIdr, idrToMyr: cache.idrToMyr };
+    return {
+      myrToIdr: cache.myrToIdr,
+      idrToMyr: cache.idrToMyr,
+      usingFallback: false,
+    };
   }
 
   try {
@@ -51,7 +57,11 @@ export async function getExchangeRate() {
     };
 
     console.log(`💱 Exchange rate updated: 1 MYR = ${myrToIdr} IDR`);
-    return { myrToIdr: cache.myrToIdr, idrToMyr: cache.idrToMyr };
+    return {
+      myrToIdr: cache.myrToIdr,
+      idrToMyr: cache.idrToMyr,
+      usingFallback: false,
+    };
   } catch (err) {
     console.warn('Failed to fetch exchange rate:', err.message, '- Using fallback.');
     return getFallbackRate();
@@ -63,29 +73,34 @@ export async function getExchangeRate() {
  */
 function getFallbackRate() {
   return {
-    myrToIdr: 4500,
-    idrToMyr: 1 / 4500
+    myrToIdr: FALLBACK_MYR_TO_IDR,
+    idrToMyr: 1 / FALLBACK_MYR_TO_IDR,
+    usingFallback: true,
   };
 }
 
 /**
- * Return the current cache state (for the /api/exchange-rate endpoint).
+ * Fetch (or read cache for) the current rate with metadata for the API endpoint.
  */
-export function getCachedRate() {
-  if (!cache) {
-    const fallback = getFallbackRate();
-    return { 
-      cached: false, 
-      myrToIdr: fallback.myrToIdr,
-      idrToMyr: fallback.idrToMyr,
-      message: 'Using fallback rate (no cache available)' 
+export async function getExchangeRateInfo() {
+  const rate = await getExchangeRate();
+  const info = {
+    myrToIdr: rate.myrToIdr,
+    idrToMyr: rate.idrToMyr,
+    usingFallback: rate.usingFallback,
+  };
+
+  if (rate.usingFallback) {
+    return {
+      ...info,
+      cached: false,
+      message: 'Using fallback rate (API unavailable)',
     };
   }
 
   return {
+    ...info,
     cached: true,
-    myrToIdr: cache.myrToIdr,
-    idrToMyr: cache.idrToMyr,
     fetchedAt: new Date(cache.fetchedAt).toISOString(),
     expiresAt: new Date(cache.fetchedAt + CACHE_TTL_MS).toISOString(),
     isValid: isCacheValid(),
