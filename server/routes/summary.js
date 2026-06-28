@@ -1,7 +1,7 @@
 // summary.js — Express Router for summary and exchange-rate endpoints
 import { Router } from 'express';
 import db from '../db/database.js';
-import { getCachedRate } from '../services/exchangeRate.js';
+import { getExchangeRateInfo } from '../services/exchangeRate.js';
 
 const router = Router();
 
@@ -86,9 +86,10 @@ router.get('/summary', (req, res) => {
 });
 
 // ─── GET /api/exchange-rate — Current cached exchange rate info ──────────────
-router.get('/exchange-rate', (req, res) => {
+router.get('/exchange-rate', async (req, res) => {
   try {
-    res.json(getCachedRate());
+    const info = await getExchangeRateInfo();
+    res.json(info);
   } catch (err) {
     console.error('GET /api/exchange-rate error:', err);
     res.status(500).json({ error: 'Internal server error' });

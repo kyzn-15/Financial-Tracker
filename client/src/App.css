@@ -137,11 +137,30 @@
   box-shadow: var(--neo-in);
   font-size: var(--font-size-xs);
   color: var(--text-secondary);
+  transition: background var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.header__rate-badge--live {
+  background: var(--success-soft);
+  box-shadow: var(--neo-in), inset 0 0 0 1px rgba(0, 184, 148, 0.18);
+}
+
+.header__rate-badge--fallback {
+  background: var(--danger-soft);
+  box-shadow: var(--neo-in), inset 0 0 0 1px rgba(255, 118, 117, 0.18);
 }
 
 .header__rate-badge .rate-value {
   font-weight: 700;
   color: var(--accent);
+}
+
+.header__rate-badge--live .rate-value {
+  color: var(--success);
+}
+
+.header__rate-badge--fallback .rate-value {
+  color: var(--danger);
 }
 
 .header__time {
