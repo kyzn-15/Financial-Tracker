@@ -1,0 +1,112 @@
+# Neomorphic Personal Financial Tracker
+
+A beautiful, modern full-stack web application designed using the **Neomorphism (Soft UI)** aesthetic. It allows a single user to log their daily expenses, automatically converting and storing values in both **MYR (Malaysian Ringgit)** and **IDR (Indonesian Rupiah)** via the Frankfurter exchange rate API.
+
+## Features
+
+- **Neomorphic UI/UX**: Soft, extruded containers using dual shadows, custom input states (inset on focus), and active toggles that look "pressed" into the surface.
+- **Auto Currency Conversion**: Log expenses in either MYR or IDR. The app automatically fetches the exchange rate, calculates the counterpart value, and stores both.
+- **Short TTL Caching**: API rates are cached in-memory on the server for 15 minutes to avoid excessive third-party requests.
+- **Timezone**: All timestamps are formatted, handled, and displayed in **UTC+8**.
+- **Dashboard Analytics**:
+  - Month-to-date totals in both MYR and IDR.
+  - Interactive Doughnut Chart showing spending breakdown by category.
+  - Interactive Line Chart displaying the daily spending trend over the last 30 days.
+  - **Chart Currency Toggle**: Dynamically toggle all dashboard charts/numbers between MYR and IDR.
+- **Tabbed Navigation**:
+  - **Add Expense**: Log new transactions with customizable timestamps (defaults to current time).
+  - **Dashboard**: High-level statistical summaries and trend visuals.
+  - **History**: Searchable list of transactions with category and date filters, sorting, editing, and deleting capabilities.
+- **Graceful Error Handling**: If the currency API is down, values are stored, and conversions can retry/backfill. Toast notifications alert the user about actions and server status.
+
+---
+
+## Tech Stack
+
+- **Frontend**: React 19 + Vite, Chart.js (`react-chartjs-2`), Custom Vanilla CSS variables
+- **Backend**: Node.js + Express, `better-sqlite3` (SQLite 3), `dotenv`, `cors`
+- **Currency Data**: Frankfurter Public API (`https://api.frankfurter.dev`) — 100% free and requires **no API keys**.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+Make sure you have [Node.js](https://nodejs.org/) installed (v18+ recommended).
+
+### 1. Installation
+
+Clone this repository and install dependencies for both client and server:
+
+```bash
+# Clone the repository and navigate inside
+cd "Financial Tracker"
+
+# Install backend dependencies
+cd server
+npm install
+
+# Install frontend dependencies
+cd ../client
+npm install
+```
+
+### 2. Configuration
+
+Create or modify the `.env` file in the root directory:
+
+```env
+PORT=4000
+DB_PATH=./db/tracker.db
+EXCHANGE_RATE_CACHE_MINUTES=15
+```
+
+### 3. Run the Application
+
+Start both the backend server and frontend development server:
+
+#### Start the Backend:
+```bash
+cd server
+npm run start
+```
+The server will run on `http://localhost:4000` and automatically initialize the SQLite database (`server/db/tracker.db`) and populate it with sample seed data.
+
+#### Start the Frontend:
+```bash
+cd client
+npm run dev
+```
+The development client will run on `http://localhost:5173/` and proxy API calls to the backend.
+
+---
+
+## Database Schema
+
+Table name: `expenses`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | INTEGER | Primary Key, Auto-increment |
+| `name` | TEXT | Description of the expense |
+| `category` | TEXT | Category name |
+| `price_myr` | REAL | Cost in Malaysian Ringgit |
+| `price_idr` | REAL | Cost in Indonesian Rupiah |
+| `original_currency` | TEXT | Currency selected at entry (`MYR` or `IDR`) |
+| `exchange_rate_used` | REAL | Conversion rate applied (1 MYR = X IDR) |
+| `timestamp` | TEXT | Timestamp in UTC+8 (`YYYY-MM-DDTHH:MM:SS+08:00`) |
+| `created_at` | TEXT | Record insertion datetime |
+
+---
+
+## API Endpoints
+
+- `POST /api/expenses`: Add a new expense (computes conversion).
+- `GET /api/expenses`: Retrieve all expenses (supports sorting and filters).
+- `GET /api/expenses/:id`: Get a single expense by ID.
+- `PUT /api/expenses/:id`: Update an expense (recomputes conversion if price/currency changes).
+- `DELETE /api/expenses/:id`: Delete an expense.
+- `GET /api/summary`: Retrieve totals, category spending, and trend logs.
+- `GET /api/exchange-rate`: View cached exchange rate information.
+# Financial-Tracker
