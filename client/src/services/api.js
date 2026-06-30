@@ -61,3 +61,34 @@ export async function getSummary() {
 export async function getExchangeRate() {
   return request('/exchange-rate');
 }
+
+export async function getReceipts() {
+  return request('/receipts');
+}
+
+export async function uploadReceipt(file) {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const response = await fetch(`${BASE_URL}/receipts`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Something went wrong' }));
+    throw new Error(error.error || error.message || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function deleteReceipt(id) {
+  return request(`/receipts/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export function getReceiptImageUrl(id) {
+  return `${BASE_URL}/receipts/${id}/image`;
+}

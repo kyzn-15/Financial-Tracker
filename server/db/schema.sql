@@ -11,3 +11,12 @@ CREATE TABLE IF NOT EXISTS expenses (
 );
 CREATE INDEX IF NOT EXISTS idx_expenses_timestamp ON expenses(timestamp);
 CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
+
+CREATE TABLE IF NOT EXISTS receipts (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  filename     TEXT NOT NULL,
+  mime_type    TEXT NOT NULL,
+  uploaded_at  TEXT NOT NULL,
+  expires_at   TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_receipts_expires_at ON receipts(expires_at);
