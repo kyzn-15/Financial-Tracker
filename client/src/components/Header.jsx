@@ -43,6 +43,7 @@ export default function Header({ exchangeRate, activeTab }) {
     switch (activeTab) {
       case 'add': return 'Add Expense';
       case 'dashboard': return 'Dashboard';
+      case 'receipts': return 'Receipt Saver';
       case 'history': return 'Transaction History';
       default: return '';
     }

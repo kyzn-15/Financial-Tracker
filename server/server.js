@@ -15,6 +15,8 @@ import cors from 'cors';
 import { initSchema, seedIfEmpty } from './db/database.js';
 import expensesRouter from './routes/expenses.js';
 import summaryRouter from './routes/summary.js';
+import receiptsRouter from './routes/receipts.js';
+import { scheduleReceiptCleanup } from './services/receiptCleanup.js';
 
 // ─── Initialize database ────────────────────────────────────────────────────
 initSchema();
@@ -29,6 +31,7 @@ app.use(express.json());
 
 // ─── Mount routes ────────────────────────────────────────────────────────────
 app.use('/api/expenses', expensesRouter);
+app.use('/api/receipts', receiptsRouter);
 app.use('/api', summaryRouter);
 
 // ─── Health check ────────────────────────────────────────────────────────────
@@ -39,6 +42,7 @@ app.get('/api/health', (req, res) => {
 // ─── Start server ────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
+  scheduleReceiptCleanup();
   console.log(`🚀 Financial Tracker API running on http://localhost:${PORT}`);
   console.log(`   Endpoints:`);
   console.log(`   - GET    /api/expenses`);
@@ -46,6 +50,10 @@ app.listen(PORT, () => {
   console.log(`   - GET    /api/expenses/:id`);
   console.log(`   - PUT    /api/expenses/:id`);
   console.log(`   - DELETE /api/expenses/:id`);
+  console.log(`   - GET    /api/receipts`);
+  console.log(`   - POST   /api/receipts`);
+  console.log(`   - GET    /api/receipts/:id/image`);
+  console.log(`   - DELETE /api/receipts/:id`);
   console.log(`   - GET    /api/summary`);
   console.log(`   - GET    /api/exchange-rate`);
   console.log(`   - GET    /api/health`);

@@ -8,7 +8,9 @@ import FilterBar from './components/FilterBar';
 import Dashboard from './components/Dashboard';
 import Modal from './components/Modal';
 import Toast from './components/Toast';
+import ReceiptSaver from './components/ReceiptSaver';
 import { useExpenses } from './hooks/useExpenses';
+import { useReceipts } from './hooks/useReceipts';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard'); // Default to dashboard for better first impression
@@ -26,6 +28,14 @@ export default function App() {
     updateSort,
     clearFilters,
   } = useExpenses();
+
+  const {
+    receipts,
+    loading: receiptsLoading,
+    error: receiptsError,
+    saveReceipt,
+    removeReceipt,
+  } = useReceipts(activeTab);
 
   // Toast notifications state
   const [toasts, setToasts] = useState([]);
@@ -87,6 +97,26 @@ export default function App() {
     }
   };
 
+  const handleReceiptUpload = async (file) => {
+    try {
+      await saveReceipt(file);
+      showToast('Receipt saved! It will be removed automatically after 7 days.', 'success');
+    } catch (err) {
+      showToast(`Failed to save receipt: ${err.message}`, 'error');
+      throw err;
+    }
+  };
+
+  const handleReceiptDelete = async (id) => {
+    try {
+      await removeReceipt(id);
+      showToast('Receipt deleted.', 'success');
+    } catch (err) {
+      showToast(`Failed to delete receipt: ${err.message}`, 'error');
+      throw err;
+    }
+  };
+
   return (
     <div className="app-layout">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -98,6 +128,12 @@ export default function App() {
         {error && (
           <div style={{ color: 'var(--danger)', padding: '16px', background: 'var(--danger-soft)', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 'bold' }}>
             ⚠️ Error fetching data: {error}
+          </div>
+        )}
+
+        {activeTab === 'receipts' && receiptsError && (
+          <div style={{ color: 'var(--danger)', padding: '16px', background: 'var(--danger-soft)', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 'bold' }}>
+            ⚠️ Error fetching receipts: {receiptsError}
           </div>
         )}
 
@@ -134,6 +170,15 @@ export default function App() {
                 />
               )}
             </>
+          )}
+
+          {activeTab === 'receipts' && (
+            <ReceiptSaver
+              receipts={receipts}
+              loading={receiptsLoading}
+              onUpload={handleReceiptUpload}
+              onDelete={handleReceiptDelete}
+            />
           )}
         </div>
       </div>
