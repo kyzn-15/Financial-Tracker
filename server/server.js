@@ -13,6 +13,7 @@ dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 import express from 'express';
 import cors from 'cors';
 import { initSchema, seedIfEmpty } from './db/database.js';
+import authRouter, { requireAuth } from './routes/auth.js';
 import expensesRouter from './routes/expenses.js';
 import summaryRouter from './routes/summary.js';
 import receiptsRouter from './routes/receipts.js';
@@ -26,13 +27,28 @@ seedIfEmpty();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_ORIGIN || true,
+  credentials: true,
+}));
 app.use(express.json());
+app.use((err, _req, res, next) => {
+  if (err instanceof SyntaxError && 'body' in err) {
+    return res.status(400).json({ error: 'Invalid JSON body.' });
+  }
+
+  return next(err);
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 // ─── Mount routes ────────────────────────────────────────────────────────────
-app.use('/api/expenses', expensesRouter);
-app.use('/api/receipts', receiptsRouter);
-app.use('/api', summaryRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/expenses', requireAuth, expensesRouter);
+app.use('/api/receipts', requireAuth, receiptsRouter);
+app.use('/api', requireAuth, summaryRouter);
 
 // ─── Health check ────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

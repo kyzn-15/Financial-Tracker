@@ -2,6 +2,7 @@ const BASE_URL = '/api';
 
 async function request(url, options = {}) {
   const response = await fetch(`${BASE_URL}${url}`, {
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
@@ -16,6 +17,28 @@ async function request(url, options = {}) {
 
   if (response.status === 204) return null;
   return response.json();
+}
+
+export async function login(username, pin) {
+  return request('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ username, pin }),
+  });
+}
+
+export async function getSession() {
+  return request('/auth/session');
+}
+
+export async function logout() {
+  const response = await fetch(`${BASE_URL}/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  if (!response.ok && response.status !== 204) {
+    throw new Error(`HTTP ${response.status}`);
+  }
 }
 
 export async function getExpenses(filters = {}) {
@@ -72,6 +95,7 @@ export async function uploadReceipt(file) {
 
   const response = await fetch(`${BASE_URL}/receipts`, {
     method: 'POST',
+    credentials: 'include',
     body: formData,
   });
 
