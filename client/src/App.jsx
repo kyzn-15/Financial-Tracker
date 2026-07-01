@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.css';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -6,13 +6,87 @@ import ExpenseForm from './components/ExpenseForm';
 import ExpenseList from './components/ExpenseList';
 import FilterBar from './components/FilterBar';
 import Dashboard from './components/Dashboard';
+import LoginPage from './components/LoginPage';
 import Modal from './components/Modal';
 import Toast from './components/Toast';
 import ReceiptSaver from './components/ReceiptSaver';
 import { useExpenses } from './hooks/useExpenses';
 import { useReceipts } from './hooks/useReceipts';
+import * as api from './services/api';
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [sessionExpiresAt, setSessionExpiresAt] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function checkSession() {
+      try {
+        const session = await api.getSession();
+        if (!isMounted) return;
+        setIsAuthenticated(session.authenticated);
+        setSessionExpiresAt(session.expiresAt);
+      } catch {
+        if (!isMounted) return;
+        setIsAuthenticated(false);
+        setSessionExpiresAt(null);
+      } finally {
+        if (isMounted) setIsCheckingSession(false);
+      }
+    }
+
+    checkSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!sessionExpiresAt) return undefined;
+
+    const remainingSession = sessionExpiresAt - Date.now();
+    if (remainingSession <= 0) {
+      setIsAuthenticated(false);
+      setSessionExpiresAt(null);
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsAuthenticated(false);
+      setSessionExpiresAt(null);
+    }, remainingSession);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [sessionExpiresAt]);
+
+  const handleLogin = async ({ username, pin }) => {
+    await api.login(username, pin);
+    const session = await api.getSession();
+    setIsAuthenticated(session.authenticated);
+    setSessionExpiresAt(session.expiresAt);
+  };
+
+  if (isCheckingSession) {
+    return (
+      <main className="login-shell">
+        <section className="login-panel">
+          <p className="login-subtitle">Checking secure session...</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
+  return <AuthenticatedApp />;
+}
+
+function AuthenticatedApp() {
   const [activeTab, setActiveTab] = useState('dashboard'); // Default to dashboard for better first impression
   const {
     expenses,
