@@ -288,6 +288,50 @@
   font-weight: 500;
 }
 
+.header__logout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: 36px;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-full);
+  background: var(--bg);
+  color: var(--danger);
+  box-shadow: var(--neo-out-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  white-space: nowrap;
+  transition: color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.header__logout-btn:hover {
+  background: var(--danger-soft);
+  box-shadow: var(--neo-out);
+}
+
+.header__logout-btn:active {
+  box-shadow: var(--neo-in);
+  transform: scale(0.97);
+}
+
+.header__logout-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.header__logout-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  box-shadow: var(--neo-in);
+  font-size: 0.65rem;
+  line-height: 1;
+}
+
 /* ---- NEO CARD (Refined) ---- */
 .neo-card {
   background: var(--bg);
@@ -804,6 +848,11 @@
   .header__info {
     justify-content: center;
     flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .header__logout-btn {
+    width: 100%;
   }
 
   .expense-form__row {
