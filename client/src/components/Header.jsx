@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const FALLBACK_MYR_TO_IDR = 4500;
 
-export default function Header({ exchangeRate, activeTab }) {
+export default function Header({ exchangeRate, activeTab, onLogout, isLoggingOut }) {
   const [time, setTime] = useState('');
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export default function Header({ exchangeRate, activeTab }) {
     : 'header__rate-badge';
   const rateTitle = exchangeRate
     ? (isLiveRate ? 'Live exchange rate from API' : 'Using safety fallback rate (API unavailable)')
-    : 'Loading exchange rate…';
+    : 'Loading exchange rate...';
 
   const getTabTitle = () => {
     switch (activeTab) {
@@ -56,10 +56,20 @@ export default function Header({ exchangeRate, activeTab }) {
       </h2>
       <div className="header__info">
         <div className={rateBadgeClass} title={rateTitle}>
-          <span>💱</span>
+          <span aria-hidden="true">$</span>
           <span>1 MYR = <span className="rate-value">{rateDisplay}</span> IDR</span>
         </div>
-        <div className="header__time">🕐 {time} (UTC+8)</div>
+        <div className="header__time">{time} (UTC+8)</div>
+        <button
+          className="header__logout-btn"
+          type="button"
+          onClick={onLogout}
+          disabled={isLoggingOut}
+          title="End this secure session"
+        >
+          <span className="header__logout-icon" aria-hidden="true">X</span>
+          <span>{isLoggingOut ? 'Logging out' : 'Logout'}</span>
+        </button>
       </div>
     </header>
   );

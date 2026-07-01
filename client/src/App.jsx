@@ -69,6 +69,17 @@ export default function App() {
     setSessionExpiresAt(session.expiresAt);
   };
 
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch {
+      // Local state still resets so a stale client session cannot keep the app open.
+    } finally {
+      setIsAuthenticated(false);
+      setSessionExpiresAt(null);
+    }
+  };
+
   if (isCheckingSession) {
     return (
       <main className="login-shell">
@@ -83,11 +94,12 @@ export default function App() {
     return <LoginPage onLogin={handleLogin} />;
   }
 
-  return <AuthenticatedApp />;
+  return <AuthenticatedApp onLogout={handleLogout} />;
 }
 
-function AuthenticatedApp() {
+function AuthenticatedApp({ onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard'); // Default to dashboard for better first impression
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const {
     expenses,
     summary,
@@ -191,12 +203,22 @@ function AuthenticatedApp() {
     }
   };
 
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    await onLogout();
+  };
+
   return (
     <div className="app-layout">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <div className="main-content">
-        <Header exchangeRate={exchangeRate} activeTab={activeTab} />
+        <Header
+          exchangeRate={exchangeRate}
+          activeTab={activeTab}
+          onLogout={handleLogout}
+          isLoggingOut={isLoggingOut}
+        />
 
         {/* API Error Toast */}
         {error && (
