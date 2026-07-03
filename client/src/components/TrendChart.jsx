@@ -11,7 +11,6 @@ import {
   Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { formatDate } from '../utils/formatters';
 
 ChartJS.register(
   CategoryScale,
@@ -141,3 +140,5 @@ export default function TrendChart({ data = [], currency = 'MYR' }) {
     </div>
   );
 }
+
+

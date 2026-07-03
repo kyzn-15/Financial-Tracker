@@ -116,3 +116,27 @@ export async function deleteReceipt(id) {
 export function getReceiptImageUrl(id) {
   return `${BASE_URL}/receipts/${id}/image`;
 }
+
+export async function getEmergencySettings() {
+  return request('/emergency/settings');
+}
+
+export async function updateEmergencySettings(data) {
+  return request('/emergency/settings', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getEmergencySummary() {
+  return request('/emergency/summary');
+}
+
+export async function getEmergencySimulation(adjustments = {}) {
+  const params = new URLSearchParams();
+  Object.entries(adjustments).forEach(([key, value]) => {
+    if (value !== '' && value != null) params.set(key, value);
+  });
+  const query = params.toString();
+  return request(`/emergency/simulation${query ? `?${query}` : ''}`);
+}

@@ -60,6 +60,9 @@ Create or modify the `.env` file in the root directory:
 PORT=4000
 DB_PATH=./db/tracker.db
 EXCHANGE_RATE_CACHE_MINUTES=15
+ADMIN_USERNAME=
+ADMIN_PIN_HASH=
+AUTH_SESSION_SECRET=
 ```
 
 ### 3. Run the Application
