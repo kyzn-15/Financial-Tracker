@@ -44,6 +44,7 @@ export default function Header({ exchangeRate, activeTab, onLogout, isLoggingOut
       case 'add': return 'Add Expense';
       case 'dashboard': return 'Dashboard';
       case 'receipts': return 'Receipt Saver';
+      case 'emergency': return 'Emergency Fund';
       case 'history': return 'Transaction History';
       default: return '';
     }
@@ -74,3 +75,4 @@ export default function Header({ exchangeRate, activeTab, onLogout, isLoggingOut
     </header>
   );
 }
+
