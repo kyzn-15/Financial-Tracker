@@ -1145,10 +1145,15 @@
 
 .emergency-metric {
   min-height: 124px;
+  display: flex;
+  flex-direction: column;
   justify-content: center;
+  align-items: flex-start;
+  gap: var(--space-sm);
 }
 
 .emergency-metric__label {
+  display: block;
   color: var(--text-muted);
   font-size: var(--font-size-xs);
   font-weight: 800;
@@ -1157,13 +1162,15 @@
 }
 
 .emergency-metric__value {
+  display: block;
   color: var(--text-primary);
-  font-size: var(--font-size-xl);
-  line-height: 1.2;
+  font-size: var(--font-size-xs);
+  line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
 .emergency-metric__sub {
+  display: block;
   color: var(--text-muted);
   font-size: var(--font-size-xs);
   font-weight: 600;
@@ -1461,10 +1468,10 @@
     grid-column: 1 / -1;
     text-align: left;
   }
-
-  .emergency-metric__value,
   .emergency-overview h2,
   .readiness-card__score {
     font-size: var(--font-size-xl);
   }
 }
+
+
