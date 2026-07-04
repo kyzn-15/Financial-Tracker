@@ -140,3 +140,24 @@ export async function getEmergencySimulation(adjustments = {}) {
   const query = params.toString();
   return request(`/emergency/simulation${query ? `?${query}` : ''}`);
 }
+
+export async function exportRecords() {
+  const response = await fetch(`${BASE_URL}/export/records`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Export failed' }));
+    throw new Error(error.message || error.error || `HTTP ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+
+  return {
+    blob,
+    filename: filenameMatch?.[1] || 'financial-tracker-export.xlsx',
+  };
+}

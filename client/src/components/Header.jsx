@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 const FALLBACK_MYR_TO_IDR = 4500;
 
-export default function Header({ exchangeRate, activeTab, onLogout, isLoggingOut }) {
+export default function Header({ exchangeRate, activeTab, onLogout, isLoggingOut, onExportRecords, isExporting }) {
   const [time, setTime] = useState('');
 
   useEffect(() => {
@@ -61,6 +61,16 @@ export default function Header({ exchangeRate, activeTab, onLogout, isLoggingOut
           <span>1 MYR = <span className="rate-value">{rateDisplay}</span> IDR</span>
         </div>
         <div className="header__time">{time} (UTC+8)</div>
+        <button
+          className="header__export-btn"
+          type="button"
+          onClick={onExportRecords}
+          disabled={isExporting}
+          title="Export expense history, receipts, and emergency fund data"
+        >
+          <span className="header__export-icon" aria-hidden="true">📤</span>
+          <span>{isExporting ? 'Exporting' : 'Export Records'}</span>
+        </button>
         <button
           className="header__logout-btn"
           type="button"

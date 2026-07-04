@@ -30,7 +30,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
           className={`sidebar__nav-item ${activeTab === 'emergency' ? 'sidebar__nav-item--active' : ''}`}
           onClick={() => setActiveTab('emergency')}
         >
-          <span className="sidebar__nav-icon">EF</span>
+          <span className="sidebar__nav-icon">🚨</span>
           <span>Emergency Fund</span>
         </button>
         <button

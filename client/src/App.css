@@ -288,6 +288,49 @@
   font-weight: 500;
 }
 
+.header__export-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: 36px;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-full);
+  background: var(--bg);
+  color: var(--accent);
+  box-shadow: var(--neo-out-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  white-space: nowrap;
+  transition: color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.header__export-btn:hover {
+  background: var(--accent-soft);
+  box-shadow: var(--neo-out);
+}
+
+.header__export-btn:active {
+  box-shadow: var(--neo-in);
+  transform: scale(0.97);
+}
+
+.header__export-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.header__export-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  box-shadow: var(--neo-in);
+  font-size: 0.75rem;
+  line-height: 1;
+}
 .header__logout-btn {
   display: inline-flex;
   align-items: center;
@@ -851,6 +894,7 @@
     gap: var(--space-sm);
   }
 
+  .header__export-btn,
   .header__logout-btn {
     width: 100%;
   }
