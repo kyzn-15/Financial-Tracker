@@ -102,6 +102,7 @@ export default function App() {
 function AuthenticatedApp({ onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard'); // Default to dashboard for better first impression
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const {
     expenses,
     summary,
@@ -210,6 +211,26 @@ function AuthenticatedApp({ onLogout }) {
     }
   };
 
+  const handleExportRecords = async () => {
+    setIsExporting(true);
+    try {
+      const { blob, filename } = await api.exportRecords();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showToast('Exported records workbook successfully.', 'success');
+    } catch (err) {
+      showToast(`Failed to export records: ${err.message}`, 'error');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleLogout = async () => {
     setIsLoggingOut(true);
     await onLogout();
@@ -225,6 +246,8 @@ function AuthenticatedApp({ onLogout }) {
           activeTab={activeTab}
           onLogout={handleLogout}
           isLoggingOut={isLoggingOut}
+          onExportRecords={handleExportRecords}
+          isExporting={isExporting}
         />
 
         {/* API Error Toast */}
