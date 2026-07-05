@@ -135,7 +135,9 @@ export async function getEmergencySummary() {
 export async function getEmergencySimulation(adjustments = {}) {
   const params = new URLSearchParams();
   Object.entries(adjustments).forEach(([key, value]) => {
-    if (value !== '' && value != null) params.set(key, value);
+    if (value === '' || value == null) return;
+    const paramValue = typeof value === 'object' ? JSON.stringify(value) : value;
+    params.set(key, paramValue);
   });
   const query = params.toString();
   return request(`/emergency/simulation${query ? `?${query}` : ''}`);

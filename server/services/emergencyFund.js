@@ -368,41 +368,81 @@ export function buildEmergencySummary() {
   };
 }
 
+function parseSimulationAdjustments(query, categoryAverages) {
+  if (!query.adjustments) {
+    const foodAverage = categoryAverages
+      .filter((item) => item.category.toLowerCase().includes('food'))
+      .reduce((sum, item) => sum + item.average_myr, 0);
+    const legacyAdjustments = [
+      { label: 'Rent', type: 'amount', amountMyr: Number(query.rentDeltaMyr || 0) },
+      { label: 'Food', type: 'percent', percent: Number(query.foodPercent || 0), baseCategory: 'Food', baseAmountMyr: foodAverage },
+      { label: 'Transport', type: 'amount', amountMyr: Number(query.transportDeltaMyr || 0) },
+      { label: 'Medical', type: 'amount', amountMyr: Number(query.medicalDeltaMyr || 0) },
+    ];
+    return legacyAdjustments.filter((item) => item.amountMyr || item.percent);
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(query.adjustments);
+  } catch {
+    throw new Error('Simulation adjustments must be valid JSON');
+  }
+
+  if (!Array.isArray(parsed)) {
+    throw new Error('Simulation adjustments must be an array');
+  }
+  if (parsed.length > 25) {
+    throw new Error('Simulation supports up to 25 adjustments');
+  }
+
+  const categoryAverageByName = new Map(categoryAverages.map((item) => [item.category, toMoney(item.average_myr)]));
+
+  return parsed
+    .map((item, index) => {
+      const label = typeof item.label === 'string' && item.label.trim()
+        ? item.label.trim().slice(0, 60)
+        : `Adjustment ${index + 1}`;
+      const type = item.type === 'percent' ? 'percent' : 'amount';
+
+      if (type === 'percent') {
+        const percent = Number(item.percent || 0);
+        if (!Number.isFinite(percent)) throw new Error('Percentage adjustments must be valid numbers');
+        const baseCategory = typeof item.baseCategory === 'string' ? item.baseCategory : '';
+        const baseAmountMyr = categoryAverageByName.get(baseCategory) ?? 0;
+        return {
+          label,
+          type,
+          percent,
+          baseCategory,
+          baseAmountMyr: roundMoney(baseAmountMyr),
+          deltaMyr: roundMoney(baseAmountMyr * (percent / 100)),
+        };
+      }
+
+      const amountMyr = Number(item.amountMyr || 0);
+      if (!Number.isFinite(amountMyr)) throw new Error('Amount adjustments must be valid numbers');
+      return {
+        label,
+        type,
+        amountMyr: roundMoney(amountMyr),
+        deltaMyr: roundMoney(amountMyr),
+      };
+    })
+    .filter((item) => item.deltaMyr !== 0);
+}
+
 export function buildEmergencySimulation(query) {
   const summary = buildEmergencySummary();
   const categoryAverages = summary.analytics.categoryAverages;
-  const foodAverage = categoryAverages
-    .filter((item) => item.category.toLowerCase().includes('food'))
-    .reduce((sum, item) => sum + item.average_myr, 0);
-
-  const adjustments = {
-    rentDeltaMyr: Number(query.rentDeltaMyr || 0),
-    foodPercent: Number(query.foodPercent || 0),
-    transportDeltaMyr: Number(query.transportDeltaMyr || 0),
-    medicalDeltaMyr: Number(query.medicalDeltaMyr || 0),
-  };
-
-  Object.values(adjustments).forEach((value) => {
-    if (!Number.isFinite(value)) throw new Error('Simulation adjustments must be valid numbers');
-  });
-
-  const foodDelta = foodAverage * (adjustments.foodPercent / 100);
-  const simulatedMonthlyExpense = Math.max(
-    0,
-    summary.averageMonthlyEssentialExpenseMyr +
-      adjustments.rentDeltaMyr +
-      foodDelta +
-      adjustments.transportDeltaMyr +
-      adjustments.medicalDeltaMyr
-  );
-
+  const adjustments = parseSimulationAdjustments(query, categoryAverages);
+  const totalDeltaMyr = roundMoney(adjustments.reduce((sum, item) => sum + item.deltaMyr, 0));
+  const simulatedMonthlyExpense = Math.max(0, summary.averageMonthlyEssentialExpenseMyr + totalDeltaMyr);
   const simulated = calculateCore(summary.settings, simulatedMonthlyExpense);
 
   return {
-    adjustments: {
-      ...adjustments,
-      foodDeltaMyr: roundMoney(foodDelta),
-    },
+    adjustments,
+    totalDeltaMyr,
     base: {
       monthlyExpenseMyr: summary.averageMonthlyEssentialExpenseMyr,
       coverageMonths: summary.coverageMonths,
