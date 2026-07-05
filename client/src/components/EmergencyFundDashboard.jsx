@@ -17,6 +17,7 @@ ChartJS.register(ArcElement, CategoryScale, LinearScale, PointElement, LineEleme
 
 const TARGET_OPTIONS = [3, 6, 9, 12];
 const PLAN_OPTIONS = [3, 6, 9, 12];
+const DEFAULT_ESSENTIAL_CATEGORIES = ['Rent', 'Food', 'Transport', 'Phone', 'Insurance', 'Medicine', 'Utilities', 'Grocery', 'Health/Medical'];
 
 function numberValue(value) {
   const number = Number(value);
@@ -75,6 +76,16 @@ function SettingsPanel({ settingsPayload, onSave, saving }) {
       else selected.add(category);
       return { ...prev, essential_categories: [...selected] };
     });
+  };
+
+  const setEssentialCategories = (nextCategories) => {
+    setMessage('');
+    setForm((prev) => ({ ...prev, essential_categories: nextCategories }));
+  };
+
+  const useRecommendedCategories = () => {
+    const recommended = categories.filter((category) => DEFAULT_ESSENTIAL_CATEGORIES.includes(category));
+    setEssentialCategories(recommended);
   };
 
   const handleSubmit = async (event) => {
@@ -152,22 +163,43 @@ function SettingsPanel({ settingsPayload, onSave, saving }) {
       </div>
 
       <div className="emergency-category-picker">
-        <span className="neo-label">Essential Categories</span>
+        <div className="emergency-category-picker__header">
+          <div>
+            <span className="neo-label">Essential Categories</span>
+            <p>Choose which spending categories count toward emergency coverage.</p>
+          </div>
+          <strong>{form.essential_categories.length} selected</strong>
+        </div>
+
         {categories.length === 0 ? (
           <EmptyState>Add expenses to build category options.</EmptyState>
         ) : (
-          <div className="emergency-category-grid">
-            {categories.map((category) => (
-              <label key={category} className="emergency-checkbox">
-                <input
-                  type="checkbox"
-                  checked={form.essential_categories.includes(category)}
-                  onChange={() => toggleCategory(category)}
-                />
-                <span>{category}</span>
-              </label>
-            ))}
-          </div>
+          <>
+            <div className="emergency-category-actions">
+              <button type="button" className="neo-btn neo-btn--secondary neo-btn--sm" onClick={useRecommendedCategories}>
+                Recommended
+              </button>
+              <button type="button" className="neo-btn neo-btn--secondary neo-btn--sm" onClick={() => setEssentialCategories(categories)}>
+                Select All
+              </button>
+              <button type="button" className="neo-btn neo-btn--secondary neo-btn--sm" onClick={() => setEssentialCategories([])}>
+                Clear
+              </button>
+            </div>
+
+            <div className="emergency-category-grid">
+              {categories.map((category) => (
+                <label key={category} className="emergency-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={form.essential_categories.includes(category)}
+                    onChange={() => toggleCategory(category)}
+                  />
+                  <span>{category}</span>
+                </label>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
@@ -299,58 +331,162 @@ function Timeline({ summary }) {
   );
 }
 
-function Simulator({ simulation, runSimulation }) {
-  const [adjustments, setAdjustments] = useState({
-    rentDeltaMyr: 200,
-    foodPercent: 10,
-    transportDeltaMyr: 100,
-    medicalDeltaMyr: 300,
-  });
+function createAdjustment(categoryAverages = []) {
+  return {
+    id: `${Date.now()}-${Math.random()}`,
+    label: '',
+    type: 'amount',
+    amountMyr: 0,
+    percent: 0,
+    baseCategory: categoryAverages[0]?.category || '',
+  };
+}
 
+function Simulator({ simulation, runSimulation, categoryAverages }) {
+  const [adjustments, setAdjustments] = useState(() => [createAdjustment(categoryAverages)]);
+  const [message, setMessage] = useState('');
 
+  useEffect(() => {
+    setAdjustments((prev) => prev.map((item) => (
+      item.baseCategory || categoryAverages.length === 0
+        ? item
+        : { ...item, baseCategory: categoryAverages[0].category }
+    )));
+  }, [categoryAverages]);
 
-  const updateAdjustment = (field, value) => {
-    setAdjustments((prev) => ({ ...prev, [field]: value }));
+  const updateAdjustment = (id, field, value) => {
+    setMessage('');
+    setAdjustments((prev) => prev.map((item) => (
+      item.id === id ? { ...item, [field]: value } : item
+    )));
+  };
+
+  const addAdjustment = () => {
+    setMessage('');
+    setAdjustments((prev) => [...prev, createAdjustment(categoryAverages)]);
+  };
+
+  const removeAdjustment = (id) => {
+    setMessage('');
+    setAdjustments((prev) => prev.filter((item) => item.id !== id));
   };
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    runSimulation({
-      rentDeltaMyr: numberValue(adjustments.rentDeltaMyr),
-      foodPercent: numberValue(adjustments.foodPercent),
-      transportDeltaMyr: numberValue(adjustments.transportDeltaMyr),
-      medicalDeltaMyr: numberValue(adjustments.medicalDeltaMyr),
-    }).catch(() => {});
+    const payload = adjustments.map((item, index) => ({
+      label: item.label.trim() || `Adjustment ${index + 1}`,
+      type: item.type,
+      amountMyr: numberValue(item.amountMyr),
+      percent: numberValue(item.percent),
+      baseCategory: item.baseCategory,
+    }));
+
+    const hasMissingCategory = payload.some((item) => item.type === 'percent' && !item.baseCategory);
+    if (hasMissingCategory) {
+      setMessage('Choose a category for every percentage calculation.');
+      return;
+    }
+
+    runSimulation({ adjustments: payload }).catch((err) => setMessage(err.message));
   };
 
   return (
     <section className="emergency-simulator neo-card">
       <div className="emergency-section-heading">
         <h3>What If?</h3>
-        <p>Temporary changes do not alter saved expenses.</p>
+        <p>Build custom monthly changes without editing saved expenses.</p>
       </div>
-      <form className="simulator-grid" onSubmit={handleSubmit}>
-        <label>
-          <span>Rent +RM</span>
-          <input className="neo-input" type="number" value={adjustments.rentDeltaMyr} onChange={(event) => updateAdjustment('rentDeltaMyr', event.target.value)} />
-        </label>
-        <label>
-          <span>Food +%</span>
-          <input className="neo-input" type="number" value={adjustments.foodPercent} onChange={(event) => updateAdjustment('foodPercent', event.target.value)} />
-        </label>
-        <label>
-          <span>Transport +RM</span>
-          <input className="neo-input" type="number" value={adjustments.transportDeltaMyr} onChange={(event) => updateAdjustment('transportDeltaMyr', event.target.value)} />
-        </label>
-        <label>
-          <span>Medical +RM</span>
-          <input className="neo-input" type="number" value={adjustments.medicalDeltaMyr} onChange={(event) => updateAdjustment('medicalDeltaMyr', event.target.value)} />
-        </label>
-        <button className="neo-btn neo-btn--secondary" type="submit">Recalculate</button>
+      <form className="simulation-builder" onSubmit={handleSubmit}>
+        {adjustments.length === 0 ? (
+          <EmptyState>No custom calculations added.</EmptyState>
+        ) : (
+          adjustments.map((item, index) => (
+            <div className="simulation-row" key={item.id}>
+              <label className="simulation-field simulation-field--name">
+                <span>Name</span>
+                <input
+                  className="neo-input"
+                  type="text"
+                  value={item.label}
+                  placeholder={`Adjustment ${index + 1}`}
+                  onChange={(event) => updateAdjustment(item.id, 'label', event.target.value)}
+                />
+              </label>
+
+              <label className="simulation-field simulation-field--type">
+                <span>Type</span>
+                <select
+                  className="neo-select"
+                  value={item.type}
+                  onChange={(event) => updateAdjustment(item.id, 'type', event.target.value)}
+                >
+                  <option value="amount">RM Change</option>
+                  <option value="percent">Category %</option>
+                </select>
+              </label>
+
+              {item.type === 'percent' ? (
+                <>
+                  <label className="simulation-field simulation-field--category">
+                    <span>Category</span>
+                    <select
+                      className="neo-select"
+                      value={item.baseCategory}
+                      onChange={(event) => updateAdjustment(item.id, 'baseCategory', event.target.value)}
+                    >
+                      {categoryAverages.length === 0 && <option value="">No categories</option>}
+                      {categoryAverages.map((category) => (
+                        <option key={category.category} value={category.category}>{category.category}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="simulation-field simulation-field--value">
+                    <span>Change %</span>
+                    <input
+                      className="neo-input"
+                      type="number"
+                      step="0.1"
+                      value={item.percent}
+                      onChange={(event) => updateAdjustment(item.id, 'percent', event.target.value)}
+                    />
+                  </label>
+                </>
+              ) : (
+                <label className="simulation-field simulation-field--value">
+                  <span>Monthly RM</span>
+                  <input
+                    className="neo-input"
+                    type="number"
+                    step="0.01"
+                    value={item.amountMyr}
+                    onChange={(event) => updateAdjustment(item.id, 'amountMyr', event.target.value)}
+                  />
+                </label>
+              )}
+
+              <button
+                className="simulation-row__remove"
+                type="button"
+                onClick={() => removeAdjustment(item.id)}
+                title="Remove calculation"
+              >
+                X
+              </button>
+            </div>
+          ))
+        )}
+
+        {message && <p className="simulation-message">{message}</p>}
+
+        <div className="simulation-actions">
+          <button className="neo-btn neo-btn--secondary" type="button" onClick={addAdjustment}>Add Calculation</button>
+          <button className="neo-btn neo-btn--primary" type="submit" disabled={adjustments.length === 0}>Recalculate</button>
+        </div>
       </form>
 
       {simulation && (
         <div className="simulation-result">
+          <EmergencyMetric label="Monthly Change" value={formatMYR(simulation.totalDeltaMyr || 0)} sub="Net custom adjustment" />
           <EmergencyMetric label="Monthly Expenses" value={formatMYR(simulation.simulated.monthlyExpenseMyr)} sub={`Base ${formatMYR(simulation.base.monthlyExpenseMyr)}`} />
           <EmergencyMetric label="Coverage" value={formatMonths(simulation.simulated.coverageMonths)} sub={`${simulation.simulated.coverageDays} days`} />
           <EmergencyMetric label="Status" value={simulation.simulated.status.label} sub="Temporary scenario" />
@@ -359,7 +495,6 @@ function Simulator({ simulation, runSimulation }) {
     </section>
   );
 }
-
 function Analytics({ summary, planMonths }) {
   const essentialVsNon = summary.analytics.essentialVsNonEssential;
   const hasPieData = essentialVsNon.essential_myr > 0 || essentialVsNon.non_essential_myr > 0;
@@ -508,7 +643,7 @@ export default function EmergencyFundDashboard({ emergency, onSaveSettings }) {
 
       <div className="emergency-main-grid emergency-main-grid--balanced">
         <Timeline summary={summary} />
-        <Simulator simulation={simulation} runSimulation={runSimulation} />
+        <Simulator simulation={simulation} runSimulation={runSimulation} categoryAverages={summary.analytics.categoryAverages} />
       </div>
 
       <Analytics summary={summary} planMonths={planMonths} />
