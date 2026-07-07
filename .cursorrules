@@ -1,1 +1,1 @@
-Adhere to root AGENTS.md
+AGENTS.md

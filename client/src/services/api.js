@@ -116,3 +116,50 @@ export async function deleteReceipt(id) {
 export function getReceiptImageUrl(id) {
   return `${BASE_URL}/receipts/${id}/image`;
 }
+
+export async function getEmergencySettings() {
+  return request('/emergency/settings');
+}
+
+export async function updateEmergencySettings(data) {
+  return request('/emergency/settings', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getEmergencySummary() {
+  return request('/emergency/summary');
+}
+
+export async function getEmergencySimulation(adjustments = {}) {
+  const params = new URLSearchParams();
+  Object.entries(adjustments).forEach(([key, value]) => {
+    if (value === '' || value == null) return;
+    const paramValue = typeof value === 'object' ? JSON.stringify(value) : value;
+    params.set(key, paramValue);
+  });
+  const query = params.toString();
+  return request(`/emergency/simulation${query ? `?${query}` : ''}`);
+}
+
+export async function exportRecords() {
+  const response = await fetch(`${BASE_URL}/export/records`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Export failed' }));
+    throw new Error(error.message || error.error || `HTTP ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+
+  return {
+    blob,
+    filename: filenameMatch?.[1] || 'financial-tracker-export.xlsx',
+  };
+}

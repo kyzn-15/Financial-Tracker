@@ -10,8 +10,10 @@ import LoginPage from './components/LoginPage';
 import Modal from './components/Modal';
 import Toast from './components/Toast';
 import ReceiptSaver from './components/ReceiptSaver';
+import EmergencyFundDashboard from './components/EmergencyFundDashboard';
 import { useExpenses } from './hooks/useExpenses';
 import { useReceipts } from './hooks/useReceipts';
+import { useEmergencyFund } from './hooks/useEmergencyFund';
 import * as api from './services/api';
 
 export default function App() {
@@ -100,6 +102,7 @@ export default function App() {
 function AuthenticatedApp({ onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard'); // Default to dashboard for better first impression
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const {
     expenses,
     summary,
@@ -122,6 +125,8 @@ function AuthenticatedApp({ onLogout }) {
     saveReceipt,
     removeReceipt,
   } = useReceipts(activeTab);
+
+  const emergency = useEmergencyFund(activeTab);
 
   // Toast notifications state
   const [toasts, setToasts] = useState([]);
@@ -154,6 +159,7 @@ function AuthenticatedApp({ onLogout }) {
   const handleAddSubmit = async (data) => {
     try {
       const created = await addExpense(data);
+      await emergency.refresh();
       showToast(`Added expense "${created.name}" successfully!`, 'success');
       setActiveTab('history');
     } catch (err) {
@@ -165,6 +171,7 @@ function AuthenticatedApp({ onLogout }) {
   const handleEditSubmit = async (data) => {
     try {
       const updated = await editExpense(editingExpense.id, data);
+      await emergency.refresh();
       showToast(`Updated expense "${updated.name}" successfully!`, 'success');
       setEditingExpense(null);
     } catch (err) {
@@ -176,6 +183,7 @@ function AuthenticatedApp({ onLogout }) {
   const handleDeleteConfirm = async () => {
     try {
       await removeExpense(deletingExpense.id);
+      await emergency.refresh();
       showToast(`Deleted expense "${deletingExpense.name}" successfully!`, 'success');
       setDeletingExpense(null);
     } catch (err) {
@@ -203,6 +211,26 @@ function AuthenticatedApp({ onLogout }) {
     }
   };
 
+  const handleExportRecords = async () => {
+    setIsExporting(true);
+    try {
+      const { blob, filename } = await api.exportRecords();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showToast('Exported records workbook successfully.', 'success');
+    } catch (err) {
+      showToast(`Failed to export records: ${err.message}`, 'error');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleLogout = async () => {
     setIsLoggingOut(true);
     await onLogout();
@@ -218,6 +246,8 @@ function AuthenticatedApp({ onLogout }) {
           activeTab={activeTab}
           onLogout={handleLogout}
           isLoggingOut={isLoggingOut}
+          onExportRecords={handleExportRecords}
+          isExporting={isExporting}
         />
 
         {/* API Error Toast */}
@@ -274,6 +304,13 @@ function AuthenticatedApp({ onLogout }) {
               loading={receiptsLoading}
               onUpload={handleReceiptUpload}
               onDelete={handleReceiptDelete}
+            />
+          )}
+
+          {activeTab === 'emergency' && (
+            <EmergencyFundDashboard
+              emergency={emergency}
+              onSaveSettings={emergency.saveSettings}
             />
           )}
         </div>
@@ -335,3 +372,5 @@ function AuthenticatedApp({ onLogout }) {
     </div>
   );
 }
+
+

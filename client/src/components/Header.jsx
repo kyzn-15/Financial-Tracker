@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 const FALLBACK_MYR_TO_IDR = 4500;
 
-export default function Header({ exchangeRate, activeTab, onLogout, isLoggingOut }) {
+export default function Header({ exchangeRate, activeTab, onLogout, isLoggingOut, onExportRecords, isExporting }) {
   const [time, setTime] = useState('');
 
   useEffect(() => {
@@ -44,6 +44,7 @@ export default function Header({ exchangeRate, activeTab, onLogout, isLoggingOut
       case 'add': return 'Add Expense';
       case 'dashboard': return 'Dashboard';
       case 'receipts': return 'Receipt Saver';
+      case 'emergency': return 'Emergency Fund';
       case 'history': return 'Transaction History';
       default: return '';
     }
@@ -61,6 +62,16 @@ export default function Header({ exchangeRate, activeTab, onLogout, isLoggingOut
         </div>
         <div className="header__time">{time} (UTC+8)</div>
         <button
+          className="header__export-btn"
+          type="button"
+          onClick={onExportRecords}
+          disabled={isExporting}
+          title="Export expense history, receipts, and emergency fund data"
+        >
+          <span className="header__export-icon" aria-hidden="true">📤</span>
+          <span>{isExporting ? 'Exporting' : 'Export Records'}</span>
+        </button>
+        <button
           className="header__logout-btn"
           type="button"
           onClick={onLogout}
@@ -74,3 +85,4 @@ export default function Header({ exchangeRate, activeTab, onLogout, isLoggingOut
     </header>
   );
 }
+

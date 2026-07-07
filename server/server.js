@@ -17,6 +17,8 @@ import authRouter, { requireAuth } from './routes/auth.js';
 import expensesRouter from './routes/expenses.js';
 import summaryRouter from './routes/summary.js';
 import receiptsRouter from './routes/receipts.js';
+import emergencyRouter from './routes/emergency.js';
+import exportRouter from './routes/export.js';
 import { scheduleReceiptCleanup } from './services/receiptCleanup.js';
 
 // ─── Initialize database ────────────────────────────────────────────────────
@@ -48,6 +50,8 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRouter);
 app.use('/api/expenses', requireAuth, expensesRouter);
 app.use('/api/receipts', requireAuth, receiptsRouter);
+app.use('/api/emergency', requireAuth, emergencyRouter);
+app.use('/api/export', requireAuth, exportRouter);
 app.use('/api', requireAuth, summaryRouter);
 
 // ─── Health check ────────────────────────────────────────────────────────────
@@ -72,5 +76,7 @@ app.listen(PORT, () => {
   console.log(`   - DELETE /api/receipts/:id`);
   console.log(`   - GET    /api/summary`);
   console.log(`   - GET    /api/exchange-rate`);
+  console.log(`   - GET    /api/export/records`);
   console.log(`   - GET    /api/health`);
 });
+
