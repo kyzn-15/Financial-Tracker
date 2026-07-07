@@ -27,6 +27,13 @@ export default function Sidebar({ activeTab, setActiveTab }) {
           <span>Dashboard</span>
         </button>
         <button
+          className={`sidebar__nav-item ${activeTab === 'emergency' ? 'sidebar__nav-item--active' : ''}`}
+          onClick={() => setActiveTab('emergency')}
+        >
+          <span className="sidebar__nav-icon">🚨</span>
+          <span>Emergency Fund</span>
+        </button>
+        <button
           className={`sidebar__nav-item ${activeTab === 'receipts' ? 'sidebar__nav-item--active' : ''}`}
           onClick={() => setActiveTab('receipts')}
         >
@@ -44,3 +51,4 @@ export default function Sidebar({ activeTab, setActiveTab }) {
     </aside>
   );
 }
+

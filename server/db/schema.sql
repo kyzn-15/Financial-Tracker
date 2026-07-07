@@ -20,3 +20,12 @@ CREATE TABLE IF NOT EXISTS receipts (
   expires_at   TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_receipts_expires_at ON receipts(expires_at);
+
+CREATE TABLE IF NOT EXISTS emergency_settings (
+  id                    INTEGER PRIMARY KEY,
+  current_savings_myr   REAL,
+  reserved_funds_myr    REAL DEFAULT 0,
+  target_months         INTEGER DEFAULT 6,
+  essential_categories  TEXT,
+  updated_at            TEXT
+);
