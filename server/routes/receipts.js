@@ -6,6 +6,7 @@ import multer from 'multer';
 import db from '../db/database.js';
 import { nowUTC8, addDaysUTC8 } from '../utils/datetime.js';
 import { RECEIPTS_UPLOAD_DIR, RETENTION_DAYS } from '../services/receiptCleanup.js';
+import { receiptUploadLimiter } from '../middleware/security.js';
 
 const router = Router();
 
@@ -18,6 +19,33 @@ const EXT_BY_MIME = {
   'image/heif': '.heif',
 };
 
+function detectImageMimeType(filePath) {
+  const bytes = fs.readFileSync(filePath);
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
+  if (bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'image/png';
+  if (bytes.length >= 12 && bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WEBP') return 'image/webp';
+  if (bytes.length >= 12 && bytes.subarray(4, 8).toString('ascii') === 'ftyp') {
+    const brand = bytes.subarray(8, 12).toString('ascii').toLowerCase();
+    if (['heic', 'heix', 'hevc', 'hevx'].includes(brand)) return 'image/heic';
+    if (['mif1', 'msf1'].includes(brand)) return 'image/heif';
+  }
+  return null;
+}
+
+function verifyUploadedImage(file) {
+  const mimeType = detectImageMimeType(file.path);
+  if (!mimeType || !ALLOWED_MIME_TYPES.has(mimeType)) {
+    throw new Error('Uploaded file is not a supported image.');
+  }
+
+  const extension = EXT_BY_MIME[mimeType];
+  const targetPath = path.join(path.dirname(file.path), `${path.parse(file.filename).name}${extension}`);
+  if (targetPath !== file.path) {
+    fs.renameSync(file.path, targetPath);
+    file.filename = path.basename(targetPath);
+  }
+  file.mimetype = mimeType;
+}
 if (!fs.existsSync(RECEIPTS_UPLOAD_DIR)) {
   fs.mkdirSync(RECEIPTS_UPLOAD_DIR, { recursive: true });
 }
@@ -67,7 +95,7 @@ router.get('/', (_req, res) => {
   }
 });
 
-router.post('/', (req, res) => {
+router.post('/', receiptUploadLimiter, (req, res) => {
   upload.single('image')(req, res, (err) => {
     if (err instanceof multer.MulterError) {
       const message = err.code === 'LIMIT_FILE_SIZE'
@@ -83,6 +111,7 @@ router.post('/', (req, res) => {
     }
 
     try {
+      verifyUploadedImage(req.file);
       const uploadedAt = nowUTC8();
       const expiresAt = addDaysUTC8(new Date(), RETENTION_DAYS);
 

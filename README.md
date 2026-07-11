@@ -63,6 +63,9 @@ EXCHANGE_RATE_CACHE_MINUTES=15
 ADMIN_USERNAME=
 ADMIN_PIN_HASH=
 AUTH_SESSION_SECRET=
+CLIENT_ORIGIN=http://localhost:5173
+# Set TRUST_PROXY to 1 only when deployed behind one trusted reverse proxy.
+# TRUST_PROXY=1
 ```
 
 ### 3. Run the Application
@@ -113,3 +116,20 @@ Table name: `expenses`
 - `GET /api/summary`: Retrieve totals, category spending, and trend logs.
 - `GET /api/exchange-rate`: View cached exchange rate information.
 # Financial-Tracker
+
+---
+
+## Security Improvements
+
+The API is hardened with the following controls:
+
+- Helmet security headers, restrictive Content Security Policy, no-store responses, a restrictive Permissions Policy, and production HSTS.
+- A credentialed CORS allowlist. Configure `CLIENT_ORIGIN` with one or more comma-separated trusted origins; production requires HTTPS origins.
+- Origin and `Sec-Fetch-Site` validation for every state-changing API request to mitigate CSRF. Session cookies remain `HttpOnly`, `SameSite=Strict`, `Priority=High`, and are `Secure` in production.
+- Signed, time-limited session tokens with constant-time signature verification. Startup now rejects missing, weak, or placeholder session secrets and invalid admin credential configuration.
+- Rate limits for all API traffic (300 requests per 15 minutes), login attempts (5 failed attempts per 15 minutes), receipt uploads (20 per hour), and exports (10 per 15 minutes). Set `TRUST_PROXY` only for the number of trusted proxy hops in production so client IP limits remain correct.
+- JSON body size limits, safe JSON error handling, and strict server-side validation of expense fields, amounts, timestamps, currencies, and identifiers.
+- Prepared SQL statements and an allowlist for sortable columns protect database operations from SQL injection.
+- Receipt uploads are size-limited, use server-generated names, and are validated by file signature before storage; only JPEG, PNG, WebP, HEIC, and HEIF images are accepted.
+- React’s default escaping protects rendered data from XSS, and exported spreadsheet text is escaped to prevent formula injection when opening XLSX files.
+- Sensitive configuration is kept in the root `.env`, which remains ignored by Git. Do not commit real session secrets, PIN hashes, or database files.
