@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { buildRecordsExportWorkbook } from '../services/exportWorkbook.js';
 import { nowUTC8 } from '../utils/datetime.js';
+import { exportLimiter } from '../middleware/security.js';
 
 const router = Router();
 
-router.get('/records', async (_req, res) => {
+router.get('/records', exportLimiter, async (_req, res) => {
   try {
     const buffer = await buildRecordsExportWorkbook();
     const datePart = nowUTC8().slice(0, 10);

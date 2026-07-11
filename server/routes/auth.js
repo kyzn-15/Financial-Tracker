@@ -8,44 +8,9 @@ import {
   SESSION_COOKIE_NAME,
   verifySessionToken,
 } from '../utils/auth.js';
+import { loginLimiter } from '../middleware/security.js';
 
 const router = Router();
-
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOGIN_WINDOW_MS = 15 * 60 * 1000;
-const attemptsByIp = new Map();
-
-function getClientIp(req) {
-  return req.ip || req.socket?.remoteAddress || 'unknown';
-}
-
-function isRateLimited(ip) {
-  const now = Date.now();
-  const attempt = attemptsByIp.get(ip);
-
-  if (!attempt || attempt.resetAt <= now) {
-    attemptsByIp.set(ip, { count: 0, resetAt: now + LOGIN_WINDOW_MS });
-    return false;
-  }
-
-  return attempt.count >= MAX_LOGIN_ATTEMPTS;
-}
-
-function recordFailedAttempt(ip) {
-  const now = Date.now();
-  const attempt = attemptsByIp.get(ip);
-
-  if (!attempt || attempt.resetAt <= now) {
-    attemptsByIp.set(ip, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
-    return;
-  }
-
-  attempt.count += 1;
-}
-
-function clearFailedAttempts(ip) {
-  attemptsByIp.delete(ip);
-}
 
 function getAdminCredentials() {
   const username = process.env.ADMIN_USERNAME;
@@ -68,17 +33,11 @@ function validateLoginInput(username, pin) {
   );
 }
 
-router.post('/login', async (req, res) => {
-  const ip = getClientIp(req);
-
-  if (isRateLimited(ip)) {
-    return res.status(429).json({ error: 'Too many login attempts. Try again later.' });
-  }
+router.post('/login', loginLimiter, async (req, res) => {
 
   const { username, pin } = req.body ?? {};
 
   if (!validateLoginInput(username, pin)) {
-    recordFailedAttempt(ip);
     return res.status(400).json({ error: 'Invalid login request.' });
   }
 
@@ -88,11 +47,9 @@ router.post('/login', async (req, res) => {
     const isPinValid = await bcrypt.compare(pin, admin.pinHash);
 
     if (!isUsernameValid || !isPinValid) {
-      recordFailedAttempt(ip);
       return res.status(401).json({ error: 'Invalid username or PIN.' });
     }
 
-    clearFailedAttempts(ip);
     const token = createSessionToken(admin.username);
 
     res.setHeader('Set-Cookie', createSessionCookie(token));
