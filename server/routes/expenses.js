@@ -5,6 +5,41 @@ import { getExchangeRate } from '../services/exchangeRate.js';
 
 const router = Router();
 
+const MAX_EXPENSE_TEXT_LENGTH = 160;
+const MAX_EXPENSE_AMOUNT = 1_000_000_000;
+const UTC8_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?\+08:00$/;
+
+function validateExpenseInput(input) {
+  const { name, category, price, currency, timestamp } = input ?? {};
+  const normalizedName = typeof name === 'string' ? name.trim() : '';
+  const normalizedCategory = typeof category === 'string' ? category.trim() : '';
+  const normalizedCurrency = typeof currency === 'string' ? currency.toUpperCase() : '';
+  const normalizedPrice = Number(price);
+
+  if (!normalizedName || normalizedName.length > MAX_EXPENSE_TEXT_LENGTH || !normalizedCategory || normalizedCategory.length > MAX_EXPENSE_TEXT_LENGTH) {
+    return null;
+  }
+  if (!Number.isFinite(normalizedPrice) || normalizedPrice <= 0 || normalizedPrice > MAX_EXPENSE_AMOUNT) {
+    return null;
+  }
+  if (!['MYR', 'IDR'].includes(normalizedCurrency)) return null;
+  if (timestamp != null && timestamp !== '' && (typeof timestamp !== 'string' || !UTC8_TIMESTAMP_PATTERN.test(timestamp) || Number.isNaN(Date.parse(timestamp)))) {
+    return null;
+  }
+
+  return {
+    name: normalizedName,
+    category: normalizedCategory,
+    price: normalizedPrice,
+    currency: normalizedCurrency,
+    timestamp: timestamp || '',
+  };
+}
+
+function parseExpenseId(value) {
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
 // ─── Helper: get current UTC+8 timestamp in ISO 8601 ────────────────────────
 function nowUTC8() {
   const now = new Date();
@@ -17,22 +52,12 @@ function nowUTC8() {
 // ─── POST /api/expenses — Create a new expense ──────────────────────────────
 router.post('/', async (req, res) => {
   try {
-    const { name, category, price, currency, timestamp } = req.body;
-
-    // Validate required fields
-    if (!name || !category || price == null || !currency) {
-      return res.status(400).json({
-        error: 'Missing required fields: name, category, price, currency',
-      });
+    const input = validateExpenseInput(req.body);
+    if (!input) {
+      return res.status(400).json({ error: 'Invalid expense details.' });
     }
-
-    if (!['MYR', 'IDR'].includes(currency.toUpperCase())) {
-      return res.status(400).json({
-        error: 'currency must be MYR or IDR',
-      });
-    }
-
-    const cur = currency.toUpperCase();
+    const { name, category, price, currency, timestamp } = input;
+    const cur = currency;
     const ts = timestamp && timestamp.trim() !== '' ? timestamp : nowUTC8();
 
     // Fetch exchange rate
@@ -107,7 +132,9 @@ router.get('/', (req, res) => {
 // ─── GET /api/expenses/:id — Get a single expense ──────────────────────────
 router.get('/:id', (req, res) => {
   try {
-    const expense = db.prepare('SELECT * FROM expenses WHERE id = ?').get(req.params.id);
+    const id = parseExpenseId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid expense id' });
+    const expense = db.prepare('SELECT * FROM expenses WHERE id = ?').get(id);
 
     if (!expense) {
       return res.status(404).json({ error: 'Expense not found' });
@@ -123,26 +150,18 @@ router.get('/:id', (req, res) => {
 // ─── PUT /api/expenses/:id — Update an expense ─────────────────────────────
 router.put('/:id', async (req, res) => {
   try {
-    const { name, category, price, currency, timestamp } = req.body;
+    const id = parseExpenseId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid expense id' });
 
-    // Check the record exists
-    const existing = db.prepare('SELECT * FROM expenses WHERE id = ?').get(req.params.id);
+    const existing = db.prepare('SELECT * FROM expenses WHERE id = ?').get(id);
     if (!existing) {
       return res.status(404).json({ error: 'Expense not found' });
     }
 
-    // Validate required fields
-    if (!name || !category || price == null || !currency) {
-      return res.status(400).json({
-        error: 'Missing required fields: name, category, price, currency',
-      });
-    }
-
-    if (!['MYR', 'IDR'].includes(currency.toUpperCase())) {
-      return res.status(400).json({ error: 'currency must be MYR or IDR' });
-    }
-
-    const cur = currency.toUpperCase();
+    const input = validateExpenseInput(req.body);
+    if (!input) return res.status(400).json({ error: 'Invalid expense details.' });
+    const { name, category, price, currency, timestamp } = input;
+    const cur = currency;
     const ts = timestamp && timestamp.trim() !== '' ? timestamp : nowUTC8();
 
     // Re-fetch exchange rate for recalculation
@@ -166,7 +185,7 @@ router.put('/:id', async (req, res) => {
       WHERE id = ?
     `);
 
-    stmt.run(name, category, priceMyr, priceIdr, cur, exchangeRateUsed, ts, req.params.id);
+    stmt.run(name, category, priceMyr, priceIdr, cur, exchangeRateUsed, ts, id);
 
     const updated = db.prepare('SELECT * FROM expenses WHERE id = ?').get(req.params.id);
     res.json(updated);
@@ -179,12 +198,14 @@ router.put('/:id', async (req, res) => {
 // ─── DELETE /api/expenses/:id — Delete an expense ───────────────────────────
 router.delete('/:id', (req, res) => {
   try {
-    const existing = db.prepare('SELECT * FROM expenses WHERE id = ?').get(req.params.id);
+    const id = parseExpenseId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid expense id' });
+    const existing = db.prepare('SELECT * FROM expenses WHERE id = ?').get(id);
     if (!existing) {
       return res.status(404).json({ error: 'Expense not found' });
     }
 
-    db.prepare('DELETE FROM expenses WHERE id = ?').run(req.params.id);
+    db.prepare('DELETE FROM expenses WHERE id = ?').run(id);
     res.status(204).send();
   } catch (err) {
     console.error('DELETE /api/expenses/:id error:', err);
