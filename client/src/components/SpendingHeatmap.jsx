@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { formatCurrencyAmount, formatDate } from '../utils/formatters';
 
-function HeatmapTooltip({ day, formatCurrency }) {
+function HeatmapTooltip({ day, formatCurrency, onViewExpenses }) {
   if (!day) return <p className="heatmap-tooltip">Hover over a day to see its spending.</p>;
 
   return (
@@ -9,11 +9,16 @@ function HeatmapTooltip({ day, formatCurrency }) {
       <strong>{formatDate(`${day.date}T00:00:00+08:00`)}</strong>
       <span>{formatCurrency(day.total)}</span>
       <span>{day.transactions} {day.transactions === 1 ? 'transaction' : 'transactions'}</span>
+      {day.transactions > 0 && (
+        <button className="heatmap-tooltip__action" type="button" onClick={() => onViewExpenses(day.date)}>
+          View expenses
+        </button>
+      )}
     </p>
   );
 }
 
-export default function SpendingHeatmap({ days = [], currency = 'MYR', myrToIdr = 4500, streak = 0 }) {
+export default function SpendingHeatmap({ days = [], currency = 'MYR', myrToIdr = 4500, streak = 0, onViewExpenses }) {
   const [hoveredDay, setHoveredDay] = useState(null);
   const hasSpending = days.some((day) => day.total > 0);
   const formatCurrency = (amount) => formatCurrencyAmount(amount, currency, myrToIdr);
@@ -33,7 +38,7 @@ export default function SpendingHeatmap({ days = [], currency = 'MYR', myrToIdr 
       </div>
       {hasSpending ? (
         <>
-          <HeatmapTooltip day={hoveredDay} formatCurrency={formatCurrency} />
+          <HeatmapTooltip day={hoveredDay} formatCurrency={formatCurrency} onViewExpenses={onViewExpenses} />
           <div className="heatmap-scroll" aria-label="Daily spending heatmap">
             <div className="heatmap-grid">
               {days.map((day) => (
@@ -44,6 +49,7 @@ export default function SpendingHeatmap({ days = [], currency = 'MYR', myrToIdr 
                   aria-label={`${formatDate(`${day.date}T00:00:00+08:00`)}, ${formatCurrency(day.total)}, ${day.transactions} transactions`}
                   onMouseEnter={() => setHoveredDay(day)}
                   onFocus={() => setHoveredDay(day)}
+                  onClick={() => day.transactions > 0 && onViewExpenses(day.date)}
                 />
               ))}
             </div>

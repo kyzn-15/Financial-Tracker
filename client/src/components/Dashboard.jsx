@@ -31,7 +31,7 @@ function SectionHeading({ eyebrow, title, description }) {
   );
 }
 
-export default function Dashboard({ summary, currency = 'MYR', exchangeRate }) {
+export default function Dashboard({ summary, currency = 'MYR', exchangeRate, onViewHeatmapExpenses }) {
   const myrToIdr = exchangeRate?.myrToIdr || 4500;
   const formatCurrency = useCallback(
     (amount) => formatCurrencyAmount(amount, currency, myrToIdr),
@@ -85,7 +85,7 @@ export default function Dashboard({ summary, currency = 'MYR', exchangeRate }) {
         <SectionHeading eyebrow="Spending Behaviour" title="Patterns over time" description="Explore when and how your spending happens." />
         <div className="charts-grid charts-grid--behaviour">
           <WeekdayChart weekdaySpending={weekdaySpending} currency={currency} myrToIdr={myrToIdr} />
-          <SpendingHeatmap days={heatmapDays} currency={currency} myrToIdr={myrToIdr} streak={expenseStreak} />
+          <SpendingHeatmap days={heatmapDays} currency={currency} myrToIdr={myrToIdr} streak={expenseStreak} onViewExpenses={onViewHeatmapExpenses} />
           <TrendChart trend={trend} currency={currency} myrToIdr={myrToIdr} />
         </div>
       </section>

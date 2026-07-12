@@ -1050,6 +1050,23 @@
   color: var(--text-primary);
 }
 
+.heatmap-tooltip__action {
+  margin-left: auto;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: var(--neo-out-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.heatmap-tooltip__action:hover {
+  background: var(--accent);
+  color: var(--text-inverse);
+}
+
 .heatmap-scroll {
   overflow-x: auto;
   padding: var(--space-xs) 2px var(--space-md);
@@ -2245,6 +2262,11 @@ button.heatmap-day:focus-visible {
   .heatmap-card .chart-card__header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .heatmap-tooltip__action {
+    width: 100%;
+    margin-left: 0;
   }
 }
 
