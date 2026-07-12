@@ -13,7 +13,7 @@ function HeatmapTooltip({ day, formatCurrency }) {
   );
 }
 
-export default function SpendingHeatmap({ days = [], currency = 'MYR', myrToIdr = 4500 }) {
+export default function SpendingHeatmap({ days = [], currency = 'MYR', myrToIdr = 4500, streak = 0 }) {
   const [hoveredDay, setHoveredDay] = useState(null);
   const hasSpending = days.some((day) => day.total > 0);
   const formatCurrency = (amount) => formatCurrencyAmount(amount, currency, myrToIdr);
@@ -24,6 +24,11 @@ export default function SpendingHeatmap({ days = [], currency = 'MYR', myrToIdr 
         <div>
           <h3 className="chart-card__title">Spending Heatmap</h3>
           <p className="chart-card__subtitle">Daily spending over the last 12 months</p>
+        </div>
+        <div className={`heatmap-streak ${streak > 0 ? 'heatmap-streak--active' : 'heatmap-streak--inactive'}`} title="Consecutive days with at least one expense recorded">
+          <span className="heatmap-streak__fire" aria-hidden="true">🔥</span>
+          <strong>{streak}</strong>
+          <span className="heatmap-streak__label">day streak</span>
         </div>
       </div>
       {hasSpending ? (

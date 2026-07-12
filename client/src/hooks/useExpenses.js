@@ -8,6 +8,7 @@ export function useExpenses() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
+    name: '',
     category: '',
     startDate: '',
     endDate: '',
@@ -89,6 +90,7 @@ export function useExpenses() {
 
   const clearFilters = () => {
     setFilters({
+      name: '',
       category: '',
       startDate: '',
       endDate: '',

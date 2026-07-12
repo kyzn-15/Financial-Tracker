@@ -94,11 +94,16 @@ router.post('/', async (req, res) => {
 // ─── GET /api/expenses — List expenses with optional filters ────────────────
 router.get('/', (req, res) => {
   try {
-    const { category, startDate, endDate, sort, order } = req.query;
+    const { name, category, startDate, endDate, sort, order } = req.query;
 
     const conditions = [];
     const params = [];
 
+    if (typeof name === 'string' && name.trim()) {
+      const escapedName = name.trim().replace(/[\\%_]/g, '\\$&');
+      conditions.push("name LIKE ? ESCAPE '\\' COLLATE NOCASE");
+      params.push(`%${escapedName}%`);
+    }
     if (category) {
       conditions.push('category = ?');
       params.push(category);

@@ -171,6 +171,21 @@ export function getHeatmapInsight(heatmapDays = []) {
   return highestWeek?.total > 0 ? highestWeek : null;
 }
 
+export function getExpenseStreak(heatmapDays = [], referenceDate) {
+  if (!referenceDate || heatmapDays.length === 0) return 0;
+
+  const transactionsByDate = new Map(heatmapDays.map((day) => [day.date, number(day.transactions)]));
+  let streak = 0;
+  let date = parseDate(referenceDate);
+
+  while (transactionsByDate.get(toDateKey(date)) > 0) {
+    streak += 1;
+    date.setUTCDate(date.getUTCDate() - 1);
+  }
+
+  return streak;
+}
+
 export function getFinancialInsights({ comparison, categoryGrowth, weekdaySpending, largestPurchase, heatmapInsight, formatCurrency, formatDate }) {
   const insights = [];
 
