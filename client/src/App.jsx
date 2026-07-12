@@ -232,6 +232,16 @@ function AuthenticatedApp({ onLogout }) {
     }
   };
 
+  const handleViewHeatmapExpenses = (date) => {
+    updateFilters({
+      name: '',
+      category: '',
+      startDate: `${date}T00:00:00+08:00`,
+      endDate: `${date}T23:59:59+08:00`,
+    });
+    setActiveTab('history');
+  };
+
   const handleLogout = async () => {
     setIsLoggingOut(true);
     await onLogout();
@@ -273,7 +283,7 @@ function AuthenticatedApp({ onLogout }) {
           )}
 
           {activeTab === 'dashboard' && (
-            <Dashboard summary={summary} currency={currency} exchangeRate={exchangeRate} />
+            <Dashboard summary={summary} currency={currency} exchangeRate={exchangeRate} onViewHeatmapExpenses={handleViewHeatmapExpenses} />
           )}
 
           {activeTab === 'history' && (
