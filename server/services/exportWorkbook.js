@@ -21,9 +21,9 @@ function money(value) {
 
 function safeText(value) {
   if (value == null || value === '') return '-';
-  return String(value);
+  const text = String(value);
+  return /^[=+\-@]/.test(text) ? `'${text}` : text;
 }
-
 function addSheet(workbook, name, columns) {
   const sheet = workbook.addWorksheet(name, {
     views: [{ state: 'frozen', ySplit: 1 }],
@@ -105,6 +105,8 @@ function addExpensesSheet(workbook, expenses) {
   expenses.forEach((expense) => {
     sheet.addRow({
       ...expense,
+      name: safeText(expense.name),
+      category: safeText(expense.category),
       price_myr: money(expense.price_myr),
       price_idr: money(expense.price_idr),
       exchange_rate_used: money(expense.exchange_rate_used),
@@ -188,7 +190,7 @@ function addEmergencySheets(workbook, emergency) {
   ]);
   emergency.analytics?.categoryAverages?.forEach((item) => {
     categorySheet.addRow({
-      category: item.category,
+      category: safeText(item.category),
       average_myr: money(item.average_myr),
       is_essential: item.is_essential ? 'Yes' : 'No',
     });

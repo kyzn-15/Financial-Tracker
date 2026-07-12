@@ -20,20 +20,29 @@ import receiptsRouter from './routes/receipts.js';
 import emergencyRouter from './routes/emergency.js';
 import exportRouter from './routes/export.js';
 import { scheduleReceiptCleanup } from './services/receiptCleanup.js';
+import { assertAuthConfiguration } from './utils/auth.js';
+import {
+  apiLimiter,
+  configureTrustProxy,
+  corsOptions,
+  requireTrustedOrigin,
+  securityHeaders,
+  setApiResponseHeaders,
+} from './middleware/security.js';
 
 // ─── Initialize database ────────────────────────────────────────────────────
 initSchema();
 seedIfEmpty();
+assertAuthConfiguration();
 
 // ─── Create Express app ─────────────────────────────────────────────────────
 const app = express();
 
-// Middleware
-app.use(cors({
-  origin: process.env.CLIENT_ORIGIN || true,
-  credentials: true,
-}));
-app.use(express.json());
+configureTrustProxy(app);
+app.use(securityHeaders);
+app.use(setApiResponseHeaders);
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '100kb', strict: true }));
 app.use((err, _req, res, next) => {
   if (err instanceof SyntaxError && 'body' in err) {
     return res.status(400).json({ error: 'Invalid JSON body.' });
@@ -41,6 +50,8 @@ app.use((err, _req, res, next) => {
 
   return next(err);
 });
+app.use('/api', apiLimiter);
+app.use('/api', requireTrustedOrigin);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -59,6 +70,15 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.use((err, _req, res, _next) => {
+  if (res.headersSent) return;
+
+  const status = Number.isInteger(err.statusCode) ? err.statusCode : 500;
+  if (status >= 500) {
+    console.error('Unhandled API error:', err.message);
+  }
+  res.status(status).json({ error: status === 403 ? 'Request not allowed.' : 'Internal server error.' });
+});
 // ─── Start server ────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
