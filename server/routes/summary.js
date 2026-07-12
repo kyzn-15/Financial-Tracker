@@ -2,43 +2,35 @@
 import { Router } from 'express';
 import db from '../db/database.js';
 import { getExchangeRateInfo } from '../services/exchangeRate.js';
+import { getMonthRangeUTC8, getUTC8Date, subtractDaysUTC8 } from '../utils/datetime.js';
 
 const router = Router();
 
-// ─── GET /api/summary — Aggregated expense summary ─────────────────────────
+// ——— GET /api/summary — Dashboard aggregates ———————————————————————————
 router.get('/summary', (req, res) => {
   try {
-    // Current month boundaries in UTC+8
-    const now = new Date();
-    const utc8Now = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-    const year = utc8Now.getUTCFullYear();
-    const month = String(utc8Now.getUTCMonth() + 1).padStart(2, '0');
-    const monthStart = `${year}-${month}-01T00:00:00+08:00`;
+    const referenceDate = getUTC8Date();
+    const currentMonth = getMonthRangeUTC8(referenceDate);
+    const previousMonth = getMonthRangeUTC8(referenceDate, -1);
+    const trendStart = `${subtractDaysUTC8(referenceDate, 29)}T00:00:00+08:00`;
+    const heatmapStart = `${subtractDaysUTC8(referenceDate, 364)}T00:00:00+08:00`;
 
-    // Next month start
-    const nextMonth =
-      utc8Now.getUTCMonth() + 2 > 12
-        ? `${year + 1}-01-01T00:00:00+08:00`
-        : `${year}-${String(utc8Now.getUTCMonth() + 2).padStart(2, '0')}-01T00:00:00+08:00`;
-
-    // Monthly total
     const monthlyTotal = db
       .prepare(
         `SELECT COALESCE(SUM(price_myr), 0) AS myr, COALESCE(SUM(price_idr), 0) AS idr
          FROM expenses
          WHERE timestamp >= ? AND timestamp < ?`
       )
-      .get(monthStart, nextMonth);
+      .get(currentMonth.start, currentMonth.end);
 
-    // Count
     const countRow = db
       .prepare(
-        `SELECT COUNT(*) AS count FROM expenses
+        `SELECT COUNT(*) AS count
+         FROM expenses
          WHERE timestamp >= ? AND timestamp < ?`
       )
-      .get(monthStart, nextMonth);
+      .get(currentMonth.start, currentMonth.end);
 
-    // By category (current month)
     const byCategory = db
       .prepare(
         `SELECT category,
@@ -49,35 +41,111 @@ router.get('/summary', (req, res) => {
          GROUP BY category
          ORDER BY total_myr DESC`
       )
-      .all(monthStart, nextMonth);
+      .all(currentMonth.start, currentMonth.end);
 
-    // Top category
-    const topCategory = byCategory.length > 0 ? byCategory[0].category : null;
+    const previousMonthTotal = db
+      .prepare(
+        `SELECT COALESCE(SUM(price_myr), 0) AS myr, COALESCE(SUM(price_idr), 0) AS idr
+         FROM expenses
+         WHERE timestamp >= ? AND timestamp < ?`
+      )
+      .get(previousMonth.start, previousMonth.end);
 
-    // Daily trend — last 30 days
-    const thirtyDaysAgo = new Date(utc8Now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const thirtyDaysAgoStr =
-      thirtyDaysAgo.toISOString().split('T')[0] + 'T00:00:00+08:00';
+    const categoryComparison = db
+      .prepare(
+        `SELECT category,
+                COALESCE(SUM(CASE WHEN timestamp >= ? AND timestamp < ? THEN price_myr ELSE 0 END), 0) AS current_myr,
+                COALESCE(SUM(CASE WHEN timestamp >= ? AND timestamp < ? THEN price_idr ELSE 0 END), 0) AS current_idr,
+                COALESCE(SUM(CASE WHEN timestamp >= ? AND timestamp < ? THEN price_myr ELSE 0 END), 0) AS previous_myr,
+                COALESCE(SUM(CASE WHEN timestamp >= ? AND timestamp < ? THEN price_idr ELSE 0 END), 0) AS previous_idr
+         FROM expenses
+         WHERE (timestamp >= ? AND timestamp < ?) OR (timestamp >= ? AND timestamp < ?)
+         GROUP BY category`
+      )
+      .all(
+        currentMonth.start,
+        currentMonth.end,
+        currentMonth.start,
+        currentMonth.end,
+        previousMonth.start,
+        previousMonth.end,
+        previousMonth.start,
+        previousMonth.end,
+        currentMonth.start,
+        currentMonth.end,
+        previousMonth.start,
+        previousMonth.end
+      );
+
+    const largestPurchase = db
+      .prepare(
+        `SELECT id, name, category, price_myr, price_idr, timestamp
+         FROM expenses
+         ORDER BY COALESCE(price_myr, 0) DESC, id DESC
+         LIMIT 1`
+      )
+      .get();
+
+    const weekdaySpending = db
+      .prepare(
+        `WITH daily_totals AS (
+           SELECT strftime('%w', substr(timestamp, 1, 10)) AS weekday,
+                  substr(timestamp, 1, 10) AS date,
+                  COALESCE(SUM(price_myr), 0) AS total_myr,
+                  COALESCE(SUM(price_idr), 0) AS total_idr
+           FROM expenses
+           GROUP BY weekday, date
+         )
+         SELECT weekday,
+                AVG(total_myr) AS average_myr,
+                AVG(total_idr) AS average_idr,
+                COUNT(*) AS active_days
+         FROM daily_totals
+         GROUP BY weekday`
+      )
+      .all();
 
     const dailyTrend = db
       .prepare(
-        `SELECT
-           substr(timestamp, 1, 10) AS date,
-           COALESCE(SUM(price_myr), 0) AS total_myr,
-           COALESCE(SUM(price_idr), 0) AS total_idr
+        `SELECT substr(timestamp, 1, 10) AS date,
+                COALESCE(SUM(price_myr), 0) AS total_myr,
+                COALESCE(SUM(price_idr), 0) AS total_idr,
+                COUNT(*) AS transaction_count
          FROM expenses
          WHERE timestamp >= ?
          GROUP BY date
          ORDER BY date ASC`
       )
-      .all(thirtyDaysAgoStr);
+      .all(trendStart);
+
+    const heatmap = db
+      .prepare(
+        `SELECT substr(timestamp, 1, 10) AS date,
+                COALESCE(SUM(price_myr), 0) AS total_myr,
+                COALESCE(SUM(price_idr), 0) AS total_idr,
+                COUNT(*) AS transaction_count
+         FROM expenses
+         WHERE timestamp >= ?
+         GROUP BY date
+         ORDER BY date ASC`
+      )
+      .all(heatmapStart);
 
     res.json({
       monthlyTotal,
       byCategory,
       dailyTrend,
       count: countRow.count,
-      topCategory,
+      topCategory: byCategory.length > 0 ? byCategory[0].category : null,
+      referenceDate,
+      monthlyComparison: {
+        current: monthlyTotal,
+        previous: previousMonthTotal,
+      },
+      categoryComparison,
+      largestPurchase: largestPurchase || null,
+      weekdaySpending,
+      heatmap,
     });
   } catch (err) {
     console.error('GET /api/summary error:', err);
@@ -85,7 +153,7 @@ router.get('/summary', (req, res) => {
   }
 });
 
-// ─── GET /api/exchange-rate — Current cached exchange rate info ──────────────
+// ——— GET /api/exchange-rate — Current cached exchange rate info ——————————
 router.get('/exchange-rate', async (req, res) => {
   try {
     const info = await getExchangeRateInfo();

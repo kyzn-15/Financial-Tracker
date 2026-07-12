@@ -43,6 +43,7 @@ export async function logout() {
 
 export async function getExpenses(filters = {}) {
   const params = new URLSearchParams();
+  if (filters.name) params.set('name', filters.name);
   if (filters.category) params.set('category', filters.category);
   if (filters.startDate) params.set('startDate', filters.startDate);
   if (filters.endDate) params.set('endDate', filters.endDate);

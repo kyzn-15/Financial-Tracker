@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ArcElement,
   CategoryScale,
@@ -11,7 +11,7 @@ import {
   Tooltip,
 } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
-import { formatMYR } from '../utils/formatters';
+import { convertMyrAmount, convertToMyrAmount, formatCurrencyAmount } from '../utils/formatters';
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
@@ -42,7 +42,7 @@ function EmergencyMetric({ label, value, sub }) {
   );
 }
 
-function SettingsPanel({ settingsPayload, onSave, saving }) {
+function SettingsPanel({ settingsPayload, onSave, saving, currency, myrToIdr }) {
   const settings = settingsPayload?.settings;
   const categories = settingsPayload?.categories || [];
   const [form, setForm] = useState({
@@ -67,6 +67,9 @@ function SettingsPanel({ settingsPayload, onSave, saving }) {
     setMessage('');
     setForm((prev) => ({ ...prev, [field]: value }));
   };
+
+  const updateMoneyField = (field, value) => updateField(field, convertToMyrAmount(value, currency, myrToIdr));
+  const displayAmount = (value) => convertMyrAmount(value, currency, myrToIdr);
 
   const toggleCategory = (category) => {
     setMessage('');
@@ -118,15 +121,15 @@ function SettingsPanel({ settingsPayload, onSave, saving }) {
         <div className="neo-input-group">
           <label className="neo-label" htmlFor="emergency-current-savings">Current Savings</label>
           <div className="money-input">
-            <span>RM</span>
+            <span>{currency === 'MYR' ? 'RM' : 'Rp'}</span>
             <input
               id="emergency-current-savings"
               className="neo-input"
               type="number"
               min="0"
               step="0.01"
-              value={form.current_savings_myr}
-              onChange={(event) => updateField('current_savings_myr', event.target.value)}
+              value={displayAmount(form.current_savings_myr)}
+              onChange={(event) => updateMoneyField('current_savings_myr', event.target.value)}
             />
           </div>
         </div>
@@ -134,15 +137,15 @@ function SettingsPanel({ settingsPayload, onSave, saving }) {
         <div className="neo-input-group">
           <label className="neo-label" htmlFor="emergency-reserved-funds">Reserved Funds</label>
           <div className="money-input">
-            <span>RM</span>
+            <span>{currency === 'MYR' ? 'RM' : 'Rp'}</span>
             <input
               id="emergency-reserved-funds"
               className="neo-input"
               type="number"
               min="0"
               step="0.01"
-              value={form.reserved_funds_myr}
-              onChange={(event) => updateField('reserved_funds_myr', event.target.value)}
+              value={displayAmount(form.reserved_funds_myr)}
+              onChange={(event) => updateMoneyField('reserved_funds_myr', event.target.value)}
             />
           </div>
         </div>
@@ -246,7 +249,7 @@ function CoverageOverview({ summary }) {
   );
 }
 
-function GoalCard({ summary, planMonths, setPlanMonths }) {
+function GoalCard({ summary, planMonths, setPlanMonths, formatAmount }) {
   const monthlyNeeded = planMonths > 0 ? summary.remainingSavingsMyr / planMonths : 0;
 
   return (
@@ -256,9 +259,9 @@ function GoalCard({ summary, planMonths, setPlanMonths }) {
         <p>Target savings are based on essential monthly expenses.</p>
       </div>
       <div className="emergency-goal__grid">
-        <EmergencyMetric label="Target" value={`${summary.targetMonths} Months`} sub={formatMYR(summary.targetSavingsMyr)} />
-        <EmergencyMetric label="Current" value={formatMYR(summary.availableSavingsMyr)} sub="Available emergency savings" />
-        <EmergencyMetric label="Remaining" value={formatMYR(summary.remainingSavingsMyr)} sub="Needed to reach target" />
+        <EmergencyMetric label="Target" value={`${summary.targetMonths} Months`} sub={formatAmount(summary.targetSavingsMyr)} />
+        <EmergencyMetric label="Current" value={formatAmount(summary.availableSavingsMyr)} sub="Available emergency savings" />
+        <EmergencyMetric label="Remaining" value={formatAmount(summary.remainingSavingsMyr)} sub="Needed to reach target" />
       </div>
       <div className="emergency-plan">
         <label className="neo-label" htmlFor="emergency-plan-months">Reach Goal In</label>
@@ -274,7 +277,7 @@ function GoalCard({ summary, planMonths, setPlanMonths }) {
         </select>
         <div className="emergency-plan__result">
           <span>Monthly Saving Needed</span>
-          <strong>{formatMYR(monthlyNeeded)}</strong>
+          <strong>{formatAmount(monthlyNeeded)}</strong>
         </div>
       </div>
     </section>
@@ -299,7 +302,7 @@ function Insights({ insights }) {
   );
 }
 
-function Timeline({ summary }) {
+function Timeline({ summary, formatAmount }) {
   const monthCount = Math.max(summary.targetMonths, Math.ceil(summary.coverageMonths || 1));
   const months = Array.from({ length: Math.min(monthCount, 12) }, (_, index) => index + 1);
   const monthlyExpense = summary.averageMonthlyEssentialExpenseMyr;
@@ -312,7 +315,7 @@ function Timeline({ summary }) {
       <div className="timeline-row timeline-row--today">
         <span>Today</span>
         <div className="timeline-bar timeline-bar--full"></div>
-        <strong>{formatMYR(summary.availableSavingsMyr)}</strong>
+        <strong>{formatAmount(summary.availableSavingsMyr)}</strong>
       </div>
       {months.map((month) => {
         const remaining = Math.max(0, summary.availableSavingsMyr - monthlyExpense * month);
@@ -323,7 +326,7 @@ function Timeline({ summary }) {
             <div className="timeline-bar">
               <div style={{ width: `${percent}%` }}></div>
             </div>
-            <strong>{formatMYR(remaining)}</strong>
+            <strong>{formatAmount(remaining)}</strong>
           </div>
         );
       })}
@@ -342,7 +345,7 @@ function createAdjustment(categoryAverages = []) {
   };
 }
 
-function Simulator({ simulation, runSimulation, categoryAverages }) {
+function Simulator({ simulation, runSimulation, categoryAverages, currency, myrToIdr, formatAmount }) {
   const [adjustments, setAdjustments] = useState(() => [createAdjustment(categoryAverages)]);
   const [message, setMessage] = useState('');
 
@@ -360,6 +363,8 @@ function Simulator({ simulation, runSimulation, categoryAverages }) {
       item.id === id ? { ...item, [field]: value } : item
     )));
   };
+
+  const updateAmountAdjustment = (id, value) => updateAdjustment(id, 'amountMyr', convertToMyrAmount(value, currency, myrToIdr));
 
   const addAdjustment = () => {
     setMessage('');
@@ -420,7 +425,7 @@ function Simulator({ simulation, runSimulation, categoryAverages }) {
                   value={item.type}
                   onChange={(event) => updateAdjustment(item.id, 'type', event.target.value)}
                 >
-                  <option value="amount">RM Change</option>
+                  <option value="amount">{currency} Change</option>
                   <option value="percent">Category %</option>
                 </select>
               </label>
@@ -453,13 +458,13 @@ function Simulator({ simulation, runSimulation, categoryAverages }) {
                 </>
               ) : (
                 <label className="simulation-field simulation-field--value">
-                  <span>Monthly RM</span>
+                  <span>Monthly {currency}</span>
                   <input
                     className="neo-input"
                     type="number"
                     step="0.01"
-                    value={item.amountMyr}
-                    onChange={(event) => updateAdjustment(item.id, 'amountMyr', event.target.value)}
+                    value={convertMyrAmount(item.amountMyr, currency, myrToIdr)}
+                    onChange={(event) => updateAmountAdjustment(item.id, event.target.value)}
                   />
                 </label>
               )}
@@ -486,8 +491,8 @@ function Simulator({ simulation, runSimulation, categoryAverages }) {
 
       {simulation && (
         <div className="simulation-result">
-          <EmergencyMetric label="Monthly Change" value={formatMYR(simulation.totalDeltaMyr || 0)} sub="Net custom adjustment" />
-          <EmergencyMetric label="Monthly Expenses" value={formatMYR(simulation.simulated.monthlyExpenseMyr)} sub={`Base ${formatMYR(simulation.base.monthlyExpenseMyr)}`} />
+          <EmergencyMetric label="Monthly Change" value={formatAmount(simulation.totalDeltaMyr || 0)} sub="Net custom adjustment" />
+          <EmergencyMetric label="Monthly Expenses" value={formatAmount(simulation.simulated.monthlyExpenseMyr)} sub={`Base ${formatAmount(simulation.base.monthlyExpenseMyr)}`} />
           <EmergencyMetric label="Coverage" value={formatMonths(simulation.simulated.coverageMonths)} sub={`${simulation.simulated.coverageDays} days`} />
           <EmergencyMetric label="Status" value={simulation.simulated.status.label} sub="Temporary scenario" />
         </div>
@@ -495,7 +500,7 @@ function Simulator({ simulation, runSimulation, categoryAverages }) {
     </section>
   );
 }
-function Analytics({ summary, planMonths }) {
+function Analytics({ summary, planMonths, currency, myrToIdr, formatAmount }) {
   const essentialVsNon = summary.analytics.essentialVsNonEssential;
   const hasPieData = essentialVsNon.essential_myr > 0 || essentialVsNon.non_essential_myr > 0;
   const monthlyNeeded = planMonths > 0 ? summary.remainingSavingsMyr / planMonths : 0;
@@ -508,7 +513,7 @@ function Analytics({ summary, planMonths }) {
   const pieData = {
     labels: ['Essential', 'Non-Essential'],
     datasets: [{
-      data: [essentialVsNon.essential_myr, essentialVsNon.non_essential_myr],
+      data: [convertMyrAmount(essentialVsNon.essential_myr, currency, myrToIdr), convertMyrAmount(essentialVsNon.non_essential_myr, currency, myrToIdr)],
       backgroundColor: ['#00b894', '#ff7675'],
       borderColor: '#ecf0f3',
       borderWidth: 2,
@@ -534,6 +539,13 @@ function Analytics({ summary, planMonths }) {
     maintainAspectRatio: false,
     plugins: { legend: { position: 'bottom' } },
   };
+  const pieOptions = {
+    ...chartOptions,
+    plugins: {
+      ...chartOptions.plugins,
+      tooltip: { callbacks: { label: (context) => `${context.label}: ${formatAmount(context.raw)}` } },
+    },
+  };
 
   return (
     <section className="emergency-analytics">
@@ -546,7 +558,7 @@ function Analytics({ summary, planMonths }) {
             <h3 className="chart-card__title">Essential vs Non-Essential</h3>
           </div>
           <div className="chart-container">
-            {hasPieData ? <Doughnut data={pieData} options={chartOptions} /> : <EmptyState>No spending data available.</EmptyState>}
+            {hasPieData ? <Doughnut data={pieData} options={pieOptions} /> : <EmptyState>No spending data available.</EmptyState>}
           </div>
         </div>
 
@@ -570,7 +582,7 @@ function Analytics({ summary, planMonths }) {
               <div className="ranking-row" key={item.category}>
                 <span>{index + 1}</span>
                 <strong>{item.category}</strong>
-                <em>{formatMYR(item.average_myr)}</em>
+                <em>{formatAmount(item.average_myr)}</em>
               </div>
             ))
           )}
@@ -590,21 +602,26 @@ function Analytics({ summary, planMonths }) {
   );
 }
 
-export default function EmergencyFundDashboard({ emergency, onSaveSettings }) {
+export default function EmergencyFundDashboard({ emergency, onSaveSettings, currency = 'MYR', exchangeRate }) {
   const { summary, settingsPayload, simulation, loading, saving, error, runSimulation } = emergency;
   const [planMonths, setPlanMonths] = useState(6);
+  const myrToIdr = exchangeRate?.myrToIdr || 4500;
+  const formatAmount = useCallback(
+    (amount) => formatCurrencyAmount(amount, currency, myrToIdr),
+    [currency, myrToIdr]
+  );
 
   const metrics = useMemo(() => {
     if (!summary) return [];
     return [
-      ['Current Savings', formatMYR(summary.currentSavingsMyr)],
-      ['Reserved Funds', formatMYR(summary.reservedFundsMyr)],
-      ['Available Emergency Savings', formatMYR(summary.availableSavingsMyr)],
-      ['Average Monthly Essential Expenses', formatMYR(summary.averageMonthlyEssentialExpenseMyr)],
+      ['Current Savings', formatAmount(summary.currentSavingsMyr)],
+      ['Reserved Funds', formatAmount(summary.reservedFundsMyr)],
+      ['Available Emergency Savings', formatAmount(summary.availableSavingsMyr)],
+      ['Average Monthly Essential Expenses', formatAmount(summary.averageMonthlyEssentialExpenseMyr)],
       ['Coverage', formatMonths(summary.coverageMonths), `${summary.coverageDays} Days`],
       ['Status', summary.status.label],
     ];
-  }, [summary]);
+  }, [formatAmount, summary]);
 
   if (loading && !summary) {
     return (
@@ -627,7 +644,7 @@ export default function EmergencyFundDashboard({ emergency, onSaveSettings }) {
       {error && <div className="neo-card emergency-error">{error}</div>}
       <div className="emergency-hero-grid">
         <CoverageOverview summary={summary} />
-        <GoalCard summary={summary} planMonths={planMonths} setPlanMonths={setPlanMonths} />
+        <GoalCard summary={summary} planMonths={planMonths} setPlanMonths={setPlanMonths} formatAmount={formatAmount} />
       </div>
 
       <div className="emergency-metrics-grid">
@@ -637,16 +654,16 @@ export default function EmergencyFundDashboard({ emergency, onSaveSettings }) {
       </div>
 
       <div className="emergency-main-grid">
-        <SettingsPanel settingsPayload={settingsPayload} onSave={onSaveSettings} saving={saving} />
+        <SettingsPanel settingsPayload={settingsPayload} onSave={onSaveSettings} saving={saving} currency={currency} myrToIdr={myrToIdr} />
         <Insights insights={summary.insights} />
       </div>
 
       <div className="emergency-main-grid emergency-main-grid--balanced">
-        <Timeline summary={summary} />
-        <Simulator simulation={simulation} runSimulation={runSimulation} categoryAverages={summary.analytics.categoryAverages} />
+        <Timeline summary={summary} formatAmount={formatAmount} />
+        <Simulator simulation={simulation} runSimulation={runSimulation} categoryAverages={summary.analytics.categoryAverages} currency={currency} myrToIdr={myrToIdr} formatAmount={formatAmount} />
       </div>
 
-      <Analytics summary={summary} planMonths={planMonths} />
+      <Analytics summary={summary} planMonths={planMonths} currency={currency} myrToIdr={myrToIdr} formatAmount={formatAmount} />
     </div>
   );
 }
