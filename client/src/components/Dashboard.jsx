@@ -10,6 +10,7 @@ import { formatCurrencyAmount, formatDate } from '../utils/formatters';
 import {
   getCategoryGrowth,
   getFinancialInsights,
+  getExpenseStreak,
   getHeatmapData,
   getHeatmapInsight,
   getLargestPurchase,
@@ -45,6 +46,7 @@ export default function Dashboard({ summary, currency = 'MYR', exchangeRate }) {
   const weekdaySpending = useMemo(() => getWeekdaySpending(summary?.weekdaySpending), [summary]);
   const trend = useMemo(() => getTrendData(summary?.dailyTrend, summary?.referenceDate), [summary]);
   const heatmapDays = useMemo(() => getHeatmapData(summary?.heatmap, summary?.referenceDate), [summary]);
+  const expenseStreak = useMemo(() => getExpenseStreak(heatmapDays, summary?.referenceDate), [heatmapDays, summary?.referenceDate]);
   const heatmapInsight = useMemo(() => getHeatmapInsight(heatmapDays), [heatmapDays]);
   const insights = useMemo(() => getFinancialInsights({
     comparison,
@@ -83,7 +85,7 @@ export default function Dashboard({ summary, currency = 'MYR', exchangeRate }) {
         <SectionHeading eyebrow="Spending Behaviour" title="Patterns over time" description="Explore when and how your spending happens." />
         <div className="charts-grid charts-grid--behaviour">
           <WeekdayChart weekdaySpending={weekdaySpending} currency={currency} myrToIdr={myrToIdr} />
-          <SpendingHeatmap days={heatmapDays} currency={currency} myrToIdr={myrToIdr} />
+          <SpendingHeatmap days={heatmapDays} currency={currency} myrToIdr={myrToIdr} streak={expenseStreak} />
           <TrendChart trend={trend} currency={currency} myrToIdr={myrToIdr} />
         </div>
       </section>
