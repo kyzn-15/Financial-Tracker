@@ -20,6 +20,23 @@ export function formatIDR(amount) {
   })}`;
 }
 
+export function convertMyrAmount(amount, currency = 'MYR', myrToIdr = 4500) {
+  const value = Number(amount);
+  if (!Number.isFinite(value)) return 0;
+  return currency === 'IDR' ? value * Number(myrToIdr || 4500) : value;
+}
+
+export function convertToMyrAmount(amount, currency = 'MYR', myrToIdr = 4500) {
+  const value = Number(amount);
+  if (!Number.isFinite(value)) return 0;
+  return currency === 'IDR' ? value / Number(myrToIdr || 4500) : value;
+}
+
+export function formatCurrencyAmount(amount, currency = 'MYR', myrToIdr = 4500) {
+  const converted = convertMyrAmount(amount, currency, myrToIdr);
+  return currency === 'IDR' ? formatIDR(converted) : formatMYR(converted);
+}
+
 /**
  * Format ISO timestamp for display in UTC+8
  */

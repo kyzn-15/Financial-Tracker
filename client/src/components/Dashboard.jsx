@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import SummaryCards from './SummaryCards';
 import CategoryChart from './CategoryChart';
 import TrendChart from './TrendChart';
@@ -6,7 +6,7 @@ import WeekdayChart from './WeekdayChart';
 import SpendingHeatmap from './SpendingHeatmap';
 import FinancialInsights from './FinancialInsights';
 import { CategoryGrowthCard, LargestPurchaseCard, MonthlyComparisonCard } from './AnalyticsCards';
-import { formatDate, formatMYR } from '../utils/formatters';
+import { formatCurrencyAmount, formatDate } from '../utils/formatters';
 import {
   getCategoryGrowth,
   getFinancialInsights,
@@ -30,8 +30,12 @@ function SectionHeading({ eyebrow, title, description }) {
   );
 }
 
-export default function Dashboard({ summary }) {
-  const [chartCurrency, setChartCurrency] = useState('MYR');
+export default function Dashboard({ summary, currency = 'MYR', exchangeRate }) {
+  const myrToIdr = exchangeRate?.myrToIdr || 4500;
+  const formatCurrency = useCallback(
+    (amount) => formatCurrencyAmount(amount, currency, myrToIdr),
+    [currency, myrToIdr]
+  );
   const comparison = useMemo(() => getMonthlyComparison(summary?.monthlyComparison), [summary]);
   const categoryGrowth = useMemo(() => getCategoryGrowth(summary?.categoryComparison), [summary]);
   const largestPurchase = useMemo(
@@ -48,58 +52,39 @@ export default function Dashboard({ summary }) {
     weekdaySpending,
     largestPurchase,
     heatmapInsight,
-    formatCurrency: formatMYR,
+    formatCurrency,
     formatDate,
-  }), [comparison, categoryGrowth, weekdaySpending, largestPurchase, heatmapInsight]);
+  }), [comparison, categoryGrowth, weekdaySpending, largestPurchase, heatmapInsight, formatCurrency]);
 
   return (
     <div className="dashboard">
-      <div className="dashboard__currency-toggle-wrapper">
-        <div className="currency-toggle dashboard__currency-toggle">
-          <button
-            type="button"
-            className={`currency-toggle__btn ${chartCurrency === 'MYR' ? 'currency-toggle__btn--active' : ''}`}
-            onClick={() => setChartCurrency('MYR')}
-          >
-            Show MYR
-          </button>
-          <button
-            type="button"
-            className={`currency-toggle__btn ${chartCurrency === 'IDR' ? 'currency-toggle__btn--active' : ''}`}
-            onClick={() => setChartCurrency('IDR')}
-          >
-            Show IDR
-          </button>
-        </div>
-      </div>
-
       <section className="dashboard-section">
         <SectionHeading eyebrow="Overview" title="Monthly Total" description="A snapshot of your current month." />
-        <SummaryCards summary={summary} />
+        <SummaryCards summary={summary} currency={currency} myrToIdr={myrToIdr} />
       </section>
 
       <section className="dashboard-section">
         <SectionHeading eyebrow="Overview" title="Monthly Comparison" description="See how this month's spending changed." />
         <div className="analytics-card-grid analytics-card-grid--single">
-          <MonthlyComparisonCard comparison={comparison} />
+          <MonthlyComparisonCard comparison={comparison} currency={currency} formatCurrency={formatCurrency} />
         </div>
       </section>
 
       <section className="dashboard-section">
         <SectionHeading eyebrow="Spending Analysis" title="Categories and purchases" description="Understand what is driving your spending." />
         <div className="dashboard-analysis-grid">
-          <CategoryChart data={summary?.byCategory || []} currency={chartCurrency} />
-          <CategoryGrowthCard growth={categoryGrowth} />
-          <LargestPurchaseCard purchase={largestPurchase} />
+          <CategoryChart data={summary?.byCategory || []} currency={currency} myrToIdr={myrToIdr} />
+          <CategoryGrowthCard growth={categoryGrowth} formatCurrency={formatCurrency} />
+          <LargestPurchaseCard purchase={largestPurchase} formatCurrency={formatCurrency} />
         </div>
       </section>
 
       <section className="dashboard-section">
         <SectionHeading eyebrow="Spending Behaviour" title="Patterns over time" description="Explore when and how your spending happens." />
         <div className="charts-grid charts-grid--behaviour">
-          <WeekdayChart weekdaySpending={weekdaySpending} />
-          <SpendingHeatmap days={heatmapDays} />
-          <TrendChart trend={trend} currency={chartCurrency} />
+          <WeekdayChart weekdaySpending={weekdaySpending} currency={currency} myrToIdr={myrToIdr} />
+          <SpendingHeatmap days={heatmapDays} currency={currency} myrToIdr={myrToIdr} />
+          <TrendChart trend={trend} currency={currency} myrToIdr={myrToIdr} />
         </div>
       </section>
 

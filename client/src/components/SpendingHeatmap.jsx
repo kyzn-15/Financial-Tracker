@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
-import { formatDate, formatMYR } from '../utils/formatters';
+import { formatCurrencyAmount, formatDate } from '../utils/formatters';
 
-function HeatmapTooltip({ day }) {
+function HeatmapTooltip({ day, formatCurrency }) {
   if (!day) return <p className="heatmap-tooltip">Hover over a day to see its spending.</p>;
 
   return (
     <p className="heatmap-tooltip">
       <strong>{formatDate(`${day.date}T00:00:00+08:00`)}</strong>
-      <span>{formatMYR(day.total)}</span>
+      <span>{formatCurrency(day.total)}</span>
       <span>{day.transactions} {day.transactions === 1 ? 'transaction' : 'transactions'}</span>
     </p>
   );
 }
 
-export default function SpendingHeatmap({ days = [] }) {
+export default function SpendingHeatmap({ days = [], currency = 'MYR', myrToIdr = 4500 }) {
   const [hoveredDay, setHoveredDay] = useState(null);
   const hasSpending = days.some((day) => day.total > 0);
+  const formatCurrency = (amount) => formatCurrencyAmount(amount, currency, myrToIdr);
 
   return (
     <div className="chart-card heatmap-card">
@@ -27,7 +28,7 @@ export default function SpendingHeatmap({ days = [] }) {
       </div>
       {hasSpending ? (
         <>
-          <HeatmapTooltip day={hoveredDay} />
+          <HeatmapTooltip day={hoveredDay} formatCurrency={formatCurrency} />
           <div className="heatmap-scroll" aria-label="Daily spending heatmap">
             <div className="heatmap-grid">
               {days.map((day) => (
@@ -35,7 +36,7 @@ export default function SpendingHeatmap({ days = [] }) {
                   key={day.date}
                   type="button"
                   className={`heatmap-day heatmap-day--${day.level}`}
-                  aria-label={`${formatDate(`${day.date}T00:00:00+08:00`)}, ${formatMYR(day.total)}, ${day.transactions} transactions`}
+                  aria-label={`${formatDate(`${day.date}T00:00:00+08:00`)}, ${formatCurrency(day.total)}, ${day.transactions} transactions`}
                   onMouseEnter={() => setHoveredDay(day)}
                   onFocus={() => setHoveredDay(day)}
                 />

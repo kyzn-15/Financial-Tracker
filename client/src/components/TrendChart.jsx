@@ -10,7 +10,7 @@ import {
   Tooltip,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { formatDate, formatIDR, formatMYR } from '../utils/formatters';
+import { convertMyrAmount, formatDate, formatIDR, formatMYR } from '../utils/formatters';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
@@ -20,12 +20,11 @@ function shortDate(date) {
   return formatDate(`${date}T00:00:00+08:00`).replace(/\s\d{4}$/, '');
 }
 
-export default function TrendChart({ trend, currency = 'MYR' }) {
+export default function TrendChart({ trend, currency = 'MYR', myrToIdr = 4500 }) {
   const isMYR = currency === 'MYR';
-  const formatCurrency = isMYR ? formatMYR : formatIDR;
+  const formatDisplayed = isMYR ? formatMYR : formatIDR;
   const points = trend?.points || EMPTY_POINTS;
   const average = trend?.average || 0;
-  const averageIdr = trend?.averageIdr || 0;
   const highestDate = trend?.highest?.date;
   const lowestDate = trend?.lowest?.date;
 
@@ -34,7 +33,7 @@ export default function TrendChart({ trend, currency = 'MYR' }) {
     datasets: [
       {
         label: `Daily spend (${currency})`,
-        data: points.map((point) => isMYR ? point.total : point.totalIdr),
+        data: points.map((point) => convertMyrAmount(point.total, currency, myrToIdr)),
         borderColor: '#6C63FF',
         backgroundColor: 'rgba(108, 99, 255, 0.1)',
         borderWidth: 3,
@@ -48,7 +47,7 @@ export default function TrendChart({ trend, currency = 'MYR' }) {
       },
       {
         label: 'Average daily spending',
-        data: points.map(() => isMYR ? average : averageIdr),
+        data: points.map(() => convertMyrAmount(average, currency, myrToIdr)),
         borderColor: '#00b894',
         borderDash: [6, 6],
         borderWidth: 2,
@@ -56,7 +55,7 @@ export default function TrendChart({ trend, currency = 'MYR' }) {
       },
       {
         label: 'Highest spending day',
-        data: points.map((point) => point.date === highestDate ? (isMYR ? point.total : point.totalIdr) : null),
+        data: points.map((point) => point.date === highestDate ? convertMyrAmount(point.total, currency, myrToIdr) : null),
         borderColor: 'transparent',
         backgroundColor: '#ff7675',
         pointBackgroundColor: '#ff7675',
@@ -68,7 +67,7 @@ export default function TrendChart({ trend, currency = 'MYR' }) {
       },
       {
         label: 'Lowest spending day',
-        data: points.map((point) => point.date === lowestDate ? (isMYR ? point.total : point.totalIdr) : null),
+        data: points.map((point) => point.date === lowestDate ? convertMyrAmount(point.total, currency, myrToIdr) : null),
         borderColor: 'transparent',
         backgroundColor: '#74b9ff',
         pointBackgroundColor: '#74b9ff',
@@ -79,7 +78,7 @@ export default function TrendChart({ trend, currency = 'MYR' }) {
         showLine: false,
       },
     ],
-  }), [average, averageIdr, currency, highestDate, isMYR, lowestDate, points]);
+  }), [average, currency, highestDate, lowestDate, myrToIdr, points]);
 
   const options = useMemo(() => ({
     responsive: true,
@@ -94,7 +93,7 @@ export default function TrendChart({ trend, currency = 'MYR' }) {
         callbacks: {
           title: (contexts) => formatDate(`${points[contexts[0].dataIndex].date}T00:00:00+08:00`),
           label: (context) => [
-            ` Total spending: ${formatCurrency(context.raw)}`,
+            ` Total spending: ${formatDisplayed(context.raw)}`,
             ` Transactions: ${points[context.dataIndex].transactions}`,
           ],
         },
@@ -111,7 +110,7 @@ export default function TrendChart({ trend, currency = 'MYR' }) {
         },
       },
     },
-  }), [formatCurrency, isMYR, points]);
+  }), [formatDisplayed, isMYR, points]);
 
   const hasTransactions = points.some((point) => point.transactions > 0);
 
