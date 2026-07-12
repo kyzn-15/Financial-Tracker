@@ -1,1 +1,4 @@
 .env
+server/db/*.test.db
+server/db/*.test.db-shm
+server/db/*.test.db-wal

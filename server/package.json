@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "dev:dashboard-analytics": "set NODE_ENV=test&& set DB_PATH=./dashboard-analytics.test.db&& node --watch server.js",
+    "test:dashboard-analytics": "node --test tests/dashboardAnalytics.seed.test.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
