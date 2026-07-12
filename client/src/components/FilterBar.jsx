@@ -6,6 +6,10 @@ export default function FilterBar({ filters, onChange, onClear }) {
     onChange({ category: e.target.value });
   };
 
+  const handleNameChange = (e) => {
+    onChange({ name: e.target.value });
+  };
+
   const handleStartDateChange = (e) => {
     onChange({ startDate: e.target.value });
   };
@@ -14,10 +18,22 @@ export default function FilterBar({ filters, onChange, onClear }) {
     onChange({ endDate: e.target.value });
   };
 
-  const hasActiveFilters = filters.category || filters.startDate || filters.endDate;
+  const hasActiveFilters = filters.name || filters.category || filters.startDate || filters.endDate;
 
   return (
     <div className="filter-bar neo-card neo-card--sm">
+      <div className="filter-bar__group filter-bar__group--search">
+        <label className="filter-bar__label" htmlFor="filter-name">Search expense</label>
+        <input
+          id="filter-name"
+          type="search"
+          className="neo-input"
+          value={filters.name}
+          onChange={handleNameChange}
+          placeholder="Search by expense name"
+        />
+      </div>
+
       <div className="filter-bar__group">
         <label className="filter-bar__label" htmlFor="filter-category">Category</label>
         <select

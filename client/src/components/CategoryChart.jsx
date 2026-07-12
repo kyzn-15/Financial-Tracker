@@ -1,77 +1,77 @@
-import React from 'react';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import React, { useCallback, useMemo } from 'react';
+import { Chart as ChartJS, ArcElement, Legend, Tooltip } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
-import { CHART_COLORS } from '../utils/formatters';
+import { CHART_COLORS, convertMyrAmount, formatCurrencyAmount } from '../utils/formatters';
+import { getCategoryBreakdown } from '../utils/dashboardAnalytics';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-export default function CategoryChart({ data = [], currency = 'MYR' }) {
-  const isMYR = currency === 'MYR';
+export default function CategoryChart({ data = [], currency = 'MYR', myrToIdr = 4500 }) {
+  const categories = useMemo(() => getCategoryBreakdown(data), [data]);
+  const displayCategories = useMemo(() => categories.map((item) => ({
+    ...item,
+    displayTotal: convertMyrAmount(item.total, currency, myrToIdr),
+  })), [categories, currency, myrToIdr]);
+  const formatCurrency = useCallback(
+    (amount) => formatCurrencyAmount(amount, currency, myrToIdr),
+    [currency, myrToIdr]
+  );
 
-  // Sort data so the doughnut looks orderly
-  const sortedData = [...data].sort((a, b) => {
-    const valA = isMYR ? a.total_myr : a.total_idr;
-    const valB = isMYR ? b.total_myr : b.total_idr;
-    return valB - valA;
-  });
+  const chartData = useMemo(() => ({
+    labels: displayCategories.map((item) => item.category),
+    datasets: [{
+      data: displayCategories.map((item) => item.displayTotal),
+      backgroundColor: CHART_COLORS.slice(0, Math.max(displayCategories.length, 1)),
+      borderWidth: 2,
+      borderColor: '#e0e5ec',
+      hoverOffset: 4,
+    }],
+  }), [displayCategories]);
 
-  const labels = sortedData.map(item => item.category);
-  const values = sortedData.map(item => isMYR ? item.total_myr : item.total_idr);
-
-  const chartData = {
-    labels,
-    datasets: [
-      {
-        data: values,
-        backgroundColor: CHART_COLORS.slice(0, Math.max(values.length, 1)),
-        borderWidth: 2,
-        borderColor: '#e0e5ec', // Match background color for neomorphic look
-        hoverOffset: 4,
-      },
-    ],
-  };
-
-  const options = {
+  const options = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'right',
+        position: 'bottom',
         labels: {
           color: '#2d3436',
-          font: {
-            family: 'Inter',
-            size: 11,
-            weight: 500,
-          },
+          font: { family: 'Inter', size: 11, weight: 500 },
           padding: 12,
+          generateLabels: (chart) => chart.data.labels.map((label, index) => {
+            const item = displayCategories[index];
+            return {
+              text: `${label} · ${formatCurrency(item.total)} · ${item.percentage.toFixed(1)}%`,
+              fillStyle: chart.data.datasets[0].backgroundColor[index],
+              strokeStyle: chart.data.datasets[0].borderColor,
+              lineWidth: chart.data.datasets[0].borderWidth,
+              index,
+            };
+          }),
         },
       },
       tooltip: {
         callbacks: {
           label: (context) => {
-            const val = context.raw;
-            if (isMYR) {
-              return ` RM ${Number(val).toLocaleString('en-MY', { minimumFractionDigits: 2 })}`;
-            } else {
-              return ` Rp ${Number(val).toLocaleString('id-ID', { minimumFractionDigits: 0 })}`;
-            }
+            const item = displayCategories[context.dataIndex];
+            return `${formatCurrency(item.total)} · ${item.percentage.toFixed(1)}% of total`;
           },
         },
       },
     },
-  };
+  }), [displayCategories, formatCurrency]);
 
   return (
     <div className="chart-card">
       <div className="chart-card__header">
-        <h3 className="chart-card__title">Spending by Category ({currency})</h3>
+        <div>
+          <h3 className="chart-card__title">Spending by Category ({currency})</h3>
+          <p className="chart-card__subtitle">Amounts and share of total spending</p>
+        </div>
       </div>
       <div className="chart-container">
-        {data.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
-            No data available for this month
-          </div>
+        {displayCategories.length === 0 ? (
+          <div className="chart-empty">No category spending recorded this month.</div>
         ) : (
           <Doughnut data={chartData} options={options} />
         )}

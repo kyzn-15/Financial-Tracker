@@ -101,6 +101,7 @@ export default function App() {
 
 function AuthenticatedApp({ onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard'); // Default to dashboard for better first impression
+  const [currency, setCurrency] = useState('MYR');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const {
@@ -231,6 +232,16 @@ function AuthenticatedApp({ onLogout }) {
     }
   };
 
+  const handleViewHeatmapExpenses = (date) => {
+    updateFilters({
+      name: '',
+      category: '',
+      startDate: `${date}T00:00:00+08:00`,
+      endDate: `${date}T23:59:59+08:00`,
+    });
+    setActiveTab('history');
+  };
+
   const handleLogout = async () => {
     setIsLoggingOut(true);
     await onLogout();
@@ -244,10 +255,10 @@ function AuthenticatedApp({ onLogout }) {
         <Header
           exchangeRate={exchangeRate}
           activeTab={activeTab}
+          currency={currency}
+          onCurrencyChange={setCurrency}
           onLogout={handleLogout}
           isLoggingOut={isLoggingOut}
-          onExportRecords={handleExportRecords}
-          isExporting={isExporting}
         />
 
         {/* API Error Toast */}
@@ -272,11 +283,16 @@ function AuthenticatedApp({ onLogout }) {
           )}
 
           {activeTab === 'dashboard' && (
-            <Dashboard summary={summary} />
+            <Dashboard summary={summary} currency={currency} exchangeRate={exchangeRate} onViewHeatmapExpenses={handleViewHeatmapExpenses} />
           )}
 
           {activeTab === 'history' && (
             <>
+              <div className="history-actions">
+                <button className="neo-btn neo-btn--secondary" type="button" onClick={handleExportRecords} disabled={isExporting}>
+                  {isExporting ? 'Exporting...' : 'Export Records'}
+                </button>
+              </div>
               <FilterBar
                 filters={filters}
                 onChange={updateFilters}
@@ -290,6 +306,8 @@ function AuthenticatedApp({ onLogout }) {
                 <ExpenseList
                   expenses={expenses}
                   filters={filters}
+                  currency={currency}
+                  exchangeRate={exchangeRate}
                   onSort={updateSort}
                   onEdit={setEditingExpense}
                   onDelete={setDeletingExpense}
@@ -311,6 +329,8 @@ function AuthenticatedApp({ onLogout }) {
             <EmergencyFundDashboard
               emergency={emergency}
               onSaveSettings={emergency.saveSettings}
+              currency={currency}
+              exchangeRate={exchangeRate}
             />
           )}
         </div>
