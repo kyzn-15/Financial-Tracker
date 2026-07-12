@@ -1,52 +1,40 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
-  Chart as ChartJS,
   CategoryScale,
+  Chart as ChartJS,
+  Filler,
+  Legend,
+  LineElement,
   LinearScale,
   PointElement,
-  LineElement,
-  Title,
   Tooltip,
-  Legend,
-  Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import { formatDate, formatIDR, formatMYR } from '../utils/formatters';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
-export default function TrendChart({ data = [], currency = 'MYR' }) {
+const EMPTY_POINTS = [];
+
+function shortDate(date) {
+  return formatDate(`${date}T00:00:00+08:00`).replace(/\s\d{4}$/, '');
+}
+
+export default function TrendChart({ trend, currency = 'MYR' }) {
   const isMYR = currency === 'MYR';
+  const formatCurrency = isMYR ? formatMYR : formatIDR;
+  const points = trend?.points || EMPTY_POINTS;
+  const average = trend?.average || 0;
+  const averageIdr = trend?.averageIdr || 0;
+  const highestDate = trend?.highest?.date;
+  const lowestDate = trend?.lowest?.date;
 
-  // Format dates for labels
-  const labels = data.map(item => {
-    // split date (YYYY-MM-DD) and display as DD MMM
-    const parts = item.date.split('-');
-    if (parts.length === 3) {
-      const day = parts[2];
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const monthIdx = parseInt(parts[1], 10) - 1;
-      return `${day} ${months[monthIdx] || ''}`;
-    }
-    return item.date;
-  });
-
-  const values = data.map(item => isMYR ? item.total_myr : item.total_idr);
-
-  const chartData = {
-    labels,
+  const chartData = useMemo(() => ({
+    labels: points.map((point) => shortDate(point.date)),
     datasets: [
       {
-        label: `Daily Spend (${currency})`,
-        data: values,
+        label: `Daily spend (${currency})`,
+        data: points.map((point) => isMYR ? point.total : point.totalIdr),
         borderColor: '#6C63FF',
         backgroundColor: 'rgba(108, 99, 255, 0.1)',
         borderWidth: 3,
@@ -55,90 +43,89 @@ export default function TrendChart({ data = [], currency = 'MYR' }) {
         pointBackgroundColor: '#6C63FF',
         pointBorderColor: '#e0e5ec',
         pointBorderWidth: 2,
-        pointRadius: 4,
+        pointRadius: 3,
         pointHoverRadius: 6,
       },
+      {
+        label: 'Average daily spending',
+        data: points.map(() => isMYR ? average : averageIdr),
+        borderColor: '#00b894',
+        borderDash: [6, 6],
+        borderWidth: 2,
+        pointRadius: 0,
+      },
+      {
+        label: 'Highest spending day',
+        data: points.map((point) => point.date === highestDate ? (isMYR ? point.total : point.totalIdr) : null),
+        borderColor: 'transparent',
+        backgroundColor: '#ff7675',
+        pointBackgroundColor: '#ff7675',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2,
+        pointRadius: 7,
+        pointHoverRadius: 8,
+        showLine: false,
+      },
+      {
+        label: 'Lowest spending day',
+        data: points.map((point) => point.date === lowestDate ? (isMYR ? point.total : point.totalIdr) : null),
+        borderColor: 'transparent',
+        backgroundColor: '#74b9ff',
+        pointBackgroundColor: '#74b9ff',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2,
+        pointRadius: 7,
+        pointHoverRadius: 8,
+        showLine: false,
+      },
     ],
-  };
+  }), [average, averageIdr, currency, highestDate, isMYR, lowestDate, points]);
 
-  const options = {
+  const options = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
     plugins: {
       legend: {
-        display: false, // Hide legend since there is only one line
+        labels: { color: '#636e72', font: { family: 'Inter', size: 10 }, usePointStyle: true },
       },
       tooltip: {
+        filter: (context) => context.datasetIndex === 0,
         callbacks: {
-          label: (context) => {
-            const val = context.raw;
-            if (isMYR) {
-              return ` RM ${Number(val).toLocaleString('en-MY', { minimumFractionDigits: 2 })}`;
-            } else {
-              return ` Rp ${Number(val).toLocaleString('id-ID', { minimumFractionDigits: 0 })}`;
-            }
-          },
+          title: (contexts) => formatDate(`${points[contexts[0].dataIndex].date}T00:00:00+08:00`),
+          label: (context) => [
+            ` Total spending: ${formatCurrency(context.raw)}`,
+            ` Transactions: ${points[context.dataIndex].transactions}`,
+          ],
         },
       },
     },
     scales: {
-      x: {
-        grid: {
-          display: false,
-        },
-        ticks: {
-          color: '#636e72',
-          font: {
-            family: 'Inter',
-            size: 10,
-          },
-        },
-      },
+      x: { grid: { display: false }, ticks: { color: '#636e72', font: { family: 'Inter', size: 10 }, maxTicksLimit: 8 } },
       y: {
-        grid: {
-          color: 'rgba(163, 177, 198, 0.2)', // Subtle grid lines
-        },
+        grid: { color: 'rgba(163, 177, 198, 0.2)' },
         ticks: {
           color: '#636e72',
-          font: {
-            family: 'Inter',
-            size: 10,
-          },
-          callback: (value) => {
-            if (isMYR) {
-              return `RM${value}`;
-            } else {
-              // Format large IDR values in thousands/millions (K/M) for space
-              if (value >= 1000000) {
-                return `Rp${(value / 1000000).toFixed(1)}M`;
-              }
-              if (value >= 1000) {
-                return `Rp${(value / 1000).toFixed(0)}K`;
-              }
-              return `Rp${value}`;
-            }
-          },
+          font: { family: 'Inter', size: 10 },
+          callback: (value) => isMYR ? `RM${value}` : `Rp${Number(value).toLocaleString('id-ID')}`,
         },
       },
     },
-  };
+  }), [formatCurrency, isMYR, points]);
+
+  const hasTransactions = points.some((point) => point.transactions > 0);
 
   return (
-    <div className="chart-card">
+    <div className="chart-card chart-card--trend">
       <div className="chart-card__header">
-        <h3 className="chart-card__title">Daily Trend (Last 30 Days)</h3>
+        <div>
+          <h3 className="chart-card__title">Daily Trend (Last 30 Days)</h3>
+          <p className="chart-card__subtitle">Average line and highest/lowest spending-day markers included</p>
+        </div>
       </div>
       <div className="chart-container">
-        {data.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
-            No trend data available
-          </div>
-        ) : (
-          <Line data={chartData} options={options} />
-        )}
+        {hasTransactions ? <Line data={chartData} options={options} /> : <div className="chart-empty">No trend data available.</div>}
       </div>
     </div>
   );
 }
-
-
