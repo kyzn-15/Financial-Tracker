@@ -54,19 +54,42 @@ npm install
 
 ### 2. Configuration
 
-Create or modify the `.env` file in the root directory:
+Create or modify `server/.env` for local backend configuration:
 
 ```env
 PORT=4000
-DB_PATH=./db/tracker.db
+DB_PATH=./tracker.db
 EXCHANGE_RATE_CACHE_MINUTES=15
 ADMIN_USERNAME=
 ADMIN_PIN_HASH=
 AUTH_SESSION_SECRET=
-CLIENT_ORIGIN=http://localhost:5173
-# Set TRUST_PROXY to 1 only when deployed behind one trusted reverse proxy.
-# TRUST_PROXY=1
 ```
+
+Create or modify `client/.env` for local frontend configuration:
+
+```env
+VITE_API_URL=http://localhost:4000/api
+```
+
+### Separate frontend and backend deployment
+
+The frontend reads its API URL from the `VITE_API_URL` build variable. Set it in the frontend hosting provider before building or deploying:
+
+```env
+VITE_API_URL=https://api.example.com/api
+```
+
+`VITE_API_URL` must include the `/api` path and must not contain a trailing slash. If it is not set, local development continues to use `/api` through the Vite proxy.
+
+Set the backend's production environment variables to allow the deployed frontend:
+
+```env
+NODE_ENV=production
+CLIENT_ORIGIN=https://app.example.com
+TRUST_PROXY=1
+```
+
+Use HTTPS for both sites. For reliable cookie-based login, host the frontend and API on subdomains of the same parent domain (for example, `app.example.com` and `api.example.com`). Browsers can block the session cookie when the frontend and API use unrelated domains.
 
 ### 3. Run the Application
 
