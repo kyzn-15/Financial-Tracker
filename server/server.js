@@ -1,14 +1,14 @@
 // server.js — Main entry point for the Financial Tracker API
-import { fileURLToPath } from 'url';
-import path from 'path';
-import dotenv from 'dotenv';
+import './config/env.js';
 
-// __dirname equivalent for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Load .env from the parent directory (d:\Financial Tracker\.env)
-dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+if (process.env.NODE_ENV === 'production') {
+  const silence = () => {};
+  console.log = silence;
+  console.info = silence;
+  console.warn = silence;
+  console.error = silence;
+  console.debug = silence;
+}
 
 import express from 'express';
 import cors from 'cors';
