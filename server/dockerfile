@@ -1,0 +1,18 @@
+# ---- Stage 1: build ----
+FROM node:20-alpine AS builder
+RUN apk update && apk upgrade --no-cache
+RUN apk add --no-cache python3 make g++
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --omit=dev
+COPY . .
+
+# ---- Stage 2: runtime ----
+FROM node:20-alpine
+RUN apk update && apk upgrade --no-cache
+WORKDIR /app
+COPY --from=builder /app ./
+# Strip npm and its bundled deps — not needed to run the app
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+EXPOSE 4000
+CMD ["node", "server.js"]
