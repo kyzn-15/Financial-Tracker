@@ -83,6 +83,48 @@
   font-size: var(--font-size-sm);
 }
 
+.system-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: fit-content;
+  margin: calc(var(--space-md) * -1) 0 var(--space-xl);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-full);
+  box-shadow: var(--neo-in);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.system-status__icon {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 4px currentColor;
+  opacity: 0.85;
+}
+
+.system-status--operational {
+  color: var(--success);
+}
+
+.system-status--issues {
+  color: var(--danger);
+}
+
+.system-status--checking .system-status__icon {
+  animation: system-status-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes system-status-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
 .login-form {
   display: flex;
   flex-direction: column;
@@ -131,6 +173,68 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-md);
+}
+
+.backup-settings {
+  width: min(100%, 620px);
+  margin: var(--space-2xl) 0 var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.backup-settings__heading p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.backup-settings__last-backup {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius);
+  box-shadow: var(--neo-in);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.backup-settings__last-backup strong {
+  color: var(--text-primary);
+}
+
+.backup-settings__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.backup-settings__actions,
+.backup-reminder__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.backup-settings__actions .neo-btn {
+  flex: 1 1 180px;
+}
+
+.backup-settings__message {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.backup-reminder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.backup-reminder p {
+  color: var(--text-secondary);
 }
 
 .neo-btn:disabled {
@@ -2221,6 +2325,11 @@ button.heatmap-day:focus-visible {
     width: 100%;
   }
 
+  .backup-settings {
+    width: 100%;
+    margin-top: var(--space-xl);
+  }
+
   .expense-table td {
     gap: var(--space-md);
     overflow-wrap: anywhere;
@@ -2245,6 +2354,16 @@ button.heatmap-day:focus-visible {
   .chart-card,
   .neo-card {
     padding: var(--space-md);
+  }
+
+  .backup-settings__last-backup {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .backup-settings__actions,
+  .backup-settings__actions .neo-btn {
+    width: 100%;
   }
 
   .heatmap-grid {
