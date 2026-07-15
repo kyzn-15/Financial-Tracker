@@ -16,7 +16,7 @@ async function request(url, options = {}) {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Something went wrong' }));
-    throw new Error(error.message || `HTTP ${response.status}`);
+    throw new Error(error.message || error.error || `HTTP ${response.status}`);
   }
 
   if (response.status === 204) return null;
@@ -32,6 +32,10 @@ export async function login(username, pin) {
 
 export async function getSession() {
   return request('/auth/session');
+}
+
+export async function getSystemStatus() {
+  return request('/health');
 }
 
 export async function logout() {
@@ -167,4 +171,23 @@ export async function exportRecords() {
     blob,
     filename: filenameMatch?.[1] || 'financial-tracker-export.xlsx',
   };
+}
+
+export async function getBackupPreferences() {
+  return request('/backup/preferences');
+}
+
+export async function updateBackupPreferences(reminderIntervalDays) {
+  return request('/backup/preferences', {
+    method: 'PUT',
+    body: JSON.stringify({ reminder_interval_days: reminderIntervalDays }),
+  });
+}
+
+export async function recordBackup() {
+  return request('/backup/completed', { method: 'POST' });
+}
+
+export async function resetLastBackup() {
+  return request('/backup/last-backup', { method: 'DELETE' });
 }

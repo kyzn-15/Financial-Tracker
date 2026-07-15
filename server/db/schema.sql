@@ -29,3 +29,10 @@ CREATE TABLE IF NOT EXISTS emergency_settings (
   essential_categories  TEXT,
   updated_at            TEXT
 );
+
+CREATE TABLE IF NOT EXISTS backup_preferences (
+  username                TEXT PRIMARY KEY,
+  reminder_interval_days  INTEGER NOT NULL DEFAULT 30 CHECK(reminder_interval_days IN (1, 14, 30)),
+  last_backup_at          TEXT,
+  updated_at              TEXT NOT NULL
+);

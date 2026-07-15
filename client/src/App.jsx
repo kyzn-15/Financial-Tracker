@@ -11,6 +11,7 @@ import Modal from './components/Modal';
 import Toast from './components/Toast';
 import ReceiptSaver from './components/ReceiptSaver';
 import EmergencyFundDashboard from './components/EmergencyFundDashboard';
+import BackupSettings from './components/BackupSettings';
 import { useExpenses } from './hooks/useExpenses';
 import { useReceipts } from './hooks/useReceipts';
 import { useEmergencyFund } from './hooks/useEmergencyFund';
@@ -96,14 +97,17 @@ export default function App() {
     return <LoginPage onLogin={handleLogin} />;
   }
 
-  return <AuthenticatedApp onLogout={handleLogout} />;
+  return <AuthenticatedApp onLogout={handleLogout} sessionExpiresAt={sessionExpiresAt} />;
 }
 
-function AuthenticatedApp({ onLogout }) {
+function AuthenticatedApp({ onLogout, sessionExpiresAt }) {
   const [activeTab, setActiveTab] = useState('dashboard'); // Default to dashboard for better first impression
   const [currency, setCurrency] = useState('MYR');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [backupPreferences, setBackupPreferences] = useState(null);
+  const [isBackupReminderOpen, setIsBackupReminderOpen] = useState(false);
+  const [isSavingBackupPreferences, setIsSavingBackupPreferences] = useState(false);
   const {
     expenses,
     summary,
@@ -128,6 +132,29 @@ function AuthenticatedApp({ onLogout }) {
   } = useReceipts(activeTab);
 
   const emergency = useEmergencyFund(activeTab);
+
+  useEffect(() => {
+    let isMounted = true;
+    const reminderSessionKey = `financial-tracker-backup-reminder-dismissed:${sessionExpiresAt}`;
+
+    async function loadBackupPreferences() {
+      try {
+        const preferences = await api.getBackupPreferences();
+        if (!isMounted) return;
+        setBackupPreferences(preferences);
+        setIsBackupReminderOpen(
+          preferences.reminder_due && !window.sessionStorage.getItem(reminderSessionKey)
+        );
+      } catch (err) {
+        if (isMounted) showToast(`Failed to load backup reminder: ${err.message}`, 'error');
+      }
+    }
+
+    loadBackupPreferences();
+    return () => {
+      isMounted = false;
+    };
+  }, [sessionExpiresAt]);
 
   // Toast notifications state
   const [toasts, setToasts] = useState([]);
@@ -224,12 +251,44 @@ function AuthenticatedApp({ onLogout }) {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
+      const preferences = await api.recordBackup();
+      setBackupPreferences(preferences);
+      setIsBackupReminderOpen(false);
       showToast('Exported records workbook successfully.', 'success');
     } catch (err) {
       showToast(`Failed to export records: ${err.message}`, 'error');
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const handleSaveBackupInterval = async (reminderIntervalDays) => {
+    setIsSavingBackupPreferences(true);
+    try {
+      const preferences = await api.updateBackupPreferences(reminderIntervalDays);
+      setBackupPreferences(preferences);
+      return preferences;
+    } finally {
+      setIsSavingBackupPreferences(false);
+    }
+  };
+
+  const handleResetLastBackup = async () => {
+    setIsSavingBackupPreferences(true);
+    try {
+      const preferences = await api.resetLastBackup();
+      setBackupPreferences(preferences);
+      setIsBackupReminderOpen(false);
+      return preferences;
+    } finally {
+      setIsSavingBackupPreferences(false);
+    }
+  };
+
+  const handleRemindLater = () => {
+    const reminderSessionKey = `financial-tracker-backup-reminder-dismissed:${sessionExpiresAt}`;
+    window.sessionStorage.setItem(reminderSessionKey, 'true');
+    setIsBackupReminderOpen(false);
   };
 
   const handleViewHeatmapExpenses = (date) => {
@@ -244,6 +303,7 @@ function AuthenticatedApp({ onLogout }) {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
+    window.sessionStorage.removeItem(`financial-tracker-backup-reminder-dismissed:${sessionExpiresAt}`);
     await onLogout();
   };
 
@@ -313,6 +373,12 @@ function AuthenticatedApp({ onLogout }) {
                   onDelete={setDeletingExpense}
                 />
               )}
+              <BackupSettings
+                preferences={backupPreferences}
+                onSaveInterval={handleSaveBackupInterval}
+                onResetLastBackup={handleResetLastBackup}
+                isSaving={isSavingBackupPreferences}
+              />
             </>
           )}
 
@@ -333,6 +399,7 @@ function AuthenticatedApp({ onLogout }) {
               exchangeRate={exchangeRate}
             />
           )}
+
         </div>
       </div>
 
@@ -351,6 +418,26 @@ function AuthenticatedApp({ onLogout }) {
             onCancel={() => setEditingExpense(null)}
           />
         )}
+      </Modal>
+
+      <Modal
+        isOpen={isBackupReminderOpen}
+        onClose={() => setIsBackupReminderOpen(false)}
+        title="Back up your data"
+        showClose={false}
+        dismissOnOverlayClick={false}
+      >
+        <div className="backup-reminder">
+          <p>Your records are due for a manual backup. Export an Excel copy and store it somewhere safe.</p>
+          <div className="modal-content__actions backup-reminder__actions">
+            <button className="neo-btn neo-btn--primary" type="button" onClick={handleExportRecords} disabled={isExporting}>
+              {isExporting ? 'Exporting...' : 'Export data now'}
+            </button>
+            <button className="neo-btn neo-btn--secondary" type="button" onClick={handleRemindLater} disabled={isExporting}>
+              Remind me next time
+            </button>
+          </div>
+        </div>
       </Modal>
 
       {/* Delete Confirmation Modal */}
