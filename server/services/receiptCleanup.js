@@ -18,34 +18,38 @@ function deleteReceiptFile(filename) {
   }
 }
 
-export function purgeExpiredReceipts() {
+export async function purgeExpiredReceipts() {
   if (!fs.existsSync(RECEIPTS_UPLOAD_DIR)) {
     fs.mkdirSync(RECEIPTS_UPLOAD_DIR, { recursive: true });
   }
 
   const cutoff = nowUTC8();
-  const stale = db.prepare(`
-    SELECT id, filename FROM receipts WHERE expires_at <= ?
-  `).all(cutoff);
+  const result = await db.execute({
+    sql: 'SELECT id, filename FROM receipts WHERE expires_at <= ?',
+    args: [cutoff],
+  });
+  const stale = result.rows;
 
   if (stale.length === 0) return 0;
 
-  const deleteRow = db.prepare('DELETE FROM receipts WHERE id = ?');
-  const purge = db.transaction((rows) => {
-    for (const row of rows) {
-      deleteReceiptFile(row.filename);
-      deleteRow.run(row.id);
-    }
-  });
-
-  purge(stale);
+  await db.batch(
+    stale.map((row) => ({ sql: 'DELETE FROM receipts WHERE id = ?', args: [row.id] })),
+    'write'
+  );
+  stale.forEach((row) => deleteReceiptFile(row.filename));
   console.log(`🧹 Purged ${stale.length} expired receipt(s)`);
   return stale.length;
 }
 
 export function scheduleReceiptCleanup() {
-  purgeExpiredReceipts();
-  setInterval(purgeExpiredReceipts, CLEANUP_INTERVAL_MS);
+  const runCleanup = () => {
+    purgeExpiredReceipts().catch((err) => {
+      console.error('Receipt cleanup error:', err);
+    });
+  };
+
+  runCleanup();
+  setInterval(runCleanup, CLEANUP_INTERVAL_MS);
 }
 
 export { RETENTION_DAYS };

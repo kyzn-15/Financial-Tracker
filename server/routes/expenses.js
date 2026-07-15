@@ -75,15 +75,18 @@ router.post('/', async (req, res) => {
       priceMyr = rate ? price * rate.idrToMyr : null;
     }
 
-    const stmt = db.prepare(`
-      INSERT INTO expenses (name, category, price_myr, price_idr, original_currency, exchange_rate_used, timestamp)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const result = stmt.run(name, category, priceMyr, priceIdr, cur, exchangeRateUsed, ts);
+    const result = await db.execute({
+      sql: `INSERT INTO expenses (name, category, price_myr, price_idr, original_currency, exchange_rate_used, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      args: [name, category, priceMyr, priceIdr, cur, exchangeRateUsed, ts],
+    });
 
     // Return the created record
-    const created = db.prepare('SELECT * FROM expenses WHERE id = ?').get(result.lastInsertRowid);
+    const createdResult = await db.execute({
+      sql: 'SELECT * FROM expenses WHERE id = ?',
+      args: [result.lastInsertRowid],
+    });
+    const created = createdResult.rows[0];
     res.status(201).json(created);
   } catch (err) {
     console.error('POST /api/expenses error:', err);
@@ -92,7 +95,7 @@ router.post('/', async (req, res) => {
 });
 
 // ─── GET /api/expenses — List expenses with optional filters ────────────────
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { name, category, startDate, endDate, sort, order } = req.query;
 
@@ -125,7 +128,8 @@ router.get('/', (req, res) => {
     const sortOrder = order?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
     const sql = `SELECT * FROM expenses ${whereClause} ORDER BY ${sortColumn} ${sortOrder}`;
-    const rows = db.prepare(sql).all(...params);
+    const result = await db.execute({ sql, args: params });
+    const rows = result.rows;
 
     res.json(rows);
   } catch (err) {
@@ -135,11 +139,12 @@ router.get('/', (req, res) => {
 });
 
 // ─── GET /api/expenses/:id — Get a single expense ──────────────────────────
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const id = parseExpenseId(req.params.id);
     if (!id) return res.status(400).json({ error: 'Invalid expense id' });
-    const expense = db.prepare('SELECT * FROM expenses WHERE id = ?').get(id);
+    const result = await db.execute({ sql: 'SELECT * FROM expenses WHERE id = ?', args: [id] });
+    const expense = result.rows[0];
 
     if (!expense) {
       return res.status(404).json({ error: 'Expense not found' });
@@ -158,7 +163,8 @@ router.put('/:id', async (req, res) => {
     const id = parseExpenseId(req.params.id);
     if (!id) return res.status(400).json({ error: 'Invalid expense id' });
 
-    const existing = db.prepare('SELECT * FROM expenses WHERE id = ?').get(id);
+    const existingResult = await db.execute({ sql: 'SELECT * FROM expenses WHERE id = ?', args: [id] });
+    const existing = existingResult.rows[0];
     if (!existing) {
       return res.status(404).json({ error: 'Expense not found' });
     }
@@ -184,15 +190,15 @@ router.put('/:id', async (req, res) => {
       priceMyr = rate ? price * rate.idrToMyr : null;
     }
 
-    const stmt = db.prepare(`
-      UPDATE expenses
-      SET name = ?, category = ?, price_myr = ?, price_idr = ?, original_currency = ?, exchange_rate_used = ?, timestamp = ?
-      WHERE id = ?
-    `);
+    await db.execute({
+      sql: `UPDATE expenses
+            SET name = ?, category = ?, price_myr = ?, price_idr = ?, original_currency = ?, exchange_rate_used = ?, timestamp = ?
+            WHERE id = ?`,
+      args: [name, category, priceMyr, priceIdr, cur, exchangeRateUsed, ts, id],
+    });
 
-    stmt.run(name, category, priceMyr, priceIdr, cur, exchangeRateUsed, ts, id);
-
-    const updated = db.prepare('SELECT * FROM expenses WHERE id = ?').get(req.params.id);
+    const updatedResult = await db.execute({ sql: 'SELECT * FROM expenses WHERE id = ?', args: [id] });
+    const updated = updatedResult.rows[0];
     res.json(updated);
   } catch (err) {
     console.error('PUT /api/expenses/:id error:', err);
@@ -201,16 +207,17 @@ router.put('/:id', async (req, res) => {
 });
 
 // ─── DELETE /api/expenses/:id — Delete an expense ───────────────────────────
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const id = parseExpenseId(req.params.id);
     if (!id) return res.status(400).json({ error: 'Invalid expense id' });
-    const existing = db.prepare('SELECT * FROM expenses WHERE id = ?').get(id);
+    const existingResult = await db.execute({ sql: 'SELECT * FROM expenses WHERE id = ?', args: [id] });
+    const existing = existingResult.rows[0];
     if (!existing) {
       return res.status(404).json({ error: 'Expense not found' });
     }
 
-    db.prepare('DELETE FROM expenses WHERE id = ?').run(id);
+    await db.execute({ sql: 'DELETE FROM expenses WHERE id = ?', args: [id] });
     res.status(204).send();
   } catch (err) {
     console.error('DELETE /api/expenses/:id error:', err);

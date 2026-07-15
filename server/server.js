@@ -31,8 +31,8 @@ import {
 } from './middleware/security.js';
 
 // ─── Initialize database ────────────────────────────────────────────────────
-initSchema();
-seedIfEmpty();
+await initSchema();
+await seedIfEmpty();
 assertAuthConfiguration();
 
 // ─── Create Express app ─────────────────────────────────────────────────────

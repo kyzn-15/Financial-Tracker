@@ -24,7 +24,7 @@ A beautiful, modern full-stack web application designed using the **Neomorphism 
 ## Tech Stack
 
 - **Frontend**: React 19 + Vite, Chart.js (`react-chartjs-2`), Custom Vanilla CSS variables
-- **Backend**: Node.js + Express, `better-sqlite3` (SQLite 3), `dotenv`, `cors`
+- **Backend**: Node.js + Express, Turso via `@libsql/client` (SQLite-compatible), `dotenv`, `cors`
 - **Currency Data**: Frankfurter Public API (`https://api.frankfurter.dev`) — 100% free and requires **no API keys**.
 
 ---
@@ -58,7 +58,8 @@ Create or modify `server/.env` for local backend configuration:
 
 ```env
 PORT=4000
-DB_PATH=./tracker.db
+TURSO_DATABASE_URL=
+TURSO_AUTH_TOKEN=
 EXCHANGE_RATE_CACHE_MINUTES=15
 ADMIN_USERNAME=
 ADMIN_PIN_HASH=
@@ -100,7 +101,7 @@ Start both the backend server and frontend development server:
 cd server
 npm run start
 ```
-The server will run on `http://localhost:4000` and automatically initialize the SQLite database (`server/db/tracker.db`) and populate it with sample seed data.
+The server will run on `http://localhost:4000`, initialize the configured Turso database schema, and populate an empty expenses table with sample seed data.
 
 #### Start the Frontend:
 ```bash
