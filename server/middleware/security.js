@@ -86,10 +86,6 @@ export function requireTrustedOrigin(req, res, next) {
     return next();
   }
 
-  if (req.get('Sec-Fetch-Site') === 'cross-site') {
-    return res.status(403).json({ error: 'Cross-site request rejected.' });
-  }
-
   const requestOrigin = originFromHeader(req.get('Origin')) || originFromHeader(req.get('Referer'));
   if (!requestOrigin || !allowedOrigins.has(requestOrigin)) {
     return res.status(403).json({ error: 'Request origin is not allowed.' });

@@ -1,14 +1,17 @@
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
-const BASE_URL = configuredApiUrl ? configuredApiUrl.replace(/\/+$/, '') : '/api';
+const configuredApiBase = configuredApiUrl?.replace(/\/+$/, '');
+const BASE_URL = configuredApiBase
+  ? configuredApiBase.endsWith('/api') ? configuredApiBase : `${configuredApiBase}/api`
+  : '/api';
 
 async function request(url, options = {}) {
   const response = await fetch(`${BASE_URL}${url}`, {
+    ...options,
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
     },
-    ...options,
   });
 
   if (!response.ok) {

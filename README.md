@@ -77,16 +77,16 @@ VITE_API_URL=http://localhost:4000/api
 The frontend reads its API URL from the `VITE_API_URL` build variable. Set it in the frontend hosting provider before building or deploying:
 
 ```env
-VITE_API_URL=https://api.example.com/api
+VITE_API_URL=https://your-backend.example.com
 ```
 
-`VITE_API_URL` must include the `/api` path and must not contain a trailing slash. If it is not set, local development continues to use `/api` through the Vite proxy.
+`VITE_API_URL` may be the backend origin or include the `/api` path; the client normalizes either form. If it is not set, local development continues to use `/api` through the Vite proxy.
 
 Set the backend's production environment variables to allow the deployed frontend:
 
 ```env
 NODE_ENV=production
-CLIENT_ORIGIN=https://app.example.com
+CLIENT_ORIGIN=https://your-frontend.example.com
 TRUST_PROXY=1
 ```
 
@@ -149,7 +149,7 @@ The API is hardened with the following controls:
 
 - Helmet security headers, restrictive Content Security Policy, no-store responses, a restrictive Permissions Policy, and production HSTS.
 - A credentialed CORS allowlist. Configure `CLIENT_ORIGIN` with one or more comma-separated trusted origins; production requires HTTPS origins.
-- Origin and `Sec-Fetch-Site` validation for every state-changing API request to mitigate CSRF. Session cookies remain `HttpOnly`, `SameSite=Strict`, `Priority=High`, and are `Secure` in production.
+- Allowlisted origin validation protects every state-changing API request against CSRF. Session cookies remain `HttpOnly` and `Priority=High`; they use `SameSite=None` with `Secure` in production and `SameSite=Lax` without `Secure` in development.
 - Signed, time-limited session tokens with constant-time signature verification. Startup now rejects missing, weak, or placeholder session secrets and invalid admin credential configuration.
 - Rate limits for all API traffic (300 requests per 15 minutes), login attempts (5 failed attempts per 15 minutes), receipt uploads (20 per hour), and exports (10 per 15 minutes). Set `TRUST_PROXY` only for the number of trusted proxy hops in production so client IP limits remain correct.
 - JSON body size limits, safe JSON error handling, and strict server-side validation of expense fields, amounts, timestamps, currencies, and identifiers.

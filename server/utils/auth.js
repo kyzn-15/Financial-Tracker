@@ -24,7 +24,7 @@ function getCookieOptions(includeMaxAge = true) {
   const options = [
     'HttpOnly',
     'Path=/',
-    'SameSite=Strict',
+    `SameSite=${isProduction ? 'None' : 'Lax'}`,
     'Priority=High',
   ];
 
