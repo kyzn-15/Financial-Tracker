@@ -80,13 +80,15 @@ function toReceiptResponse(row) {
   };
 }
 
-router.get('/', (_req, res) => {
+router.get('/', async (_req, res) => {
   try {
-    const rows = db.prepare(`
-      SELECT id, filename, mime_type, uploaded_at, expires_at
-      FROM receipts
-      ORDER BY uploaded_at DESC
-    `).all();
+    const result = await db.execute({
+      sql: `SELECT id, filename, mime_type, uploaded_at, expires_at
+            FROM receipts
+            ORDER BY uploaded_at DESC`,
+      args: [],
+    });
+    const rows = result.rows;
 
     res.json(rows.map(toReceiptResponse));
   } catch (err) {
@@ -95,8 +97,8 @@ router.get('/', (_req, res) => {
   }
 });
 
-router.post('/', receiptUploadLimiter, (req, res) => {
-  upload.single('image')(req, res, (err) => {
+router.post('/', receiptUploadLimiter, async (req, res) => {
+  upload.single('image')(req, res, async (err) => {
     if (err instanceof multer.MulterError) {
       const message = err.code === 'LIMIT_FILE_SIZE'
         ? 'Image must be 10 MB or smaller'
@@ -115,15 +117,18 @@ router.post('/', receiptUploadLimiter, (req, res) => {
       const uploadedAt = nowUTC8();
       const expiresAt = addDaysUTC8(new Date(), RETENTION_DAYS);
 
-      const result = db.prepare(`
-        INSERT INTO receipts (filename, mime_type, uploaded_at, expires_at)
-        VALUES (?, ?, ?, ?)
-      `).run(req.file.filename, req.file.mimetype, uploadedAt, expiresAt);
+      const result = await db.execute({
+        sql: `INSERT INTO receipts (filename, mime_type, uploaded_at, expires_at)
+              VALUES (?, ?, ?, ?)`,
+        args: [req.file.filename, req.file.mimetype, uploadedAt, expiresAt],
+      });
 
-      const created = db.prepare(`
-        SELECT id, filename, mime_type, uploaded_at, expires_at
-        FROM receipts WHERE id = ?
-      `).get(result.lastInsertRowid);
+      const createdResult = await db.execute({
+        sql: `SELECT id, filename, mime_type, uploaded_at, expires_at
+              FROM receipts WHERE id = ?`,
+        args: [result.lastInsertRowid],
+      });
+      const created = createdResult.rows[0];
 
       res.status(201).json(toReceiptResponse(created));
     } catch (insertErr) {
@@ -136,9 +141,13 @@ router.post('/', receiptUploadLimiter, (req, res) => {
   });
 });
 
-router.get('/:id/image', (req, res) => {
+router.get('/:id/image', async (req, res) => {
   try {
-    const receipt = db.prepare('SELECT filename, mime_type FROM receipts WHERE id = ?').get(req.params.id);
+    const result = await db.execute({
+      sql: 'SELECT filename, mime_type FROM receipts WHERE id = ?',
+      args: [req.params.id],
+    });
+    const receipt = result.rows[0];
     if (!receipt) {
       return res.status(404).json({ error: 'Receipt not found' });
     }
@@ -156,15 +165,19 @@ router.get('/:id/image', (req, res) => {
   }
 });
 
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    const receipt = db.prepare('SELECT id, filename FROM receipts WHERE id = ?').get(req.params.id);
+    const result = await db.execute({
+      sql: 'SELECT id, filename FROM receipts WHERE id = ?',
+      args: [req.params.id],
+    });
+    const receipt = result.rows[0];
     if (!receipt) {
       return res.status(404).json({ error: 'Receipt not found' });
     }
 
     deleteReceiptFile(receipt.filename);
-    db.prepare('DELETE FROM receipts WHERE id = ?').run(receipt.id);
+    await db.execute({ sql: 'DELETE FROM receipts WHERE id = ?', args: [receipt.id] });
     res.status(204).send();
   } catch (err) {
     console.error('DELETE /api/receipts/:id error:', err);

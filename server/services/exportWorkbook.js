@@ -226,9 +226,19 @@ export async function buildRecordsExportWorkbook() {
   workbook.modified = new Date();
   workbook.properties.date1904 = false;
 
-  const expenses = db.prepare('SELECT * FROM expenses ORDER BY timestamp DESC, id DESC').all();
-  const receipts = db.prepare('SELECT * FROM receipts ORDER BY uploaded_at DESC, id DESC').all();
-  const emergency = buildEmergencySummary();
+  const [expensesResult, receiptsResult, emergency] = await Promise.all([
+    db.execute({
+      sql: 'SELECT * FROM expenses ORDER BY timestamp DESC, id DESC',
+      args: [],
+    }),
+    db.execute({
+      sql: 'SELECT * FROM receipts ORDER BY uploaded_at DESC, id DESC',
+      args: [],
+    }),
+    buildEmergencySummary(),
+  ]);
+  const expenses = expensesResult.rows;
+  const receipts = receiptsResult.rows;
 
   addOverviewSheet(workbook, expenses, receipts, emergency);
   addExpensesSheet(workbook, expenses);

@@ -51,71 +51,71 @@ function placeholders(items) {
   return items.map(() => '?').join(', ');
 }
 
-function getCompleteMonths(limit = 3) {
-  return db
-    .prepare(
-      `SELECT substr(timestamp, 1, 7) AS month
-       FROM expenses
-       WHERE substr(timestamp, 1, 7) < ?
-       GROUP BY month
-       ORDER BY month DESC
-       LIMIT ?`
-    )
-    .all(currentMonthKey(), limit)
-    .map((row) => row.month);
+async function getCompleteMonths(limit = 3) {
+  const result = await db.execute({
+    sql: `SELECT substr(timestamp, 1, 7) AS month
+          FROM expenses
+          WHERE substr(timestamp, 1, 7) < ?
+          GROUP BY month
+          ORDER BY month DESC
+          LIMIT ?`,
+    args: [currentMonthKey(), limit],
+  });
+  return result.rows.map((row) => row.month);
 }
 
-function getCategoryTotalsForMonths(months) {
+async function getCategoryTotalsForMonths(months) {
   if (months.length === 0) return [];
-  return db
-    .prepare(
-      `SELECT substr(timestamp, 1, 7) AS month,
-              category,
-              COALESCE(SUM(price_myr), 0) AS total_myr
-       FROM expenses
-       WHERE substr(timestamp, 1, 7) IN (${placeholders(months)})
-       GROUP BY month, category`
-    )
-    .all(...months);
+  const result = await db.execute({
+    sql: `SELECT substr(timestamp, 1, 7) AS month,
+                 category,
+                 COALESCE(SUM(price_myr), 0) AS total_myr
+          FROM expenses
+          WHERE substr(timestamp, 1, 7) IN (${placeholders(months)})
+          GROUP BY month, category`,
+    args: months,
+  });
+  return result.rows;
 }
 
-function getCurrentMonthCategoryTotals() {
+async function getCurrentMonthCategoryTotals() {
   const monthKey = currentMonthKey();
   const nextMonthKey = addMonths(monthKey, 1);
-  return db
-    .prepare(
-      `SELECT substr(timestamp, 1, 7) AS month,
-              category,
-              COALESCE(SUM(price_myr), 0) AS total_myr
-       FROM expenses
-       WHERE timestamp >= ? AND timestamp < ?
-       GROUP BY month, category`
-    )
-    .all(monthStartFromKey(monthKey), monthStartFromKey(nextMonthKey));
+  const result = await db.execute({
+    sql: `SELECT substr(timestamp, 1, 7) AS month,
+                 category,
+                 COALESCE(SUM(price_myr), 0) AS total_myr
+          FROM expenses
+          WHERE timestamp >= ? AND timestamp < ?
+          GROUP BY month, category`,
+    args: [monthStartFromKey(monthKey), monthStartFromKey(nextMonthKey)],
+  });
+  return result.rows;
 }
 
-function getDistinctCategories() {
-  return db
-    .prepare(
-      `SELECT DISTINCT category
-       FROM expenses
-       WHERE category IS NOT NULL AND TRIM(category) <> ''
-       ORDER BY category COLLATE NOCASE`
-    )
-    .all()
-    .map((row) => row.category);
+async function getDistinctCategories() {
+  const result = await db.execute({
+    sql: `SELECT DISTINCT category
+          FROM expenses
+          WHERE category IS NOT NULL AND TRIM(category) <> ''
+          ORDER BY category COLLATE NOCASE`,
+    args: [],
+  });
+  return result.rows.map((row) => row.category);
 }
 
 function sumRows(rows, predicate) {
   return rows.reduce((sum, row) => (predicate(row) ? sum + toMoney(row.total_myr) : sum), 0);
 }
 
-function buildExpenseProfile(settings) {
+async function buildExpenseProfile(settings) {
   const essentialCategories = new Set(settings.essential_categories);
-  const completeMonths = getCompleteMonths(3);
+  const completeMonths = await getCompleteMonths(3);
   const usesPartialData = completeMonths.length === 0;
   const months = usesPartialData ? [currentMonthKey()] : completeMonths;
-  const rows = usesPartialData ? getCurrentMonthCategoryTotals() : getCategoryTotalsForMonths(months);
+  const rows = usesPartialData
+    ? await getCurrentMonthCategoryTotals()
+    : await getCategoryTotalsForMonths(months);
   const divisor = Math.max(months.length, 1);
 
   const monthlyTotals = months.map((month) => {
@@ -227,10 +227,10 @@ function calculateReadinessScore(core, profile) {
   };
 }
 
-function foodIncreaseInsight() {
-  const months = getCompleteMonths(2);
+async function foodIncreaseInsight() {
+  const months = await getCompleteMonths(2);
   if (months.length < 2) return null;
-  const rows = getCategoryTotalsForMonths(months);
+  const rows = await getCategoryTotalsForMonths(months);
   const [latestMonth, previousMonth] = months;
   const foodTotal = (month) => sumRows(rows, (row) => row.month === month && row.category.toLowerCase().includes('food'));
   const latest = foodTotal(latestMonth);
@@ -245,7 +245,7 @@ function foodIncreaseInsight() {
   return null;
 }
 
-function buildInsights(core) {
+async function buildInsights(core) {
   const insights = [];
 
   if (core.averageMonthlyEssentialExpenseMyr <= 0) {
@@ -277,7 +277,7 @@ function buildInsights(core) {
     });
   }
 
-  const foodInsight = foodIncreaseInsight();
+  const foodInsight = await foodIncreaseInsight();
   if (foodInsight) insights.push(foodInsight);
 
   if (insights.length === 0) {
@@ -290,14 +290,17 @@ function buildInsights(core) {
   return insights;
 }
 
-export function getEmergencySettings() {
-  let row = db.prepare('SELECT * FROM emergency_settings WHERE id = 1').get();
+export async function getEmergencySettings() {
+  let result = await db.execute({ sql: 'SELECT * FROM emergency_settings WHERE id = 1', args: [] });
+  let row = result.rows[0];
   if (!row) {
-    db.prepare(
-      `INSERT INTO emergency_settings (id, current_savings_myr, reserved_funds_myr, target_months, essential_categories, updated_at)
-       VALUES (1, 0, 0, 6, ?, ?)`
-    ).run(JSON.stringify(DEFAULT_ESSENTIAL_CATEGORIES), nowUTC8());
-    row = db.prepare('SELECT * FROM emergency_settings WHERE id = 1').get();
+    await db.execute({
+      sql: `INSERT OR IGNORE INTO emergency_settings (id, current_savings_myr, reserved_funds_myr, target_months, essential_categories, updated_at)
+            VALUES (1, 0, 0, 6, ?, ?)`,
+      args: [JSON.stringify(DEFAULT_ESSENTIAL_CATEGORIES), nowUTC8()],
+    });
+    result = await db.execute({ sql: 'SELECT * FROM emergency_settings WHERE id = 1', args: [] });
+    row = result.rows[0];
   }
 
   return {
@@ -310,13 +313,15 @@ export function getEmergencySettings() {
   };
 }
 
-export function getEmergencyCategoryOptions(settings = getEmergencySettings()) {
-  return [...new Set([...getDistinctCategories(), ...settings.essential_categories])].sort((a, b) =>
+export async function getEmergencyCategoryOptions(settings = null) {
+  const resolvedSettings = settings ?? await getEmergencySettings();
+  const categories = await getDistinctCategories();
+  return [...new Set([...categories, ...resolvedSettings.essential_categories])].sort((a, b) =>
     a.localeCompare(b)
   );
 }
 
-export function updateEmergencySettings(input) {
+export async function updateEmergencySettings(input) {
   const targetMonths = Number(input.target_months);
   if (!VALID_TARGET_MONTHS.includes(targetMonths)) {
     throw new Error('target_months must be one of 3, 6, 9, or 12');
@@ -333,28 +338,32 @@ export function updateEmergencySettings(input) {
 
   const essentialCategories = normalizeCategories(input.essential_categories);
 
-  db.prepare(
-    `INSERT INTO emergency_settings (id, current_savings_myr, reserved_funds_myr, target_months, essential_categories, updated_at)
-     VALUES (1, ?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       current_savings_myr = excluded.current_savings_myr,
-       reserved_funds_myr = excluded.reserved_funds_myr,
-       target_months = excluded.target_months,
-       essential_categories = excluded.essential_categories,
-       updated_at = excluded.updated_at`
-  ).run(roundMoney(currentSavings), roundMoney(reservedFunds), targetMonths, JSON.stringify(essentialCategories), nowUTC8());
+  await db.execute({
+    sql: `INSERT INTO emergency_settings (id, current_savings_myr, reserved_funds_myr, target_months, essential_categories, updated_at)
+          VALUES (1, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            current_savings_myr = excluded.current_savings_myr,
+            reserved_funds_myr = excluded.reserved_funds_myr,
+            target_months = excluded.target_months,
+            essential_categories = excluded.essential_categories,
+            updated_at = excluded.updated_at`,
+    args: [roundMoney(currentSavings), roundMoney(reservedFunds), targetMonths, JSON.stringify(essentialCategories), nowUTC8()],
+  });
 
-  return getEmergencySettings();
+  return await getEmergencySettings();
 }
 
-export function buildEmergencySummary() {
-  const settings = getEmergencySettings();
-  const profile = buildExpenseProfile(settings);
+export async function buildEmergencySummary() {
+  const settings = await getEmergencySettings();
+  const [profile, categoryOptions] = await Promise.all([
+    buildExpenseProfile(settings),
+    getEmergencyCategoryOptions(settings),
+  ]);
   const core = calculateCore(settings, profile.averageMonthlyEssentialExpense);
 
   return {
     settings,
-    categoryOptions: getEmergencyCategoryOptions(settings),
+    categoryOptions,
     ...core,
     dataBasis: profile.dataBasis,
     monthlyTotals: profile.monthlyTotals,
@@ -364,7 +373,7 @@ export function buildEmergencySummary() {
       categoryAverages: profile.categoryAverages,
       readinessScore: calculateReadinessScore(core, profile),
     },
-    insights: buildInsights(core),
+    insights: await buildInsights(core),
   };
 }
 
@@ -432,8 +441,8 @@ function parseSimulationAdjustments(query, categoryAverages) {
     .filter((item) => item.deltaMyr !== 0);
 }
 
-export function buildEmergencySimulation(query) {
-  const summary = buildEmergencySummary();
+export async function buildEmergencySimulation(query) {
+  const summary = await buildEmergencySummary();
   const categoryAverages = summary.analytics.categoryAverages;
   const adjustments = parseSimulationAdjustments(query, categoryAverages);
   const totalDeltaMyr = roundMoney(adjustments.reduce((sum, item) => sum + item.deltaMyr, 0));
