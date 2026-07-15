@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { getSystemStatus } from '../services/api';
 
 export default function LoginPage({ onLogin }) {
   const [step, setStep] = useState('username');
@@ -6,6 +7,7 @@ export default function LoginPage({ onLogin }) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [systemStatus, setSystemStatus] = useState('checking');
   const pinInputRef = useRef(null);
   const usernameInputRef = useRef(null);
 
@@ -16,6 +18,27 @@ export default function LoginPage({ onLogin }) {
       usernameInputRef.current?.focus();
     }
   }, [step]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const checkSystemStatus = async () => {
+      try {
+        const { status } = await getSystemStatus();
+        if (isActive) setSystemStatus(status === 'ok' ? 'operational' : 'issues');
+      } catch {
+        if (isActive) setSystemStatus('issues');
+      }
+    };
+
+    checkSystemStatus();
+    const intervalId = window.setInterval(checkSystemStatus, 30000);
+
+    return () => {
+      isActive = false;
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   const handleUsernameSubmit = (event) => {
     event.preventDefault();
@@ -79,6 +102,15 @@ export default function LoginPage({ onLogin }) {
               ? 'Enter your username to continue.'
               : 'Enter your 6-digit PIN.'}
           </p>
+        </div>
+
+        <div className={`system-status system-status--${systemStatus}`} role="status" aria-live="polite">
+          <span className="system-status__icon" aria-hidden="true" />
+          <span>
+            {systemStatus === 'operational' && 'All systems operational'}
+            {systemStatus === 'checking' && 'Checking system status'}
+            {systemStatus === 'issues' && 'System issues detected'}
+          </span>
         </div>
 
         {step === 'username' ? (

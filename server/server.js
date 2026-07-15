@@ -19,6 +19,7 @@ import summaryRouter from './routes/summary.js';
 import receiptsRouter from './routes/receipts.js';
 import emergencyRouter from './routes/emergency.js';
 import exportRouter from './routes/export.js';
+import backupRouter from './routes/backup.js';
 import { scheduleReceiptCleanup } from './services/receiptCleanup.js';
 import { assertAuthConfiguration } from './utils/auth.js';
 import {
@@ -63,6 +64,7 @@ app.use('/api/expenses', requireAuth, expensesRouter);
 app.use('/api/receipts', requireAuth, receiptsRouter);
 app.use('/api/emergency', requireAuth, emergencyRouter);
 app.use('/api/export', requireAuth, exportRouter);
+app.use('/api/backup', requireAuth, backupRouter);
 app.use('/api', requireAuth, summaryRouter);
 
 // ─── Health check ────────────────────────────────────────────────────────────
