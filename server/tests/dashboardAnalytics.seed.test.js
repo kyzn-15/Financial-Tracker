@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { after, test } from 'node:test';
 
 process.env.NODE_ENV = 'test';
-process.env.DB_PATH = './dashboard-analytics.test.db';
+process.env.TURSO_DATABASE_URL = new URL('../db/dashboard-analytics.test.db', import.meta.url).href;
+delete process.env.TURSO_AUTH_TOKEN;
 
 const { default: db, initSchema } = await import('../db/database.js');
 const { getMonthRangeUTC8, getUTC8Date, subtractDaysUTC8 } = await import('../utils/datetime.js');
@@ -29,7 +30,7 @@ function createExpense(name, category, amount, date) {
   };
 }
 
-function seedDashboardAnalytics(database) {
+async function seedDashboardAnalytics(database) {
   const referenceDate = getUTC8Date();
   const currentMonth = getMonthRangeUTC8(referenceDate);
   const previousMonth = getMonthRangeUTC8(referenceDate, -1);
@@ -58,54 +59,62 @@ function seedDashboardAnalytics(database) {
     ));
   }
 
-  const insertExpense = database.prepare(`
-    INSERT INTO expenses (name, category, price_myr, price_idr, original_currency, exchange_rate_used, timestamp)
-    VALUES (?, ?, ?, ?, 'MYR', ?, ?)
-  `);
-
-  database.transaction(() => {
-    database.prepare('DELETE FROM expenses').run();
-    for (const expense of expenses) {
-      insertExpense.run(
+  await database.batch([
+    { sql: 'DELETE FROM expenses', args: [] },
+    ...expenses.map((expense) => ({
+      sql: `INSERT INTO expenses (name, category, price_myr, price_idr, original_currency, exchange_rate_used, timestamp)
+            VALUES (?, ?, ?, ?, 'MYR', ?, ?)`,
+      args: [
         expense.name,
         expense.category,
         expense.priceMyr,
         expense.priceIdr,
         TEST_EXCHANGE_RATE,
-        expense.timestamp
-      );
-    }
-  })();
+        expense.timestamp,
+      ],
+    })),
+  ], 'write');
 
   return expenses;
 }
 
-initSchema();
+await initSchema();
 
-test('seeds isolated dummy data for every dashboard analytics section', () => {
-  const expenses = seedDashboardAnalytics(db);
+test('seeds isolated dummy data for every dashboard analytics section', async () => {
+  const expenses = await seedDashboardAnalytics(db);
   const referenceDate = getUTC8Date();
   const currentMonth = getMonthRangeUTC8(referenceDate);
   const previousMonth = getMonthRangeUTC8(referenceDate, -1);
-  const currentCount = db.prepare(
-    'SELECT COUNT(*) AS count FROM expenses WHERE timestamp >= ? AND timestamp < ?'
-  ).get(currentMonth.start, currentMonth.end).count;
-  const previousFood = db.prepare(
-    `SELECT COALESCE(SUM(price_myr), 0) AS total FROM expenses
-     WHERE category = 'Food' AND timestamp >= ? AND timestamp < ?`
-  ).get(previousMonth.start, previousMonth.end).total;
-  const largestPurchase = db.prepare(
-    'SELECT name, price_myr FROM expenses ORDER BY price_myr DESC LIMIT 1'
-  ).get();
-  const heatmapDays = db.prepare(
-    `SELECT COUNT(DISTINCT substr(timestamp, 1, 10)) AS count FROM expenses
-     WHERE timestamp >= ?`
-  ).get(`${subtractDaysUTC8(referenceDate, 364)}T00:00:00+08:00`).count;
+  const [currentCountResult, previousFoodResult, largestPurchaseResult, heatmapDaysResult] = await Promise.all([
+    db.execute({
+      sql: 'SELECT COUNT(*) AS count FROM expenses WHERE timestamp >= ? AND timestamp < ?',
+      args: [currentMonth.start, currentMonth.end],
+    }),
+    db.execute({
+      sql: `SELECT COALESCE(SUM(price_myr), 0) AS total FROM expenses
+            WHERE category = 'Food' AND timestamp >= ? AND timestamp < ?`,
+      args: [previousMonth.start, previousMonth.end],
+    }),
+    db.execute({
+      sql: 'SELECT name, price_myr FROM expenses ORDER BY price_myr DESC LIMIT 1',
+      args: [],
+    }),
+    db.execute({
+      sql: `SELECT COUNT(DISTINCT substr(timestamp, 1, 10)) AS count FROM expenses
+            WHERE timestamp >= ?`,
+      args: [`${subtractDaysUTC8(referenceDate, 364)}T00:00:00+08:00`],
+    }),
+  ]);
+  const currentCount = Number(currentCountResult.rows[0].count);
+  const previousFood = Number(previousFoodResult.rows[0].total);
+  const largestPurchase = largestPurchaseResult.rows[0];
+  const heatmapDays = Number(heatmapDaysResult.rows[0].count);
 
   assert.equal(expenses.length > 25, true);
   assert.equal(currentCount > 0, true);
   assert.equal(previousFood, 320);
-  assert.deepEqual(largestPurchase, { name: 'Laptop', price_myr: 4200 });
+  assert.equal(largestPurchase.name, 'Laptop');
+  assert.equal(largestPurchase.price_myr, 4200);
   assert.equal(heatmapDays > 12, true);
 });
 
