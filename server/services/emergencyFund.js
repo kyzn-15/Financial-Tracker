@@ -93,15 +93,14 @@ async function getCurrentMonthCategoryTotals() {
   return result.rows;
 }
 
-async function getDistinctCategories() {
+async function getManagedCategories() {
   const result = await db.execute({
-    sql: `SELECT DISTINCT category
-          FROM expenses
-          WHERE category IS NOT NULL AND TRIM(category) <> ''
-          ORDER BY category COLLATE NOCASE`,
+    sql: `SELECT name
+          FROM categories
+          ORDER BY sort_order ASC, id ASC`,
     args: [],
   });
-  return result.rows.map((row) => row.category);
+  return result.rows.map((row) => row.name);
 }
 
 function sumRows(rows, predicate) {
@@ -314,11 +313,8 @@ export async function getEmergencySettings() {
 }
 
 export async function getEmergencyCategoryOptions(settings = null) {
-  const resolvedSettings = settings ?? await getEmergencySettings();
-  const categories = await getDistinctCategories();
-  return [...new Set([...categories, ...resolvedSettings.essential_categories])].sort((a, b) =>
-    a.localeCompare(b)
-  );
+  if (!settings) await getEmergencySettings();
+  return getManagedCategories();
 }
 
 export async function updateEmergencySettings(input) {

@@ -112,6 +112,6 @@ export function useExpenses() {
     updateFilters,
     updateSort,
     clearFilters,
-    refresh: () => { fetchExpenses(); fetchSummary(); },
+    refresh: () => Promise.all([fetchExpenses(), fetchSummary()]),
   };
 }

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { CATEGORIES } from '../utils/formatters';
 
-export default function ExpenseForm({ onSubmit, initialData, submitText = 'Save Expense', isCancelable, onCancel }) {
+export default function ExpenseForm({ categories = [], onSubmit, initialData, submitText = 'Save Expense', isCancelable, onCancel }) {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [price, setPrice] = useState('');
@@ -32,7 +31,7 @@ export default function ExpenseForm({ onSubmit, initialData, submitText = 'Save 
     } else {
       // Defaults
       setName('');
-      setCategory(CATEGORIES[0] || '');
+      setCategory('');
       setPrice('');
       setCurrency('MYR');
       setCustomDateTime('');
@@ -40,6 +39,12 @@ export default function ExpenseForm({ onSubmit, initialData, submitText = 'Save 
     }
     setValidationError('');
   }, [initialData]);
+
+  useEffect(() => {
+    if (!initialData && !category && categories.length > 0) {
+      setCategory(categories[0]);
+    }
+  }, [categories, category, initialData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -120,7 +125,7 @@ export default function ExpenseForm({ onSubmit, initialData, submitText = 'Save 
             required
           >
             <option value="" disabled>Select category</option>
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
               </option>

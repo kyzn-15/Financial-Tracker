@@ -86,6 +86,35 @@ export async function deleteExpense(id) {
   });
 }
 
+export async function getCategories() {
+  return request('/categories');
+}
+
+export async function createCategory(name) {
+  return request('/categories', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function renameCategory(id, name) {
+  return request(`/categories/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteCategory(id) {
+  return request(`/categories/${id}`, { method: 'DELETE' });
+}
+
+export async function reorderCategories(ids) {
+  return request('/categories/reorder', {
+    method: 'PUT',
+    body: JSON.stringify({ ids }),
+  });
+}
+
 export async function getSummary() {
   return request('/summary');
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import './App.css';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -11,16 +11,25 @@ import Modal from './components/Modal';
 import Toast from './components/Toast';
 import ReceiptSaver from './components/ReceiptSaver';
 import EmergencyFundDashboard from './components/EmergencyFundDashboard';
-import BackupSettings from './components/BackupSettings';
+import SettingsPage from './components/SettingsPage';
 import { useExpenses } from './hooks/useExpenses';
 import { useReceipts } from './hooks/useReceipts';
 import { useEmergencyFund } from './hooks/useEmergencyFund';
+import { useCategories } from './hooks/useCategories';
 import * as api from './services/api';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [sessionExpiresAt, setSessionExpiresAt] = useState(null);
+  const [theme, setTheme] = useState(() => (
+    window.localStorage.getItem('financial-tracker-theme') === 'dark' ? 'dark' : 'light'
+  ));
+
+  useLayoutEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem('financial-tracker-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     let isMounted = true;
@@ -97,10 +106,17 @@ export default function App() {
     return <LoginPage onLogin={handleLogin} />;
   }
 
-  return <AuthenticatedApp onLogout={handleLogout} sessionExpiresAt={sessionExpiresAt} />;
+  return (
+    <AuthenticatedApp
+      onLogout={handleLogout}
+      sessionExpiresAt={sessionExpiresAt}
+      theme={theme}
+      onThemeChange={setTheme}
+    />
+  );
 }
 
-function AuthenticatedApp({ onLogout, sessionExpiresAt }) {
+function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) {
   const [activeTab, setActiveTab] = useState('dashboard'); // Default to dashboard for better first impression
   const [currency, setCurrency] = useState('MYR');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -121,7 +137,11 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt }) {
     updateFilters,
     updateSort,
     clearFilters,
+    refresh: refreshExpenses,
   } = useExpenses();
+
+  const categoryStore = useCategories();
+  const categoryNames = categoryStore.categories.map((category) => category.name);
 
   const {
     receipts,
@@ -285,6 +305,13 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt }) {
     }
   };
 
+  const syncCategoryChange = async (mutation) => {
+    const result = await mutation();
+    updateFilters({ category: '' });
+    await Promise.all([refreshExpenses(), emergency.refresh()]);
+    return result;
+  };
+
   const handleRemindLater = () => {
     const reminderSessionKey = `financial-tracker-backup-reminder-dismissed:${sessionExpiresAt}`;
     window.sessionStorage.setItem(reminderSessionKey, 'true');
@@ -338,7 +365,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt }) {
         <div className="tab-content">
           {activeTab === 'add' && (
             <div className="neo-card" style={{ maxWidth: '640px', margin: '0 auto', marginTop: 'var(--space-md)' }}>
-              <ExpenseForm onSubmit={handleAddSubmit} submitText="Add Expense" />
+              <ExpenseForm categories={categoryNames} onSubmit={handleAddSubmit} submitText="Add Expense" />
             </div>
           )}
 
@@ -354,6 +381,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt }) {
                 </button>
               </div>
               <FilterBar
+                categories={categoryNames}
                 filters={filters}
                 onChange={updateFilters}
                 onClear={clearFilters}
@@ -373,12 +401,6 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt }) {
                   onDelete={setDeletingExpense}
                 />
               )}
-              <BackupSettings
-                preferences={backupPreferences}
-                onSaveInterval={handleSaveBackupInterval}
-                onResetLastBackup={handleResetLastBackup}
-                isSaving={isSavingBackupPreferences}
-              />
             </>
           )}
 
@@ -394,7 +416,25 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt }) {
           {activeTab === 'emergency' && (
             <EmergencyFundDashboard
               emergency={emergency}
-              onSaveSettings={emergency.saveSettings}
+              currency={currency}
+              exchangeRate={exchangeRate}
+            />
+          )}
+
+          {activeTab === 'settings' && (
+            <SettingsPage
+              theme={theme}
+              onThemeChange={onThemeChange}
+              categoryStore={categoryStore}
+              onAddCategory={(name) => syncCategoryChange(() => categoryStore.addCategory(name))}
+              onRenameCategory={(id, name) => syncCategoryChange(() => categoryStore.renameCategory(id, name))}
+              onRemoveCategory={(id) => syncCategoryChange(() => categoryStore.removeCategory(id))}
+              onReorderCategories={(ids) => syncCategoryChange(() => categoryStore.reorderCategories(ids))}
+              backupPreferences={backupPreferences}
+              onSaveBackupInterval={handleSaveBackupInterval}
+              onResetLastBackup={handleResetLastBackup}
+              isSavingBackupPreferences={isSavingBackupPreferences}
+              emergency={emergency}
               currency={currency}
               exchangeRate={exchangeRate}
             />
@@ -411,6 +451,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt }) {
       >
         {editingExpense && (
           <ExpenseForm
+            categories={categoryNames}
             onSubmit={handleEditSubmit}
             initialData={editingExpense}
             submitText="Save Changes"

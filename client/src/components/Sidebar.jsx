@@ -47,6 +47,13 @@ export default function Sidebar({ activeTab, setActiveTab }) {
           <span className="sidebar__nav-icon">📋</span>
           <span>History</span>
         </button>
+        <button
+          className={`sidebar__nav-item ${activeTab === 'settings' ? 'sidebar__nav-item--active' : ''}`}
+          onClick={() => setActiveTab('settings')}
+        >
+          <span className="sidebar__nav-icon">⚙️</span>
+          <span>Settings</span>
+        </button>
       </nav>
     </aside>
   );

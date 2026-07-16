@@ -237,6 +237,203 @@
   color: var(--text-secondary);
 }
 
+/* ---- SETTINGS ---- */
+.settings-page {
+  display: grid;
+  gap: var(--space-xl);
+  width: min(100%, 980px);
+  margin: 0 auto;
+}
+
+.settings-page .backup-settings {
+  width: 100%;
+  margin: 0;
+}
+
+.theme-settings,
+.settings-page .emergency-settings {
+  width: 100%;
+}
+
+.settings-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.settings-section-heading p,
+.settings-page__status {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.settings-page__status--error {
+  color: var(--danger);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 0 0 auto;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-full);
+  background: var(--bg);
+  box-shadow: var(--neo-out-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  transition: color var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-fast);
+}
+
+.theme-toggle:active {
+  box-shadow: var(--neo-in);
+  transform: scale(0.98);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.theme-toggle__icon {
+  width: 18px;
+  text-align: center;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.theme-toggle__track {
+  position: relative;
+  width: 46px;
+  height: 24px;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  background: var(--bg-alt);
+  box-shadow: var(--neo-in);
+}
+
+.theme-toggle__thumb {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: var(--neo-out-sm);
+  transform: translateX(0);
+  transition: transform var(--transition-slow), background var(--transition-normal);
+}
+
+.theme-toggle--active {
+  color: var(--accent);
+}
+
+.theme-toggle--active .theme-toggle__thumb {
+  transform: translateX(22px);
+}
+
+.category-manager {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.category-manager__add {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.category-manager__add-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-md);
+}
+
+.category-manager__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.category-manager__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius);
+  background: var(--bg);
+  box-shadow: var(--neo-in);
+}
+
+.category-manager__order {
+  display: grid;
+  grid-template-columns: repeat(2, 30px);
+  gap: var(--space-xs);
+}
+
+.category-manager__order button {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  box-shadow: var(--neo-out-sm);
+  color: var(--accent);
+  font-weight: 900;
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+.category-manager__order button:active:not(:disabled) {
+  box-shadow: var(--neo-in);
+  transform: scale(0.96);
+}
+
+.category-manager__order button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.category-manager__name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.category-manager__name strong {
+  overflow-wrap: anywhere;
+}
+
+.category-manager__name span {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.category-manager__edit-input {
+  min-width: 0;
+}
+
+.category-manager__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
+.category-manager__status {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.category-manager__feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
 .neo-btn:disabled {
   cursor: not-allowed;
   opacity: 0.55;
@@ -2157,6 +2354,28 @@ button.heatmap-day:focus-visible {
 }
 
 @media (max-width: 768px) {
+  .settings-section-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .theme-toggle {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .category-manager__add-row {
+    grid-template-columns: 1fr;
+  }
+
+  .category-manager__item {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .category-manager__actions {
+    grid-column: 1 / -1;
+  }
+
   .sidebar__nav-item {
     flex: 1;
     min-width: 0;
@@ -2384,6 +2603,43 @@ button.heatmap-day:focus-visible {
     width: 100%;
     margin-left: 0;
   }
+}
+
+[data-theme='dark'] .modal-overlay {
+  background: rgba(10, 12, 15, 0.68);
+}
+
+[data-theme='dark'] .neo-btn--primary {
+  box-shadow: 4px 4px 10px rgba(10, 13, 16, 0.55), -2px -2px 6px rgba(105, 174, 228, 0.2);
+}
+
+[data-theme='dark'] .summary-card::after {
+  background: rgba(105, 174, 228, 0.09);
+}
+
+[data-theme='dark'] .neo-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23bcc6cf' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+}
+
+[data-theme='dark'] .sidebar {
+  box-shadow: 10px 0 20px rgba(8, 10, 12, 0.34);
+}
+
+[data-theme='dark'] .heatmap-day--0 { background: #303740; }
+[data-theme='dark'] .heatmap-day--1 { background: #35534f; }
+[data-theme='dark'] .heatmap-day--2 { background: #42736f; }
+[data-theme='dark'] .heatmap-day--3 { background: #4f8098; }
+[data-theme='dark'] .heatmap-day--4 { background: var(--accent); }
+
+[data-theme='dark'] .heatmap-streak--active,
+[data-theme='dark'] .financial-insight--warning .financial-insight__number,
+[data-theme='dark'] .emergency-status--orange,
+[data-theme='dark'] .emergency-status--gold {
+  color: var(--warning);
+}
+
+[data-theme='dark'] .financial-insight--info .financial-insight__number {
+  color: var(--info);
 }
 
 /* Keep phone headers compact and reveal secondary actions on demand. */

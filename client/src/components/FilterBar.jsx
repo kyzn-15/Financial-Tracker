@@ -1,7 +1,6 @@
 import React from 'react';
-import { CATEGORIES } from '../utils/formatters';
 
-export default function FilterBar({ filters, onChange, onClear }) {
+export default function FilterBar({ categories = [], filters, onChange, onClear }) {
   const handleCategoryChange = (e) => {
     onChange({ category: e.target.value });
   };
@@ -43,7 +42,7 @@ export default function FilterBar({ filters, onChange, onClear }) {
           onChange={handleCategoryChange}
         >
           <option value="">All Categories</option>
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <option key={cat} value={cat}>
               {cat}
             </option>

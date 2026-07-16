@@ -100,25 +100,6 @@ export const CATEGORY_ICONS = {
 };
 
 /**
- * Category list
- */
-export const CATEGORIES = [
-  'Grocery',
-  'Food',
-  'Non-Primary Expenses',
-  'Other Expenses',
-  'Entertainment',
-  'Education',
-  'Subscription',
-  'Transport',
-  'Rent',
-  'Utilities',
-  'Health/Medical',
-  'Savings/Investment',
-  'Others',
-];
-
-/**
  * Chart color palette
  */
 export const CHART_COLORS = [

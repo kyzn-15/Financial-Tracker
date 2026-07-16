@@ -27,7 +27,7 @@ export function useEmergencyFund(activeTab) {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'emergency') fetchEmergencyData();
+    if (activeTab === 'emergency' || activeTab === 'settings') fetchEmergencyData();
   }, [activeTab, fetchEmergencyData]);
 
   const saveSettings = async (data) => {
