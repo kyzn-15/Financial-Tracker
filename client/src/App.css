@@ -28,8 +28,8 @@
   place-items: center;
   padding: var(--space-xl);
   background:
-    radial-gradient(circle at top left, rgba(116, 185, 255, 0.18), transparent 32%),
-    radial-gradient(circle at bottom right, rgba(0, 184, 148, 0.12), transparent 34%),
+    radial-gradient(circle at top left, rgba(111, 155, 183, 0.18), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(79, 226, 161, 0.14), transparent 34%),
     var(--bg);
 }
 
@@ -49,7 +49,7 @@
   place-items: center;
   margin-bottom: var(--space-xl);
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--accent), var(--success));
+  background: var(--accent);
   box-shadow: var(--neo-out-sm);
   color: var(--text-inverse);
 }
@@ -266,7 +266,7 @@
   width: 48px;
   height: 48px;
   border-radius: var(--radius);
-  background: linear-gradient(135deg, var(--accent), #8B83FF);
+  background: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -277,10 +277,7 @@
 .sidebar__title {
   font-size: var(--font-size-lg);
   font-weight: 700;
-  background: linear-gradient(135deg, var(--accent), #8B83FF);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--accent);
   line-height: 1.2;
 }
 
@@ -365,12 +362,12 @@
 
 .header__rate-badge--live {
   background: var(--success-soft);
-  box-shadow: var(--neo-in), inset 0 0 0 1px rgba(0, 184, 148, 0.18);
+  box-shadow: var(--neo-in), inset 0 0 0 1px rgba(79, 226, 161, 0.2);
 }
 
 .header__rate-badge--fallback {
   background: var(--danger-soft);
-  box-shadow: var(--neo-in), inset 0 0 0 1px rgba(255, 118, 117, 0.18);
+  box-shadow: var(--neo-in), inset 0 0 0 1px rgba(211, 24, 45, 0.18);
 }
 
 .header__rate-badge .rate-value {
@@ -608,9 +605,9 @@
 }
 
 .neo-btn--primary {
-  background: linear-gradient(135deg, var(--accent), #8B83FF);
+  background: var(--accent);
   color: var(--text-inverse);
-  box-shadow: 4px 4px 10px rgba(108, 99, 255, 0.4),
+  box-shadow: 4px 4px 10px rgba(74, 139, 194, 0.32),
              -2px -2px 6px rgba(255, 255, 255, 0.8);
 }
 
@@ -1119,8 +1116,8 @@
 }
 
 .heatmap-streak--active {
-  color: #d96c17;
-  background: rgba(253, 203, 110, 0.2);
+  color: #b28758;
+  background: rgba(200, 168, 106, 0.2);
 }
 
 .heatmap-streak--active .heatmap-streak__fire {
@@ -1205,10 +1202,10 @@ button.heatmap-day:focus-visible {
 }
 
 .heatmap-day--0 { background: #d9e1e7; }
-.heatmap-day--1 { background: #b8d9d2; }
-.heatmap-day--2 { background: #7bc5b6; }
-.heatmap-day--3 { background: #599fbc; }
-.heatmap-day--4 { background: #6c63ff; }
+.heatmap-day--1 { background: #c3d9d4; }
+.heatmap-day--2 { background: #91bbb5; }
+.heatmap-day--3 { background: #6d98ad; }
+.heatmap-day--4 { background: #4a8bc2; }
 
 .heatmap-legend {
   display: flex;
@@ -1259,9 +1256,9 @@ button.heatmap-day:focus-visible {
 
 .financial-insight--danger .financial-insight__number { color: var(--danger); background: var(--danger-soft); }
 .financial-insight--success .financial-insight__number { color: var(--success); background: var(--success-soft); }
-.financial-insight--warning .financial-insight__number { color: #b7791f; background: rgba(253, 203, 110, 0.25); }
+.financial-insight--warning .financial-insight__number { color: #9b7b43; background: rgba(200, 168, 106, 0.25); }
 .financial-insight--accent .financial-insight__number { color: var(--accent); background: var(--accent-soft); }
-.financial-insight--info .financial-insight__number { color: #3c82c7; background: rgba(116, 185, 255, 0.18); }
+.financial-insight--info .financial-insight__number { color: #5f89a5; background: rgba(111, 155, 183, 0.18); }
 
 /* ---- MODAL (Glassmorphic) ---- */
 .modal-overlay {
@@ -1699,10 +1696,10 @@ button.heatmap-day:focus-visible {
 }
 
 .emergency-status--red { color: var(--danger); background: var(--danger-soft); }
-.emergency-status--orange { color: #c26b15; background: rgba(253, 203, 110, 0.2); }
+.emergency-status--orange { color: #a87546; background: rgba(200, 168, 106, 0.2); }
 .emergency-status--green { color: var(--success); background: var(--success-soft); }
-.emergency-status--blue { color: var(--info); background: rgba(116, 185, 255, 0.16); }
-.emergency-status--gold { color: #b7791f; background: rgba(253, 203, 110, 0.24); }
+.emergency-status--blue { color: var(--info); background: rgba(111, 155, 183, 0.16); }
+.emergency-status--gold { color: #9b7b43; background: rgba(200, 168, 106, 0.24); }
 .emergency-status--muted { color: var(--text-muted); background: var(--bg); }
 
 .emergency-progress {
