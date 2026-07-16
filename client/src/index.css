@@ -15,15 +15,15 @@
   --shadow-dark:    #d1d9e6;
   --shadow-darker:  #b8c5d6;
 
-  /* ---- Accent Colors (More vibrant gradients) ---- */
-  --accent:         #6C63FF;
-  --accent-hover:   #5A52D5;
-  --accent-glow:    rgba(108, 99, 255, 0.3);
-  --accent-soft:    rgba(108, 99, 255, 0.08);
-  --success:        #00b894;
-  --success-soft:   rgba(0, 184, 148, 0.12);
-  --danger:         #ff7675;
-  --danger-soft:    rgba(255, 118, 117, 0.12);
+  /* ---- Accent Colors (Soft navy and complementary tones) ---- */
+  --accent:         rgb(74, 139, 194);
+  --accent-hover:   #3f7eb4;
+  --accent-glow:    rgba(74, 139, 194, 0.28);
+  --accent-soft:    rgba(74, 139, 194, 0.08);
+  --success:        rgb(79, 226, 161);
+  --success-soft:   rgba(79, 226, 161, 0.16);
+  --danger:         rgb(211, 24, 45);
+  --danger-soft:    rgba(211, 24, 45, 0.14);
   --warning:        #fdcb6e;
   --info:           #74b9ff;
 

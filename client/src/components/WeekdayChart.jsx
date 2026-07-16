@@ -9,7 +9,7 @@ export default function WeekdayChart({ weekdaySpending, currency = 'MYR', myrToI
   const formatDisplayed = currency === 'MYR' ? formatMYR : formatIDR;
   const chartData = useMemo(() => ({
     labels: weekdaySpending.days.map((day) => day.name),
-    datasets: [{ data: weekdaySpending.days.map((day) => convertMyrAmount(day.average, currency, myrToIdr)), backgroundColor: '#6C63FF', borderRadius: 8, borderSkipped: false, barThickness: 18 }],
+    datasets: [{ data: weekdaySpending.days.map((day) => convertMyrAmount(day.average, currency, myrToIdr)), backgroundColor: '#4a8bc2', borderRadius: 8, borderSkipped: false, barThickness: 18 }],
   }), [currency, myrToIdr, weekdaySpending]);
   const options = useMemo(() => ({
     indexAxis: 'y', responsive: true, maintainAspectRatio: false,

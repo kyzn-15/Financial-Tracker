@@ -122,8 +122,8 @@ export const CATEGORIES = [
  * Chart color palette
  */
 export const CHART_COLORS = [
-  '#6C63FF', '#00b894', '#e17055', '#74b9ff',
-  '#fdcb6e', '#a29bfe', '#55efc4', '#fab1a0',
-  '#81ecec', '#ffeaa7', '#dfe6e9', '#636e72',
-  '#ff7675',
+  '#4a8bc2', '#4fe2a1', '#d3182d', '#74b9ff',
+  '#fdcb6e', '#587aa3', '#8abbb2', '#d8a8a1',
+  '#8dbec4', '#d9c88f', '#b9c5d1', '#687786',
+  '#b96f75',
 ];

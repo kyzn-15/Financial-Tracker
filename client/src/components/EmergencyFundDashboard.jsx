@@ -514,7 +514,7 @@ function Analytics({ summary, planMonths, currency, myrToIdr, formatAmount }) {
     labels: ['Essential', 'Non-Essential'],
     datasets: [{
       data: [convertMyrAmount(essentialVsNon.essential_myr, currency, myrToIdr), convertMyrAmount(essentialVsNon.non_essential_myr, currency, myrToIdr)],
-      backgroundColor: ['#00b894', '#ff7675'],
+      backgroundColor: ['#4fe2a1', '#d3182d'],
       borderColor: '#ecf0f3',
       borderWidth: 2,
     }],
@@ -525,12 +525,12 @@ function Analytics({ summary, planMonths, currency, myrToIdr, formatAmount }) {
     datasets: [{
       label: 'Coverage Months',
       data: trendValues,
-      borderColor: '#6C63FF',
-      backgroundColor: 'rgba(108, 99, 255, 0.12)',
+      borderColor: '#4a8bc2',
+      backgroundColor: 'rgba(74, 139, 194, 0.12)',
       borderWidth: 3,
       fill: true,
       tension: 0.3,
-      pointBackgroundColor: '#6C63FF',
+      pointBackgroundColor: '#4a8bc2',
     }],
   };
 
