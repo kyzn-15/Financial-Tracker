@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
 import { convertMyrAmount, convertToMyrAmount, formatCurrencyAmount } from '../utils/formatters';
+import { getChartTheme } from '../utils/chartTheme';
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
@@ -42,7 +43,7 @@ function EmergencyMetric({ label, value, sub }) {
   );
 }
 
-function SettingsPanel({ settingsPayload, onSave, saving, currency, myrToIdr }) {
+export function EmergencySettingsPanel({ settingsPayload, onSave, saving, currency, myrToIdr }) {
   const settings = settingsPayload?.settings;
   const categories = settingsPayload?.categories || [];
   const [form, setForm] = useState({
@@ -113,7 +114,7 @@ function SettingsPanel({ settingsPayload, onSave, saving, currency, myrToIdr }) 
   return (
     <form className="emergency-settings neo-card" onSubmit={handleSubmit}>
       <div className="emergency-section-heading">
-        <h3>Settings</h3>
+        <h3>Emergency Fund Settings</h3>
         <p>Only unrestricted savings and selected essentials count toward coverage.</p>
       </div>
 
@@ -501,6 +502,7 @@ function Simulator({ simulation, runSimulation, categoryAverages, currency, myrT
   );
 }
 function Analytics({ summary, planMonths, currency, myrToIdr, formatAmount }) {
+  const chartTheme = getChartTheme();
   const essentialVsNon = summary.analytics.essentialVsNonEssential;
   const hasPieData = essentialVsNon.essential_myr > 0 || essentialVsNon.non_essential_myr > 0;
   const monthlyNeeded = planMonths > 0 ? summary.remainingSavingsMyr / planMonths : 0;
@@ -514,8 +516,8 @@ function Analytics({ summary, planMonths, currency, myrToIdr, formatAmount }) {
     labels: ['Essential', 'Non-Essential'],
     datasets: [{
       data: [convertMyrAmount(essentialVsNon.essential_myr, currency, myrToIdr), convertMyrAmount(essentialVsNon.non_essential_myr, currency, myrToIdr)],
-      backgroundColor: ['#4fe2a1', '#d3182d'],
-      borderColor: '#ecf0f3',
+      backgroundColor: [chartTheme.success, chartTheme.danger],
+      borderColor: chartTheme.surface,
       borderWidth: 2,
     }],
   };
@@ -525,25 +527,30 @@ function Analytics({ summary, planMonths, currency, myrToIdr, formatAmount }) {
     datasets: [{
       label: 'Coverage Months',
       data: trendValues,
-      borderColor: '#4a8bc2',
-      backgroundColor: 'rgba(74, 139, 194, 0.12)',
+      borderColor: chartTheme.accent,
+      backgroundColor: chartTheme.accentFill,
       borderWidth: 3,
       fill: true,
       tension: 0.3,
-      pointBackgroundColor: '#4a8bc2',
+      pointBackgroundColor: chartTheme.accent,
     }],
   };
 
-  const chartOptions = {
+  const pieOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { position: 'bottom' } },
-  };
-  const pieOptions = {
-    ...chartOptions,
     plugins: {
-      ...chartOptions.plugins,
+      legend: { position: 'bottom', labels: { color: chartTheme.text } },
       tooltip: { callbacks: { label: (context) => `${context.label}: ${formatAmount(context.raw)}` } },
+    },
+  };
+  const lineOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { color: chartTheme.text } } },
+    scales: {
+      x: { grid: { color: chartTheme.grid }, ticks: { color: chartTheme.text } },
+      y: { grid: { color: chartTheme.grid }, ticks: { color: chartTheme.text } },
     },
   };
 
@@ -567,7 +574,7 @@ function Analytics({ summary, planMonths, currency, myrToIdr, formatAmount }) {
             <h3 className="chart-card__title">Coverage Trend</h3>
           </div>
           <div className="chart-container">
-            <Line data={lineData} options={chartOptions} />
+            <Line data={lineData} options={lineOptions} />
           </div>
         </div>
 
@@ -602,8 +609,8 @@ function Analytics({ summary, planMonths, currency, myrToIdr, formatAmount }) {
   );
 }
 
-export default function EmergencyFundDashboard({ emergency, onSaveSettings, currency = 'MYR', exchangeRate }) {
-  const { summary, settingsPayload, simulation, loading, saving, error, runSimulation } = emergency;
+export default function EmergencyFundDashboard({ emergency, currency = 'MYR', exchangeRate }) {
+  const { summary, simulation, loading, error, runSimulation } = emergency;
   const [planMonths, setPlanMonths] = useState(6);
   const myrToIdr = exchangeRate?.myrToIdr || 4500;
   const formatAmount = useCallback(
@@ -653,10 +660,7 @@ export default function EmergencyFundDashboard({ emergency, onSaveSettings, curr
         ))}
       </div>
 
-      <div className="emergency-main-grid">
-        <SettingsPanel settingsPayload={settingsPayload} onSave={onSaveSettings} saving={saving} currency={currency} myrToIdr={myrToIdr} />
-        <Insights insights={summary.insights} />
-      </div>
+      <Insights insights={summary.insights} />
 
       <div className="emergency-main-grid emergency-main-grid--balanced">
         <Timeline summary={summary} formatAmount={formatAmount} />

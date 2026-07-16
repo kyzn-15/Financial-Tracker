@@ -3,10 +3,12 @@ import { Chart as ChartJS, ArcElement, Legend, Tooltip } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { CHART_COLORS, convertMyrAmount, formatCurrencyAmount } from '../utils/formatters';
 import { getCategoryBreakdown } from '../utils/dashboardAnalytics';
+import { getChartTheme } from '../utils/chartTheme';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function CategoryChart({ data = [], currency = 'MYR', myrToIdr = 4500 }) {
+  const chartTheme = getChartTheme();
   const categories = useMemo(() => getCategoryBreakdown(data), [data]);
   const displayCategories = useMemo(() => categories.map((item) => ({
     ...item,
@@ -23,10 +25,10 @@ export default function CategoryChart({ data = [], currency = 'MYR', myrToIdr = 
       data: displayCategories.map((item) => item.displayTotal),
       backgroundColor: CHART_COLORS.slice(0, Math.max(displayCategories.length, 1)),
       borderWidth: 2,
-      borderColor: '#e0e5ec',
+      borderColor: chartTheme.surface,
       hoverOffset: 4,
     }],
-  }), [displayCategories]);
+  }), [chartTheme.surface, displayCategories]);
 
   const options = useMemo(() => ({
     responsive: true,
@@ -35,7 +37,7 @@ export default function CategoryChart({ data = [], currency = 'MYR', myrToIdr = 
       legend: {
         position: 'bottom',
         labels: {
-          color: '#2d3436',
+          color: chartTheme.text,
           font: { family: 'Inter', size: 11, weight: 500 },
           padding: 12,
           generateLabels: (chart) => chart.data.labels.map((label, index) => {
@@ -59,7 +61,7 @@ export default function CategoryChart({ data = [], currency = 'MYR', myrToIdr = 
         },
       },
     },
-  }), [displayCategories, formatCurrency]);
+  }), [chartTheme.text, displayCategories, formatCurrency]);
 
   return (
     <div className="chart-card">

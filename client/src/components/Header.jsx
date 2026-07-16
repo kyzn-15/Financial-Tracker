@@ -28,7 +28,7 @@ export default function Header({ exchangeRate, activeTab, currency, onCurrencyCh
     ? (isLiveRate ? 'Live exchange rate from API' : 'Using safety fallback rate (API unavailable)')
     : 'Loading exchange rate...';
   const titles = {
-    add: 'Add Expense', dashboard: 'Dashboard', receipts: 'Receipt Saver', emergency: 'Emergency Fund', history: 'Transaction History',
+    add: 'Add Expense', dashboard: 'Dashboard', receipts: 'Receipt Saver', emergency: 'Emergency Fund', history: 'Transaction History', settings: 'Settings',
   };
 
   return (

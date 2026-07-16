@@ -11,6 +11,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { convertMyrAmount, formatDate, formatIDR, formatMYR } from '../utils/formatters';
+import { getChartTheme } from '../utils/chartTheme';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
@@ -21,6 +22,7 @@ function shortDate(date) {
 }
 
 export default function TrendChart({ trend, currency = 'MYR', myrToIdr = 4500 }) {
+  const chartTheme = getChartTheme();
   const isMYR = currency === 'MYR';
   const formatDisplayed = isMYR ? formatMYR : formatIDR;
   const points = trend?.points || EMPTY_POINTS;
@@ -34,13 +36,13 @@ export default function TrendChart({ trend, currency = 'MYR', myrToIdr = 4500 })
       {
         label: `Daily spend (${currency})`,
         data: points.map((point) => convertMyrAmount(point.total, currency, myrToIdr)),
-        borderColor: '#4a8bc2',
-        backgroundColor: 'rgba(74, 139, 194, 0.1)',
+        borderColor: chartTheme.accent,
+        backgroundColor: chartTheme.accentFill,
         borderWidth: 3,
         fill: true,
         tension: 0.3,
-        pointBackgroundColor: '#4a8bc2',
-        pointBorderColor: '#e0e5ec',
+        pointBackgroundColor: chartTheme.accent,
+        pointBorderColor: chartTheme.surface,
         pointBorderWidth: 2,
         pointRadius: 3,
         pointHoverRadius: 6,
@@ -48,7 +50,7 @@ export default function TrendChart({ trend, currency = 'MYR', myrToIdr = 4500 })
       {
         label: 'Average daily spending',
         data: points.map(() => convertMyrAmount(average, currency, myrToIdr)),
-        borderColor: '#4fe2a1',
+        borderColor: chartTheme.success,
         borderDash: [6, 6],
         borderWidth: 2,
         pointRadius: 0,
@@ -57,9 +59,9 @@ export default function TrendChart({ trend, currency = 'MYR', myrToIdr = 4500 })
         label: 'Highest spending day',
         data: points.map((point) => point.date === highestDate ? convertMyrAmount(point.total, currency, myrToIdr) : null),
         borderColor: 'transparent',
-        backgroundColor: '#d3182d',
-        pointBackgroundColor: '#d3182d',
-        pointBorderColor: '#ffffff',
+        backgroundColor: chartTheme.danger,
+        pointBackgroundColor: chartTheme.danger,
+        pointBorderColor: chartTheme.surface,
         pointBorderWidth: 2,
         pointRadius: 7,
         pointHoverRadius: 8,
@@ -69,16 +71,16 @@ export default function TrendChart({ trend, currency = 'MYR', myrToIdr = 4500 })
         label: 'Lowest spending day',
         data: points.map((point) => point.date === lowestDate ? convertMyrAmount(point.total, currency, myrToIdr) : null),
         borderColor: 'transparent',
-        backgroundColor: '#74b9ff',
-        pointBackgroundColor: '#74b9ff',
-        pointBorderColor: '#ffffff',
+        backgroundColor: chartTheme.info,
+        pointBackgroundColor: chartTheme.info,
+        pointBorderColor: chartTheme.surface,
         pointBorderWidth: 2,
         pointRadius: 7,
         pointHoverRadius: 8,
         showLine: false,
       },
     ],
-  }), [average, currency, highestDate, lowestDate, myrToIdr, points]);
+  }), [average, chartTheme, currency, highestDate, lowestDate, myrToIdr, points]);
 
   const options = useMemo(() => ({
     responsive: true,
@@ -86,7 +88,7 @@ export default function TrendChart({ trend, currency = 'MYR', myrToIdr = 4500 })
     interaction: { mode: 'index', intersect: false },
     plugins: {
       legend: {
-        labels: { color: '#636e72', font: { family: 'Inter', size: 10 }, usePointStyle: true },
+        labels: { color: chartTheme.text, font: { family: 'Inter', size: 10 }, usePointStyle: true },
       },
       tooltip: {
         filter: (context) => context.datasetIndex === 0,
@@ -100,17 +102,17 @@ export default function TrendChart({ trend, currency = 'MYR', myrToIdr = 4500 })
       },
     },
     scales: {
-      x: { grid: { display: false }, ticks: { color: '#636e72', font: { family: 'Inter', size: 10 }, maxTicksLimit: 8 } },
+      x: { grid: { display: false }, ticks: { color: chartTheme.text, font: { family: 'Inter', size: 10 }, maxTicksLimit: 8 } },
       y: {
-        grid: { color: 'rgba(163, 177, 198, 0.2)' },
+        grid: { color: chartTheme.grid },
         ticks: {
-          color: '#636e72',
+          color: chartTheme.text,
           font: { family: 'Inter', size: 10 },
           callback: (value) => isMYR ? `RM${value}` : `Rp${Number(value).toLocaleString('id-ID')}`,
         },
       },
     },
-  }), [formatDisplayed, isMYR, points]);
+  }), [chartTheme.grid, chartTheme.text, formatDisplayed, isMYR, points]);
 
   const hasTransactions = points.some((point) => point.transactions > 0);
 

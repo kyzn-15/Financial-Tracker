@@ -40,6 +40,14 @@ function parseExpenseId(value) {
   const id = Number(value);
   return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
+
+async function resolveCategoryName(category) {
+  const result = await db.execute({
+    sql: 'SELECT name FROM categories WHERE name = ? COLLATE NOCASE',
+    args: [category],
+  });
+  return result.rows[0]?.name || null;
+}
 // ─── Helper: get current UTC+8 timestamp in ISO 8601 ────────────────────────
 function nowUTC8() {
   const now = new Date();
@@ -56,7 +64,11 @@ router.post('/', async (req, res) => {
     if (!input) {
       return res.status(400).json({ error: 'Invalid expense details.' });
     }
-    const { name, category, price, currency, timestamp } = input;
+    const { name, price, currency, timestamp } = input;
+    const category = await resolveCategoryName(input.category);
+    if (!category) {
+      return res.status(400).json({ error: 'Choose a category that is currently available.' });
+    }
     const cur = currency;
     const ts = timestamp && timestamp.trim() !== '' ? timestamp : nowUTC8();
 
@@ -171,7 +183,11 @@ router.put('/:id', async (req, res) => {
 
     const input = validateExpenseInput(req.body);
     if (!input) return res.status(400).json({ error: 'Invalid expense details.' });
-    const { name, category, price, currency, timestamp } = input;
+    const { name, price, currency, timestamp } = input;
+    const category = await resolveCategoryName(input.category);
+    if (!category) {
+      return res.status(400).json({ error: 'Choose a category that is currently available.' });
+    }
     const cur = currency;
     const ts = timestamp && timestamp.trim() !== '' ? timestamp : nowUTC8();
 
