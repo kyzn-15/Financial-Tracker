@@ -13,6 +13,7 @@ import {
 import { Doughnut, Line } from 'react-chartjs-2';
 import { convertMyrAmount, convertToMyrAmount, formatCurrencyAmount } from '../utils/formatters';
 import { getChartTheme } from '../utils/chartTheme';
+import AppIcon from './AppIcon';
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
@@ -476,7 +477,7 @@ function Simulator({ simulation, runSimulation, categoryAverages, currency, myrT
                 onClick={() => removeAdjustment(item.id)}
                 title="Remove calculation"
               >
-                X
+                <AppIcon name="x" size={16} />
               </button>
             </div>
           ))

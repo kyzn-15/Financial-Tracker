@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import AppIcon from './AppIcon';
 
 export default function ExpenseForm({ categories = [], onSubmit, initialData, submitText = 'Save Expense', isCancelable, onCancel }) {
   const [name, setName] = useState('');
@@ -97,7 +98,7 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
     <form className="expense-form" onSubmit={handleSubmit}>
       {validationError && (
         <div style={{ color: 'var(--danger)', fontSize: 'var(--font-size-sm)', fontWeight: 'bold' }}>
-          ⚠️ {validationError}
+          <AppIcon name="alert" size={17} /> {validationError}
         </div>
       )}
 

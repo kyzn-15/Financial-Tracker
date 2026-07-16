@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { formatCurrencyAmount, formatDate } from '../utils/formatters';
+import AppIcon from './AppIcon';
 
 function HeatmapTooltip({ day, formatCurrency, onViewExpenses }) {
   if (!day) return <p className="heatmap-tooltip">Hover over a day to see its spending.</p>;
@@ -31,7 +32,7 @@ export default function SpendingHeatmap({ days = [], currency = 'MYR', myrToIdr 
           <p className="chart-card__subtitle">Daily spending over the last 12 months</p>
         </div>
         <div className={`heatmap-streak ${streak > 0 ? 'heatmap-streak--active' : 'heatmap-streak--inactive'}`} title="Consecutive days with at least one expense recorded">
-          <span className="heatmap-streak__fire" aria-hidden="true">🔥</span>
+          <span className="heatmap-streak__fire"><AppIcon name="flame" size={17} /></span>
           <strong>{streak}</strong>
           <span className="heatmap-streak__label">day streak</span>
         </div>

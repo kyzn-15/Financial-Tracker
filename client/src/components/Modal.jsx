@@ -1,4 +1,5 @@
 import React from 'react';
+import AppIcon from './AppIcon';
 
 export default function Modal({
   isOpen,
@@ -17,7 +18,7 @@ export default function Modal({
           <h2 className="modal-content__title">{title}</h2>
           {showClose && (
             <button className="modal-content__close" onClick={onClose} aria-label="Close modal">
-              ×
+              <AppIcon name="x" />
             </button>
           )}
         </div>

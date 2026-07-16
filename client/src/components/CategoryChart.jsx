@@ -46,6 +46,7 @@ export default function CategoryChart({ data = [], currency = 'MYR', myrToIdr = 
               text: `${label} · ${formatCurrency(item.total)} · ${item.percentage.toFixed(1)}%`,
               fillStyle: chart.data.datasets[0].backgroundColor[index],
               strokeStyle: chart.data.datasets[0].borderColor,
+              fontColor: chartTheme.text,
               lineWidth: chart.data.datasets[0].borderWidth,
               index,
             };

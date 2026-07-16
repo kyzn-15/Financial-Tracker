@@ -2,6 +2,7 @@ import React from 'react';
 import BackupSettings from './BackupSettings';
 import CategoryManager from './CategoryManager';
 import { EmergencySettingsPanel } from './EmergencyFundDashboard';
+import AppIcon from './AppIcon';
 
 export default function SettingsPage({
   theme,
@@ -38,11 +39,11 @@ export default function SettingsPage({
             aria-label="Use dark mode"
             onClick={() => onThemeChange(isDark ? 'light' : 'dark')}
           >
-            <span className="theme-toggle__icon" aria-hidden="true">☀</span>
+            <span className="theme-toggle__icon"><AppIcon name="sun" size={16} /></span>
             <span className="theme-toggle__track" aria-hidden="true">
               <span className="theme-toggle__thumb" />
             </span>
-            <span className="theme-toggle__icon" aria-hidden="true">☾</span>
+            <span className="theme-toggle__icon"><AppIcon name="moon" size={16} /></span>
             <span className="theme-toggle__label">{isDark ? 'Dark' : 'Light'}</span>
           </button>
         </div>
