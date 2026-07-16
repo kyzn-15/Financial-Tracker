@@ -17,6 +17,7 @@ import { useReceipts } from './hooks/useReceipts';
 import { useEmergencyFund } from './hooks/useEmergencyFund';
 import { useCategories } from './hooks/useCategories';
 import * as api from './services/api';
+import AppIcon from './components/AppIcon';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -351,13 +352,13 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
         {/* API Error Toast */}
         {error && (
           <div style={{ color: 'var(--danger)', padding: '16px', background: 'var(--danger-soft)', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 'bold' }}>
-            ⚠️ Error fetching data: {error}
+            <AppIcon name="alert" size={18} /> Error fetching data: {error}
           </div>
         )}
 
         {activeTab === 'receipts' && receiptsError && (
           <div style={{ color: 'var(--danger)', padding: '16px', background: 'var(--danger-soft)', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 'bold' }}>
-            ⚠️ Error fetching receipts: {receiptsError}
+            <AppIcon name="alert" size={18} /> Error fetching receipts: {receiptsError}
           </div>
         )}
 

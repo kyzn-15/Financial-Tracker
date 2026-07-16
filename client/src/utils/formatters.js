@@ -81,25 +81,6 @@ export function getCurrentUTC8() {
 }
 
 /**
- * Category emoji mapping
- */
-export const CATEGORY_ICONS = {
-  'Grocery': '🛒',
-  'Food': '🍜',
-  'Non-Primary Expenses': '🛍️',
-  'Other Expenses': '📦',
-  'Entertainment': '🎮',
-  'Education': '📚',
-  'Subscription': '🔄',
-  'Transport': '🚗',
-  'Rent': '🏠',
-  'Utilities': '💡',
-  'Health/Medical': '🏥',
-  'Savings/Investment': '💰',
-  'Others': '📌',
-};
-
-/**
  * Chart color palette
  */
 export const CHART_COLORS = [

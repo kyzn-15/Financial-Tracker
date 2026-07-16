@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import AppIcon from './AppIcon';
 
 export default function CategoryManager({
   categories,
@@ -113,8 +114,8 @@ export default function CategoryManager({
           {categories.map((category, index) => (
             <div className="category-manager__item" key={category.id}>
               <div className="category-manager__order" aria-label={`Reorder ${category.name}`}>
-                <button type="button" onClick={() => moveCategory(index, -1)} disabled={isSaving || index === 0} aria-label={`Move ${category.name} up`}>↑</button>
-                <button type="button" onClick={() => moveCategory(index, 1)} disabled={isSaving || index === categories.length - 1} aria-label={`Move ${category.name} down`}>↓</button>
+                <button type="button" onClick={() => moveCategory(index, -1)} disabled={isSaving || index === 0} aria-label={`Move ${category.name} up`}><AppIcon name="arrow-up" size={15} /></button>
+                <button type="button" onClick={() => moveCategory(index, 1)} disabled={isSaving || index === categories.length - 1} aria-label={`Move ${category.name} down`}><AppIcon name="arrow-down" size={15} /></button>
               </div>
 
               {editingId === category.id ? (

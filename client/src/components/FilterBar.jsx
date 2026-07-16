@@ -1,4 +1,5 @@
 import React from 'react';
+import AppIcon from './AppIcon';
 
 export default function FilterBar({ categories = [], filters, onChange, onClear }) {
   const handleCategoryChange = (e) => {
@@ -78,7 +79,7 @@ export default function FilterBar({ categories = [], filters, onChange, onClear 
           onClick={onClear}
           type="button"
         >
-          🧹 Clear Filters
+          <AppIcon name="eraser" size={15} /> Clear Filters
         </button>
       )}
     </div>

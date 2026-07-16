@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { formatDateTime } from '../utils/formatters';
 import { getReceiptImageUrl } from '../services/api';
+import AppIcon from './AppIcon';
 
 function daysUntilExpiry(expiresAt) {
   const now = new Date();
@@ -107,7 +108,7 @@ export default function ReceiptSaver({
             className="neo-btn neo-btn--secondary"
             onClick={() => fileInputRef.current?.click()}
           >
-            📷 Take / Choose Photo
+            <AppIcon name="camera" /> Take / Choose Photo
           </button>
           {selectedFile && (
             <button
@@ -144,7 +145,7 @@ export default function ReceiptSaver({
           </div>
         ) : receipts.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state__icon">🧾</div>
+            <div className="empty-state__icon"><AppIcon name="receipt" size={28} /></div>
             <p className="empty-state__text">No saved receipts yet.</p>
             <p className="empty-state__subtext">Upload a photo above to reference it when adding expenses later.</p>
           </div>
@@ -181,6 +182,7 @@ export default function ReceiptSaver({
                     onClick={() => handleDelete(receipt)}
                     disabled={deletingId === receipt.id}
                   >
+                    {deletingId !== receipt.id && <AppIcon name="trash" size={16} />}
                     {deletingId === receipt.id ? 'Deleting…' : 'Delete'}
                   </button>
                 </article>

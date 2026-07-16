@@ -3,6 +3,12 @@
    ======================================== */
 
 /* ---- App Layout (Sidebar Desktop / Bottom Nav Mobile) ---- */
+.app-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  vertical-align: -0.15em;
+}
+
 .app-layout {
   display: flex;
   height: 100vh;
@@ -299,9 +305,8 @@
 
 .theme-toggle__icon {
   width: 18px;
-  text-align: center;
-  font-size: 1rem;
-  line-height: 1;
+  display: grid;
+  place-items: center;
 }
 
 .theme-toggle__track {
@@ -515,7 +520,8 @@
 }
 
 .sidebar__nav-icon {
-  font-size: 1.2rem;
+  display: grid;
+  place-items: center;
 }
 
 /* ---- HEADER ---- */
@@ -857,6 +863,8 @@
 .expense-table-wrapper {
   overflow-x: auto;
   border-radius: var(--radius);
+  margin: calc(var(--space-sm) * -1);
+  padding: var(--space-sm);
 }
 
 .expense-table {
@@ -882,6 +890,10 @@
 .expense-table th.sorted { color: var(--accent); }
 .expense-table th .sort-icon { margin-left: var(--space-xs); font-size: 0.65rem; }
 
+.expense-table th .app-icon {
+  margin-left: var(--space-xs);
+}
+
 .expense-table td {
   padding: var(--space-md) var(--space-lg);
   font-size: var(--font-size-sm);
@@ -897,12 +909,33 @@
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 .expense-table tbody tr {
-  box-shadow: var(--neo-out-sm);
-  transition: transform var(--transition-fast);
+  border-radius: var(--radius-sm);
+  filter: drop-shadow(4px 4px 4px var(--shadow-dark)) drop-shadow(-4px -4px 4px var(--shadow-light));
+  transition: filter var(--transition-fast), transform var(--transition-fast);
 }
 .expense-table tbody tr:hover {
   transform: translateY(-2px);
-  box-shadow: var(--neo-out);
+  filter: drop-shadow(6px 6px 7px var(--shadow-dark)) drop-shadow(-5px -5px 6px var(--shadow-light));
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  margin-top: var(--space-xl);
+  padding-top: var(--space-md);
+}
+
+.pagination__info {
+  min-width: 110px;
+  margin-inline: var(--space-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .expense-table .price-original {
@@ -1297,9 +1330,8 @@
 }
 
 .heatmap-streak__fire {
-  display: inline-block;
-  font-size: var(--font-size-md);
-  line-height: 1;
+  display: inline-grid;
+  place-items: center;
   transition: filter var(--transition-normal), transform var(--transition-normal);
 }
 
@@ -1582,7 +1614,8 @@ button.heatmap-day:focus-visible {
   }
   
   .sidebar__nav-icon {
-    font-size: 1.4rem;
+    width: 22px;
+    height: 22px;
   }
 
   .main-content {
@@ -1671,6 +1704,8 @@ button.heatmap-day:focus-visible {
     background: transparent;
     box-shadow: none;
     overflow-x: visible;
+    margin: 0;
+    padding: 0;
   }
   
   .expense-table thead {
@@ -1686,6 +1721,10 @@ button.heatmap-day:focus-visible {
     margin-bottom: var(--space-lg);
     border-radius: var(--radius-lg);
     padding: var(--space-md);
+    background: var(--bg);
+    box-shadow: var(--neo-out-sm);
+    filter: none;
+    overflow: hidden;
   }
   
   .expense-table td {
@@ -1696,6 +1735,7 @@ button.heatmap-day:focus-visible {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: transparent;
   }
   
   /* Add pseudo-headers for mobile cards */
@@ -1710,6 +1750,22 @@ button.heatmap-day:focus-visible {
   .expense-table td:first-child,
   .expense-table td:last-child {
     border-radius: 0; /* Reset border radius set in desktop */
+  }
+
+  .pagination {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md);
+  }
+
+  .pagination__info {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    margin: 0 0 var(--space-xs);
+  }
+
+  .pagination .neo-btn {
+    width: 100%;
   }
 }
 
