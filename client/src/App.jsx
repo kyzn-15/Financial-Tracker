@@ -371,7 +371,13 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
           )}
 
           {activeTab === 'dashboard' && (
-            <Dashboard summary={summary} currency={currency} exchangeRate={exchangeRate} onViewHeatmapExpenses={handleViewHeatmapExpenses} />
+            <Dashboard
+              summary={summary}
+              currency={currency}
+              exchangeRate={exchangeRate}
+              onViewHeatmapExpenses={handleViewHeatmapExpenses}
+              onNavigate={setActiveTab}
+            />
           )}
 
           {activeTab === 'history' && (

@@ -5,6 +5,7 @@ import TrendChart from './TrendChart';
 import WeekdayChart from './WeekdayChart';
 import SpendingHeatmap from './SpendingHeatmap';
 import FinancialInsights from './FinancialInsights';
+import AppIcon from './AppIcon';
 import { CategoryGrowthCard, LargestPurchaseCard, MonthlyComparisonCard } from './AnalyticsCards';
 import { formatCurrencyAmount, formatDate } from '../utils/formatters';
 import {
@@ -31,7 +32,7 @@ function SectionHeading({ eyebrow, title, description }) {
   );
 }
 
-export default function Dashboard({ summary, currency = 'MYR', exchangeRate, onViewHeatmapExpenses }) {
+export default function Dashboard({ summary, currency = 'MYR', exchangeRate, onViewHeatmapExpenses, onNavigate }) {
   const myrToIdr = exchangeRate?.myrToIdr || 4500;
   const formatCurrency = useCallback(
     (amount) => formatCurrencyAmount(amount, currency, myrToIdr),
@@ -63,6 +64,38 @@ export default function Dashboard({ summary, currency = 'MYR', exchangeRate, onV
       <section className="dashboard-section">
         <SectionHeading eyebrow="Overview" title="Monthly Total" description="A snapshot of your current month." />
         <SummaryCards summary={summary} currency={currency} myrToIdr={myrToIdr} />
+      </section>
+
+      <section className="dashboard-section dashboard-quick-access" aria-labelledby="quick-access-title">
+        <div className="dashboard-section__heading">
+          <div>
+            <p className="dashboard-section__eyebrow">Menu</p>
+            <h2 id="quick-access-title">Quick Access</h2>
+            <p className="dashboard-section__description">Open your savings safety net or saved receipts.</p>
+          </div>
+        </div>
+        <div className="quick-access-grid">
+          <button className="quick-access-card" type="button" onClick={() => onNavigate('emergency')}>
+            <span className="quick-access-card__icon quick-access-card__icon--emergency">
+              <AppIcon name="shield" size={22} />
+            </span>
+            <span className="quick-access-card__content">
+              <strong>Emergency Fund</strong>
+              <span>Track your savings goal and coverage.</span>
+            </span>
+            <AppIcon name="arrow-right" className="quick-access-card__arrow" />
+          </button>
+          <button className="quick-access-card" type="button" onClick={() => onNavigate('receipts')}>
+            <span className="quick-access-card__icon quick-access-card__icon--receipts">
+              <AppIcon name="receipt" size={22} />
+            </span>
+            <span className="quick-access-card__content">
+              <strong>Receipts</strong>
+              <span>Save and review your recent receipts.</span>
+            </span>
+            <AppIcon name="arrow-right" className="quick-access-card__arrow" />
+          </button>
+        </div>
       </section>
 
       <section className="dashboard-section">

@@ -1152,6 +1152,80 @@
   font-size: var(--font-size-sm);
 }
 
+.dashboard-quick-access {
+  gap: var(--space-lg);
+}
+
+.quick-access-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-lg);
+}
+
+.quick-access-card {
+  min-height: 104px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  color: var(--text-primary);
+  text-align: left;
+  background: var(--bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--neo-out);
+  transition: color var(--transition-normal), transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.quick-access-card:hover {
+  color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--neo-out-sm);
+}
+
+.quick-access-card:active {
+  transform: translateY(0);
+  box-shadow: var(--neo-in);
+}
+
+.quick-access-card__icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius);
+  background: var(--bg);
+  box-shadow: var(--neo-out-sm);
+}
+
+.quick-access-card__icon--emergency {
+  color: var(--danger);
+}
+
+.quick-access-card__icon--receipts {
+  color: var(--info);
+}
+
+.quick-access-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.quick-access-card__content strong {
+  font-size: var(--font-size-md);
+}
+
+.quick-access-card__content span {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
+.quick-access-card__arrow {
+  color: var(--text-muted);
+}
+
 .analytics-card-grid,
 .dashboard-analysis-grid {
   display: grid;
@@ -1602,13 +1676,14 @@ button.heatmap-day:focus-visible {
     flex-direction: row;
     width: 100%;
     justify-content: space-around;
-    gap: 0;
+    gap: var(--space-sm);
   }
   
   .sidebar__nav-item {
     flex-direction: column;
     gap: 4px;
     padding: var(--space-sm);
+    min-height: 56px;
     font-size: 0.65rem;
     border-radius: var(--radius-lg);
   }
@@ -1646,6 +1721,16 @@ button.heatmap-day:focus-visible {
 
   .dashboard-section__heading h2 {
     font-size: var(--font-size-lg);
+  }
+
+  .quick-access-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+
+  .quick-access-card {
+    min-height: 88px;
+    padding: var(--space-md);
   }
 
   .analytics-card,
