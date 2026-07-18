@@ -19,9 +19,12 @@ import { useCategories } from './hooks/useCategories';
 import * as api from './services/api';
 import AppIcon from './components/AppIcon';
 
+const SESSION_HINT_KEY = 'financial-tracker-has-session';
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [hasSessionHint] = useState(() => window.localStorage.getItem(SESSION_HINT_KEY) === 'true');
   const [sessionExpiresAt, setSessionExpiresAt] = useState(null);
   const [theme, setTheme] = useState(() => (
     window.localStorage.getItem('financial-tracker-theme') === 'dark' ? 'dark' : 'light'
@@ -41,10 +44,16 @@ export default function App() {
         if (!isMounted) return;
         setIsAuthenticated(session.authenticated);
         setSessionExpiresAt(session.expiresAt);
+        if (session.authenticated) {
+          window.localStorage.setItem(SESSION_HINT_KEY, 'true');
+        } else {
+          window.localStorage.removeItem(SESSION_HINT_KEY);
+        }
       } catch {
         if (!isMounted) return;
         setIsAuthenticated(false);
         setSessionExpiresAt(null);
+        window.localStorage.removeItem(SESSION_HINT_KEY);
       } finally {
         if (isMounted) setIsCheckingSession(false);
       }
@@ -64,12 +73,14 @@ export default function App() {
     if (remainingSession <= 0) {
       setIsAuthenticated(false);
       setSessionExpiresAt(null);
+      window.localStorage.removeItem(SESSION_HINT_KEY);
       return undefined;
     }
 
     const timeoutId = window.setTimeout(() => {
       setIsAuthenticated(false);
       setSessionExpiresAt(null);
+      window.localStorage.removeItem(SESSION_HINT_KEY);
     }, remainingSession);
 
     return () => window.clearTimeout(timeoutId);
@@ -80,6 +91,11 @@ export default function App() {
     const session = await api.getSession();
     setIsAuthenticated(session.authenticated);
     setSessionExpiresAt(session.expiresAt);
+    if (session.authenticated) {
+      window.localStorage.setItem(SESSION_HINT_KEY, 'true');
+    } else {
+      window.localStorage.removeItem(SESSION_HINT_KEY);
+    }
   };
 
   const handleLogout = async () => {
@@ -90,17 +106,12 @@ export default function App() {
     } finally {
       setIsAuthenticated(false);
       setSessionExpiresAt(null);
+      window.localStorage.removeItem(SESSION_HINT_KEY);
     }
   };
 
   if (isCheckingSession) {
-    return (
-      <main className="login-shell">
-        <section className="login-panel">
-          <p className="login-subtitle">Checking secure session...</p>
-        </section>
-      </main>
-    );
+    return hasSessionHint ? <AppSkeleton /> : <LoginSkeleton />;
   }
 
   if (!isAuthenticated) {
@@ -114,6 +125,67 @@ export default function App() {
       theme={theme}
       onThemeChange={setTheme}
     />
+  );
+}
+
+function SkeletonLine({ className = '' }) {
+  return <span className={`skeleton-line ${className}`} aria-hidden="true" />;
+}
+
+function LoginSkeleton() {
+  return (
+    <main className="login-shell" aria-busy="true" aria-label="Loading sign in">
+      <section className="login-panel login-skeleton">
+        <span className="login-skeleton__brand skeleton-block" aria-hidden="true" />
+        <div className="login-skeleton__copy">
+          <SkeletonLine className="skeleton-line--kicker" />
+          <SkeletonLine className="skeleton-line--title" />
+          <SkeletonLine className="skeleton-line--subtitle" />
+        </div>
+        <SkeletonLine className="login-skeleton__status" />
+        <SkeletonLine className="login-skeleton__label" />
+        <span className="login-skeleton__input skeleton-block" aria-hidden="true" />
+        <span className="login-skeleton__button skeleton-block" aria-hidden="true" />
+      </section>
+    </main>
+  );
+}
+
+function AppSkeleton() {
+  return (
+    <div className="app-layout app-skeleton" aria-busy="true" aria-label="Loading dashboard">
+      <aside className="sidebar app-skeleton__sidebar">
+        <div className="sidebar__brand">
+          <span className="app-skeleton__logo skeleton-block" aria-hidden="true" />
+          <div className="app-skeleton__brand-copy">
+            <SkeletonLine className="skeleton-line--brand" />
+            <SkeletonLine className="skeleton-line--small" />
+          </div>
+        </div>
+        <div className="app-skeleton__nav">
+          {Array.from({ length: 4 }).map((_, index) => <SkeletonLine key={index} />)}
+        </div>
+      </aside>
+      <main className="main-content app-skeleton__content">
+        <header className="app-skeleton__header">
+          <div><SkeletonLine className="skeleton-line--title" /><SkeletonLine className="skeleton-line--subtitle" /></div>
+          <SkeletonLine className="app-skeleton__header-action" />
+        </header>
+        <section className="app-skeleton__summary">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <article className="neo-card app-skeleton__summary-card" key={index}>
+              <SkeletonLine className="skeleton-line--small" />
+              <SkeletonLine className="skeleton-line--amount" />
+              <SkeletonLine className="skeleton-line--small" />
+            </article>
+          ))}
+        </section>
+        <section className="app-skeleton__charts">
+          <article className="neo-card app-skeleton__chart"><SkeletonLine className="skeleton-line--section" /><span className="app-skeleton__chart-shape skeleton-block" /></article>
+          <article className="neo-card app-skeleton__chart"><SkeletonLine className="skeleton-line--section" /><span className="app-skeleton__chart-shape skeleton-block" /></article>
+        </section>
+      </main>
+    </div>
   );
 }
 
