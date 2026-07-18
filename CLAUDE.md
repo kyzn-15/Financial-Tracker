@@ -1,1 +1,1 @@
-AGENTS.md
+adhere to AGENTS.md
