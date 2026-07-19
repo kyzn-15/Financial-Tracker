@@ -2994,7 +2994,9 @@ button.heatmap-day:focus-visible {
 
 .history-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  gap: var(--space-sm);
   margin-bottom: var(--space-md);
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import './App.css';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -241,6 +241,9 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
   const [currency, setCurrency] = useState('MYR');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [pendingImportFile, setPendingImportFile] = useState(null);
+  const importInputRef = useRef(null);
   const [backupPreferences, setBackupPreferences] = useState(null);
   const [isBackupReminderOpen, setIsBackupReminderOpen] = useState(false);
   const [isSavingBackupPreferences, setIsSavingBackupPreferences] = useState(false);
@@ -270,6 +273,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
     error: receiptsError,
     saveReceipt,
     removeReceipt,
+    refreshReceipts,
   } = useReceipts(activeTab);
 
   const emergency = useEmergencyFund(activeTab);
@@ -396,11 +400,54 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
       const preferences = await api.recordBackup();
       setBackupPreferences(preferences);
       setIsBackupReminderOpen(false);
-      showToast('Exported records workbook successfully.', 'success');
+      showToast('Exported database backup successfully.', 'success');
     } catch (err) {
-      showToast(`Failed to export records: ${err.message}`, 'error');
+      showToast(`Failed to export database backup: ${err.message}`, 'error');
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleImportFileSelection = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.xlsx')) {
+      showToast('Choose an XLSX database backup created by Financial Tracker.', 'error');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('Database backup must be 10 MB or smaller.', 'error');
+      return;
+    }
+    setPendingImportFile(file);
+  };
+
+  const handleImportConfirm = async () => {
+    if (!pendingImportFile) return;
+    setIsImporting(true);
+    try {
+      const result = await api.importRecords(pendingImportFile);
+      setPendingImportFile(null);
+      clearFilters();
+      const refreshResults = await Promise.allSettled([
+        refreshExpenses(),
+        categoryStore.refresh(),
+        recurringStore.refresh(),
+        refreshReceipts(),
+        emergency.refresh(),
+        api.getBackupPreferences(),
+      ]);
+      const preferencesResult = refreshResults[5];
+      if (preferencesResult.status === 'fulfilled') {
+        setBackupPreferences(preferencesResult.value);
+      }
+      setIsBackupReminderOpen(false);
+      showToast(`Imported ${result.row_count} database rows from ${result.table_count} tables.`, 'success');
+    } catch (err) {
+      showToast(`Database import stopped: ${err.message}`, 'error');
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -504,8 +551,23 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
           {activeTab === 'history' && (
             <>
               <div className="history-actions">
-                <button className="neo-btn neo-btn--secondary" type="button" onClick={handleExportRecords} disabled={isExporting}>
-                  {isExporting ? 'Exporting...' : 'Export Records'}
+                <input
+                  ref={importInputRef}
+                  className="sr-only"
+                  type="file"
+                  accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  onChange={handleImportFileSelection}
+                />
+                <button
+                  className="neo-btn neo-btn--secondary"
+                  type="button"
+                  onClick={() => importInputRef.current?.click()}
+                  disabled={isExporting || isImporting}
+                >
+                  {isImporting ? 'Importing...' : 'Import Database'}
+                </button>
+                <button className="neo-btn neo-btn--secondary" type="button" onClick={handleExportRecords} disabled={isExporting || isImporting}>
+                  {isExporting ? 'Exporting...' : 'Export Database'}
                 </button>
               </div>
               <FilterBar
@@ -599,16 +661,54 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
         dismissOnOverlayClick={false}
       >
         <div className="backup-reminder">
-          <p>Your records are due for a manual backup. Export an Excel copy and store it somewhere safe.</p>
+          <p>Your database is due for a manual backup. Export the XLSX file and store it somewhere safe.</p>
           <div className="modal-content__actions backup-reminder__actions">
             <button className="neo-btn neo-btn--primary" type="button" onClick={handleExportRecords} disabled={isExporting}>
-              {isExporting ? 'Exporting...' : 'Export data now'}
+              {isExporting ? 'Exporting...' : 'Export database now'}
             </button>
             <button className="neo-btn neo-btn--secondary" type="button" onClick={handleRemindLater} disabled={isExporting}>
               Remind me next time
             </button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!pendingImportFile}
+        onClose={() => {
+          if (!isImporting) setPendingImportFile(null);
+        }}
+        title="Import Database Backup"
+        dismissOnOverlayClick={!isImporting}
+      >
+        {pendingImportFile && (
+          <div className="confirm-dialog">
+            <p className="confirm-dialog__text">
+              Import <span className="confirm-dialog__name">"{pendingImportFile.name}"</span>?
+            </p>
+            <p className="confirm-dialog__note">
+              This replaces all current database records. The server will reject incompatible or modified workbook structures before changing any data.
+            </p>
+            <div className="confirm-dialog__actions">
+              <button
+                className="neo-btn neo-btn--secondary"
+                type="button"
+                onClick={() => setPendingImportFile(null)}
+                disabled={isImporting}
+              >
+                Cancel
+              </button>
+              <button
+                className="neo-btn neo-btn--danger"
+                type="button"
+                onClick={handleImportConfirm}
+                disabled={isImporting}
+              >
+                {isImporting ? 'Importing...' : 'Replace Database'}
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Delete Confirmation Modal */}
