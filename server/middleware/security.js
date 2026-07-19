@@ -166,6 +166,13 @@ export const exportLimiter = rateLimit({
   message: { error: 'Too many export requests. Try again later.' },
 });
 
+export const backupImportLimiter = rateLimit({
+  ...rateLimitDefaults,
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  message: { error: 'Too many database import attempts. Try again later.' },
+});
+
 export function configureTrustProxy(app) {
   const value = process.env.TRUST_PROXY?.trim();
   if (!value) return;

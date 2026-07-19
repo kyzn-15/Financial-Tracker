@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import './App.css';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -12,6 +12,7 @@ import Toast from './components/Toast';
 import ReceiptSaver from './components/ReceiptSaver';
 import EmergencyFundDashboard from './components/EmergencyFundDashboard';
 import SettingsPage from './components/SettingsPage';
+import { useRecurringExpenses } from './hooks/useRecurringExpenses';
 import { useExpenses } from './hooks/useExpenses';
 import { useReceipts } from './hooks/useReceipts';
 import { useEmergencyFund } from './hooks/useEmergencyFund';
@@ -240,6 +241,9 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
   const [currency, setCurrency] = useState('MYR');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [pendingImportFile, setPendingImportFile] = useState(null);
+  const importInputRef = useRef(null);
   const [backupPreferences, setBackupPreferences] = useState(null);
   const [isBackupReminderOpen, setIsBackupReminderOpen] = useState(false);
   const [isSavingBackupPreferences, setIsSavingBackupPreferences] = useState(false);
@@ -261,6 +265,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
 
   const categoryStore = useCategories();
   const categoryNames = categoryStore.categories.map((category) => category.name);
+  const recurringStore = useRecurringExpenses();
 
   const {
     receipts,
@@ -268,6 +273,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
     error: receiptsError,
     saveReceipt,
     removeReceipt,
+    refreshReceipts,
   } = useReceipts(activeTab);
 
   const emergency = useEmergencyFund(activeTab);
@@ -326,6 +332,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
   const handleAddSubmit = async (data) => {
     try {
       const created = await addExpense(data);
+      await recurringStore.refresh();
       await emergency.refresh();
       showToast(`Added expense "${created.name}" successfully!`, 'success');
       setActiveTab('history');
@@ -393,11 +400,54 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
       const preferences = await api.recordBackup();
       setBackupPreferences(preferences);
       setIsBackupReminderOpen(false);
-      showToast('Exported records workbook successfully.', 'success');
+      showToast('Exported database backup successfully.', 'success');
     } catch (err) {
-      showToast(`Failed to export records: ${err.message}`, 'error');
+      showToast(`Failed to export database backup: ${err.message}`, 'error');
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleImportFileSelection = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.xlsx')) {
+      showToast('Choose an XLSX database backup created by Financial Tracker.', 'error');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('Database backup must be 10 MB or smaller.', 'error');
+      return;
+    }
+    setPendingImportFile(file);
+  };
+
+  const handleImportConfirm = async () => {
+    if (!pendingImportFile) return;
+    setIsImporting(true);
+    try {
+      const result = await api.importRecords(pendingImportFile);
+      setPendingImportFile(null);
+      clearFilters();
+      const refreshResults = await Promise.allSettled([
+        refreshExpenses(),
+        categoryStore.refresh(),
+        recurringStore.refresh(),
+        refreshReceipts(),
+        emergency.refresh(),
+        api.getBackupPreferences(),
+      ]);
+      const preferencesResult = refreshResults[5];
+      if (preferencesResult.status === 'fulfilled') {
+        setBackupPreferences(preferencesResult.value);
+      }
+      setIsBackupReminderOpen(false);
+      showToast(`Imported ${result.row_count} database rows from ${result.table_count} tables.`, 'success');
+    } catch (err) {
+      showToast(`Database import stopped: ${err.message}`, 'error');
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -484,7 +534,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
         <div className="tab-content">
           {activeTab === 'add' && (
             <div className="neo-card" style={{ maxWidth: '640px', margin: '0 auto', marginTop: 'var(--space-md)' }}>
-              <ExpenseForm categories={categoryNames} onSubmit={handleAddSubmit} submitText="Add Expense" />
+              <ExpenseForm categories={categoryStore.categories} onSubmit={handleAddSubmit} submitText="Add Expense" />
             </div>
           )}
 
@@ -501,8 +551,23 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
           {activeTab === 'history' && (
             <>
               <div className="history-actions">
-                <button className="neo-btn neo-btn--secondary" type="button" onClick={handleExportRecords} disabled={isExporting}>
-                  {isExporting ? 'Exporting...' : 'Export Records'}
+                <input
+                  ref={importInputRef}
+                  className="sr-only"
+                  type="file"
+                  accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  onChange={handleImportFileSelection}
+                />
+                <button
+                  className="neo-btn neo-btn--secondary"
+                  type="button"
+                  onClick={() => importInputRef.current?.click()}
+                  disabled={isExporting || isImporting}
+                >
+                  {isImporting ? 'Importing...' : 'Import Database'}
+                </button>
+                <button className="neo-btn neo-btn--secondary" type="button" onClick={handleExportRecords} disabled={isExporting || isImporting}>
+                  {isExporting ? 'Exporting...' : 'Export Database'}
                 </button>
               </div>
               <FilterBar
@@ -555,6 +620,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
               onRenameCategory={(id, name) => syncCategoryChange(() => categoryStore.renameCategory(id, name))}
               onRemoveCategory={(id) => syncCategoryChange(() => categoryStore.removeCategory(id))}
               onReorderCategories={(ids) => syncCategoryChange(() => categoryStore.reorderCategories(ids))}
+              onUpdateCategoryAutomation={(id, enabled, frequency) => categoryStore.updateAutomation(id, enabled, frequency)}
               backupPreferences={backupPreferences}
               onSaveBackupInterval={handleSaveBackupInterval}
               onResetLastBackup={handleResetLastBackup}
@@ -562,6 +628,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
               emergency={emergency}
               currency={currency}
               exchangeRate={exchangeRate}
+              recurringStore={recurringStore}
             />
           )}
 
@@ -576,7 +643,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
       >
         {editingExpense && (
           <ExpenseForm
-            categories={categoryNames}
+            categories={categoryStore.categories}
             onSubmit={handleEditSubmit}
             initialData={editingExpense}
             submitText="Save Changes"
@@ -594,16 +661,54 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
         dismissOnOverlayClick={false}
       >
         <div className="backup-reminder">
-          <p>Your records are due for a manual backup. Export an Excel copy and store it somewhere safe.</p>
+          <p>Your database is due for a manual backup. Export the XLSX file and store it somewhere safe.</p>
           <div className="modal-content__actions backup-reminder__actions">
             <button className="neo-btn neo-btn--primary" type="button" onClick={handleExportRecords} disabled={isExporting}>
-              {isExporting ? 'Exporting...' : 'Export data now'}
+              {isExporting ? 'Exporting...' : 'Export database now'}
             </button>
             <button className="neo-btn neo-btn--secondary" type="button" onClick={handleRemindLater} disabled={isExporting}>
               Remind me next time
             </button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!pendingImportFile}
+        onClose={() => {
+          if (!isImporting) setPendingImportFile(null);
+        }}
+        title="Import Database Backup"
+        dismissOnOverlayClick={!isImporting}
+      >
+        {pendingImportFile && (
+          <div className="confirm-dialog">
+            <p className="confirm-dialog__text">
+              Import <span className="confirm-dialog__name">"{pendingImportFile.name}"</span>?
+            </p>
+            <p className="confirm-dialog__note">
+              This replaces all current database records. The server will reject incompatible or modified workbook structures before changing any data.
+            </p>
+            <div className="confirm-dialog__actions">
+              <button
+                className="neo-btn neo-btn--secondary"
+                type="button"
+                onClick={() => setPendingImportFile(null)}
+                disabled={isImporting}
+              >
+                Cancel
+              </button>
+              <button
+                className="neo-btn neo-btn--danger"
+                type="button"
+                onClick={handleImportConfirm}
+                disabled={isImporting}
+              >
+                {isImporting ? 'Importing...' : 'Replace Database'}
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Delete Confirmation Modal */}
@@ -617,23 +722,25 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
             <p className="confirm-dialog__text">
               Are you sure you want to delete the expense <span className="confirm-dialog__name">"{deletingExpense.name}"</span>?
             </p>
-            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-xs)', marginBottom: '24px' }}>
-              This action cannot be undone.
+            <p className="confirm-dialog__note">
+              {deletingExpense.recurring_rule_id
+                ? 'This removes only this occurrence. Future automated payments will continue from Settings.'
+                : 'This action cannot be undone.'}
             </p>
-            <div className="modal-content__actions">
-              <button
-                className="neo-btn neo-btn--danger"
-                style={{ flex: 1 }}
-                onClick={handleDeleteConfirm}
-              >
-                Yes, Delete
-              </button>
+            <div className="confirm-dialog__actions">
               <button
                 className="neo-btn neo-btn--secondary"
-                style={{ flex: 1 }}
+                type="button"
                 onClick={() => setDeletingExpense(null)}
               >
                 Cancel
+              </button>
+              <button
+                className="neo-btn neo-btn--danger"
+                type="button"
+                onClick={handleDeleteConfirm}
+              >
+                Yes, Delete
               </button>
             </div>
           </div>

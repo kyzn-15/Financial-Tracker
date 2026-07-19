@@ -1,7 +1,8 @@
 // expenses.js — Express Router for all expense endpoints
 import { Router } from 'express';
 import db from '../db/database.js';
-import { getExchangeRate } from '../services/exchangeRate.js';
+import { calculateExpenseAmounts, createExpenseRecord, getExpenseRecord, RECURRENCE_FREQUENCIES } from '../services/expenseRecords.js';
+import { nowUTC8 } from '../utils/datetime.js';
 
 const router = Router();
 
@@ -41,6 +42,12 @@ function parseExpenseId(value) {
   return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
+function validateRecurrence(input) {
+  if (input == null || input.enabled === false) return { enabled: false };
+  if (input.enabled !== true || !RECURRENCE_FREQUENCIES.includes(input.frequency)) return null;
+  return { enabled: true, frequency: input.frequency };
+}
+
 async function resolveCategoryName(category) {
   const result = await db.execute({
     sql: 'SELECT name FROM categories WHERE name = ? COLLATE NOCASE',
@@ -48,15 +55,6 @@ async function resolveCategoryName(category) {
   });
   return result.rows[0]?.name || null;
 }
-// ─── Helper: get current UTC+8 timestamp in ISO 8601 ────────────────────────
-function nowUTC8() {
-  const now = new Date();
-  // UTC+8 offset in ms
-  const utc8 = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-  // Format as ISO string and replace Z with +08:00
-  return utc8.toISOString().replace('Z', '').split('.')[0] + '+08:00';
-}
-
 // ─── POST /api/expenses — Create a new expense ──────────────────────────────
 router.post('/', async (req, res) => {
   try {
@@ -64,41 +62,15 @@ router.post('/', async (req, res) => {
     if (!input) {
       return res.status(400).json({ error: 'Invalid expense details.' });
     }
-    const { name, price, currency, timestamp } = input;
+    const recurrence = validateRecurrence(req.body?.recurrence);
+    if (!recurrence) {
+      return res.status(400).json({ error: 'Choose a valid recurring frequency.' });
+    }
     const category = await resolveCategoryName(input.category);
     if (!category) {
       return res.status(400).json({ error: 'Choose a category that is currently available.' });
     }
-    const cur = currency;
-    const ts = timestamp && timestamp.trim() !== '' ? timestamp : nowUTC8();
-
-    // Fetch exchange rate
-    const rate = await getExchangeRate();
-
-    let priceMyr = null;
-    let priceIdr = null;
-    let exchangeRateUsed = rate ? rate.myrToIdr : null;
-
-    if (cur === 'MYR') {
-      priceMyr = price;
-      priceIdr = rate ? price * rate.myrToIdr : null;
-    } else {
-      priceIdr = price;
-      priceMyr = rate ? price * rate.idrToMyr : null;
-    }
-
-    const result = await db.execute({
-      sql: `INSERT INTO expenses (name, category, price_myr, price_idr, original_currency, exchange_rate_used, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      args: [name, category, priceMyr, priceIdr, cur, exchangeRateUsed, ts],
-    });
-
-    // Return the created record
-    const createdResult = await db.execute({
-      sql: 'SELECT * FROM expenses WHERE id = ?',
-      args: [result.lastInsertRowid],
-    });
-    const created = createdResult.rows[0];
+    const created = await createExpenseRecord({ ...input, category }, recurrence);
     res.status(201).json(created);
   } catch (err) {
     console.error('POST /api/expenses error:', err);
@@ -139,7 +111,13 @@ router.get('/', async (req, res) => {
     const sortColumn = allowedSortColumns.includes(sort) ? sort : 'timestamp';
     const sortOrder = order?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
-    const sql = `SELECT * FROM expenses ${whereClause} ORDER BY ${sortColumn} ${sortOrder}`;
+    const sql = `SELECT * FROM (
+                   SELECT expenses.*,
+                          recurring_expense_occurrences.rule_id AS recurring_rule_id,
+                          recurring_expense_occurrences.scheduled_for AS recurrence_scheduled_for
+                   FROM expenses
+                   LEFT JOIN recurring_expense_occurrences ON recurring_expense_occurrences.expense_id = expenses.id
+                 ) AS expense_records ${whereClause} ORDER BY ${sortColumn} ${sortOrder}`;
     const result = await db.execute({ sql, args: params });
     const rows = result.rows;
 
@@ -155,8 +133,7 @@ router.get('/:id', async (req, res) => {
   try {
     const id = parseExpenseId(req.params.id);
     if (!id) return res.status(400).json({ error: 'Invalid expense id' });
-    const result = await db.execute({ sql: 'SELECT * FROM expenses WHERE id = ?', args: [id] });
-    const expense = result.rows[0];
+    const expense = await getExpenseRecord(id);
 
     if (!expense) {
       return res.status(404).json({ error: 'Expense not found' });
@@ -191,20 +168,7 @@ router.put('/:id', async (req, res) => {
     const cur = currency;
     const ts = timestamp && timestamp.trim() !== '' ? timestamp : nowUTC8();
 
-    // Re-fetch exchange rate for recalculation
-    const rate = await getExchangeRate();
-
-    let priceMyr = null;
-    let priceIdr = null;
-    let exchangeRateUsed = rate ? rate.myrToIdr : null;
-
-    if (cur === 'MYR') {
-      priceMyr = price;
-      priceIdr = rate ? price * rate.myrToIdr : null;
-    } else {
-      priceIdr = price;
-      priceMyr = rate ? price * rate.idrToMyr : null;
-    }
+    const { priceMyr, priceIdr, exchangeRateUsed } = await calculateExpenseAmounts(price, cur);
 
     await db.execute({
       sql: `UPDATE expenses
@@ -213,8 +177,7 @@ router.put('/:id', async (req, res) => {
       args: [name, category, priceMyr, priceIdr, cur, exchangeRateUsed, ts, id],
     });
 
-    const updatedResult = await db.execute({ sql: 'SELECT * FROM expenses WHERE id = ?', args: [id] });
-    const updated = updatedResult.rows[0];
+    const updated = await getExpenseRecord(id);
     res.json(updated);
   } catch (err) {
     console.error('PUT /api/expenses/:id error:', err);

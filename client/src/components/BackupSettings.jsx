@@ -54,8 +54,8 @@ export default function BackupSettings({ preferences, onSaveInterval, onResetLas
     <section className="backup-settings neo-card" aria-labelledby="backup-settings-title">
       <div className="backup-settings__heading">
         <p className="login-kicker">Data protection</p>
-        <h3 id="backup-settings-title">Backup reminder</h3>
-        <p>Export a copy of your records regularly and keep it somewhere safe.</p>
+        <h3 id="backup-settings-title">Database backup reminder</h3>
+        <p>Export a complete XLSX database backup regularly and keep it somewhere safe.</p>
       </div>
 
       <div className="backup-settings__last-backup">

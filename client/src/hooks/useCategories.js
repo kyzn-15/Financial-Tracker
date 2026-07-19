@@ -46,5 +46,6 @@ export function useCategories() {
     renameCategory: (id, name) => runMutation(() => api.renameCategory(id, name)),
     removeCategory: (id) => runMutation(() => api.deleteCategory(id)),
     reorderCategories: (ids) => runMutation(() => api.reorderCategories(ids)),
+    updateAutomation: (id, enabled, frequency) => runMutation(() => api.updateCategoryAutomation(id, enabled, frequency)),
   };
 }

@@ -56,6 +56,19 @@ export function useExpenses() {
     fetchExchangeRate();
   }, [fetchSummary, fetchExchangeRate]);
 
+  useEffect(() => {
+    const refreshCurrentData = () => {
+      fetchExpenses();
+      fetchSummary();
+    };
+    const interval = window.setInterval(refreshCurrentData, 60_000);
+    window.addEventListener('focus', refreshCurrentData);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', refreshCurrentData);
+    };
+  }, [fetchExpenses, fetchSummary]);
+
   const addExpense = async (data) => {
     const result = await api.createExpense(data);
     await fetchExpenses();

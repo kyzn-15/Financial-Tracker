@@ -3,6 +3,7 @@ import BackupSettings from './BackupSettings';
 import CategoryManager from './CategoryManager';
 import { EmergencySettingsPanel } from './EmergencyFundDashboard';
 import AppIcon from './AppIcon';
+import RecurringPaymentsManager from './RecurringPaymentsManager';
 
 export default function SettingsPage({
   theme,
@@ -19,6 +20,8 @@ export default function SettingsPage({
   emergency,
   currency,
   exchangeRate,
+  recurringStore,
+  onUpdateCategoryAutomation,
 }) {
   const isDark = theme === 'dark';
   const myrToIdr = exchangeRate?.myrToIdr || 4500;
@@ -58,7 +61,10 @@ export default function SettingsPage({
         onRename={onRenameCategory}
         onRemove={onRemoveCategory}
         onReorder={onReorderCategories}
+        onUpdateAutomation={onUpdateCategoryAutomation}
       />
+
+      <RecurringPaymentsManager store={recurringStore} categories={categoryStore.categories} />
 
       <BackupSettings
         preferences={backupPreferences}

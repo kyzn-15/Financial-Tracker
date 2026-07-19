@@ -5,6 +5,7 @@ import {
   listCategories,
   renameCategory,
   reorderCategories,
+  updateCategoryAutomation,
 } from '../services/categories.js';
 
 const router = Router();
@@ -55,6 +56,25 @@ router.put('/reorder', async (req, res) => {
     return res.json(await listCategories());
   } catch (err) {
     return res.status(err.statusCode || 500).json({ error: err.statusCode ? err.message : 'Failed to reorder categories.' });
+  }
+});
+
+router.put('/:id/automation', async (req, res) => {
+  const id = parseCategoryId(req.params.id);
+  const enabled = req.body?.enabled;
+  const frequency = req.body?.frequency;
+  if (!id) return res.status(400).json({ error: 'Invalid category id.' });
+  if (typeof enabled !== 'boolean' || !['daily', 'weekly', 'monthly'].includes(frequency)) {
+    return res.status(400).json({ error: 'Choose a valid automation mode and frequency.' });
+  }
+
+  try {
+    const updated = await updateCategoryAutomation(id, enabled, frequency);
+    if (!updated) return res.status(404).json({ error: 'Category not found.' });
+    return res.json(await listCategories());
+  } catch (err) {
+    console.error('PUT /api/categories/:id/automation error:', err);
+    return res.status(500).json({ error: 'Failed to update category automation.' });
   }
 });
 
