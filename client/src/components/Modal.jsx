@@ -17,7 +17,7 @@ export default function Modal({
         <div className="modal-content__header">
           <h2 className="modal-content__title">{title}</h2>
           {showClose && (
-            <button className="modal-content__close" onClick={onClose} aria-label="Close modal">
+            <button className="modal-content__close" type="button" onClick={onClose} aria-label="Close modal">
               <AppIcon name="x" />
             </button>
           )}

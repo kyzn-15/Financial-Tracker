@@ -622,25 +622,25 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
             <p className="confirm-dialog__text">
               Are you sure you want to delete the expense <span className="confirm-dialog__name">"{deletingExpense.name}"</span>?
             </p>
-            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-xs)', marginBottom: '24px' }}>
+            <p className="confirm-dialog__note">
               {deletingExpense.recurring_rule_id
                 ? 'This removes only this occurrence. Future automated payments will continue from Settings.'
                 : 'This action cannot be undone.'}
             </p>
-            <div className="modal-content__actions">
-              <button
-                className="neo-btn neo-btn--danger"
-                style={{ flex: 1 }}
-                onClick={handleDeleteConfirm}
-              >
-                Yes, Delete
-              </button>
+            <div className="confirm-dialog__actions">
               <button
                 className="neo-btn neo-btn--secondary"
-                style={{ flex: 1 }}
+                type="button"
                 onClick={() => setDeletingExpense(null)}
               >
                 Cancel
+              </button>
+              <button
+                className="neo-btn neo-btn--danger"
+                type="button"
+                onClick={handleDeleteConfirm}
+              >
+                Yes, Delete
               </button>
             </div>
           </div>
