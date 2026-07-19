@@ -95,6 +95,7 @@ function addExpensesSheet(workbook, expenses) {
     { header: 'Date/Time (UTC+8)', key: 'timestamp', width: 24 },
     { header: 'Name', key: 'name', width: 28 },
     { header: 'Category', key: 'category', width: 22 },
+    { header: 'Input Type', key: 'input_type', width: 16 },
     { header: 'Original Currency', key: 'original_currency', width: 18 },
     { header: 'Amount (MYR)', key: 'price_myr', width: 16 },
     { header: 'Amount (IDR)', key: 'price_idr', width: 18 },
@@ -107,6 +108,7 @@ function addExpensesSheet(workbook, expenses) {
       ...expense,
       name: safeText(expense.name),
       category: safeText(expense.category),
+      input_type: expense.recurring_rule_id == null ? 'Manual' : 'Automated',
       price_myr: money(expense.price_myr),
       price_idr: money(expense.price_idr),
       exchange_rate_used: money(expense.exchange_rate_used),
@@ -228,7 +230,11 @@ export async function buildRecordsExportWorkbook() {
 
   const [expensesResult, receiptsResult, emergency] = await Promise.all([
     db.execute({
-      sql: 'SELECT * FROM expenses ORDER BY timestamp DESC, id DESC',
+      sql: `SELECT expenses.*,
+                   recurring_expense_occurrences.rule_id AS recurring_rule_id
+            FROM expenses
+            LEFT JOIN recurring_expense_occurrences ON recurring_expense_occurrences.expense_id = expenses.id
+            ORDER BY expenses.timestamp DESC, expenses.id DESC`,
       args: [],
     }),
     db.execute({

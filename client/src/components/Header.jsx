@@ -52,8 +52,11 @@ export default function Header({ exchangeRate, activeTab, currency, onCurrencyCh
         </button>
         <div className="header__info" id="header-secondary-details">
           <div className={rateBadgeClass} title={rateTitle}>
-            <span aria-hidden="true">$</span>
-            <span>1 MYR = <span className="rate-value">{rateDisplay}</span> IDR</span>
+            <span className="header__rate-text">
+              <span>1 MYR =</span>
+              <span className="rate-value">{rateDisplay}</span>
+              <span>IDR</span>
+            </span>
           </div>
           <div className="header__time">{time} (UTC+8)</div>
           <button className="header__logout-btn" type="button" onClick={onLogout} disabled={isLoggingOut} title="End this secure session">
