@@ -220,8 +220,24 @@ export async function exportRecords() {
 
   return {
     blob,
-    filename: filenameMatch?.[1] || 'financial-tracker-export.xlsx',
+    filename: filenameMatch?.[1] || 'financial-tracker-database-backup.xlsx',
   };
+}
+
+export async function importRecords(file) {
+  const formData = new FormData();
+  formData.append('backup', file);
+  const response = await fetch(`${BASE_URL}/export/records/import`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Database import failed' }));
+    throw new Error(error.message || error.error || `HTTP ${response.status}`);
+  }
+  return response.json();
 }
 
 export async function getBackupPreferences() {

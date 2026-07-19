@@ -105,6 +105,7 @@ app.listen(PORT, () => {
   console.log(`   - GET    /api/summary`);
   console.log(`   - GET    /api/exchange-rate`);
   console.log(`   - GET    /api/export/records`);
+  console.log(`   - POST   /api/export/records/import`);
   console.log(`   - GET    /api/health`);
 });
 
