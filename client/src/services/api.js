@@ -115,6 +115,28 @@ export async function reorderCategories(ids) {
   });
 }
 
+export async function updateCategoryAutomation(id, enabled, frequency) {
+  return request(`/categories/${id}/automation`, {
+    method: 'PUT',
+    body: JSON.stringify({ enabled, frequency }),
+  });
+}
+
+export async function getRecurringExpenses() {
+  return request('/recurring-expenses');
+}
+
+export async function updateRecurringExpense(id, data) {
+  return request(`/recurring-expenses/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function cancelRecurringExpense(id) {
+  return request(`/recurring-expenses/${id}`, { method: 'DELETE' });
+}
+
 export async function getSummary() {
   return request('/summary');
 }

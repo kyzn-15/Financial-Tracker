@@ -24,10 +24,13 @@ export async function listCategories() {
     sql: `SELECT categories.id,
                  categories.name,
                  categories.sort_order,
+                 COALESCE(category_automation_settings.enabled, 0) AS automation_enabled,
+                 COALESCE(category_automation_settings.frequency, 'monthly') AS automation_frequency,
                  COUNT(expenses.id) AS usage_count
           FROM categories
+          LEFT JOIN category_automation_settings ON category_automation_settings.category_id = categories.id
           LEFT JOIN expenses ON expenses.category = categories.name COLLATE NOCASE
-          GROUP BY categories.id, categories.name, categories.sort_order
+          GROUP BY categories.id, categories.name, categories.sort_order, category_automation_settings.enabled, category_automation_settings.frequency
           ORDER BY categories.sort_order ASC, categories.id ASC`,
     args: [],
   });
@@ -37,6 +40,8 @@ export async function listCategories() {
     name: row.name,
     sort_order: Number(row.sort_order),
     usage_count: Number(row.usage_count),
+    automation_enabled: Boolean(row.automation_enabled),
+    automation_frequency: row.automation_frequency,
   }));
 }
 
@@ -55,10 +60,15 @@ export async function createCategory(name) {
     sql: 'SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM categories',
     args: [],
   });
-  await db.execute({
-    sql: 'INSERT INTO categories (name, sort_order) VALUES (?, ?)',
-    args: [name, Number(orderResult.rows[0].next_order)],
-  });
+  const enabled = ['rent', 'subscription', 'insurance'].includes(name.toLowerCase()) ? 1 : 0;
+  await db.batch([
+    { sql: 'INSERT INTO categories (name, sort_order) VALUES (?, ?)', args: [name, Number(orderResult.rows[0].next_order)] },
+    {
+      sql: `INSERT INTO category_automation_settings (category_id, enabled, frequency, updated_at)
+            VALUES (last_insert_rowid(), ?, 'monthly', ?)`,
+      args: [enabled, nowUTC8()],
+    },
+  ], 'write');
 }
 
 export async function renameCategory(id, name) {
@@ -87,6 +97,7 @@ export async function renameCategory(id, name) {
   await db.batch([
     { sql: 'UPDATE categories SET name = ? WHERE id = ?', args: [name, id] },
     { sql: 'UPDATE expenses SET category = ? WHERE category = ? COLLATE NOCASE', args: [name, category.name] },
+    { sql: 'UPDATE recurring_expense_rules SET category = ?, updated_at = ? WHERE category = ? COLLATE NOCASE', args: [name, nowUTC8(), category.name] },
     {
       sql: 'UPDATE emergency_settings SET essential_categories = ?, updated_at = ? WHERE id = 1',
       args: [JSON.stringify(renamedEssentialCategories), nowUTC8()],
@@ -112,12 +123,27 @@ export async function deleteCategory(id) {
   ));
 
   await db.batch([
+    { sql: 'DELETE FROM category_automation_settings WHERE category_id = ?', args: [id] },
+    { sql: `UPDATE recurring_expense_rules SET status = 'cancelled', updated_at = ? WHERE category = ? COLLATE NOCASE AND status <> 'cancelled'`, args: [nowUTC8(), category.name] },
     { sql: 'DELETE FROM categories WHERE id = ?', args: [id] },
     {
       sql: 'UPDATE emergency_settings SET essential_categories = ?, updated_at = ? WHERE id = 1',
       args: [JSON.stringify(remainingEssentialCategories), nowUTC8()],
     },
   ], 'write');
+  return true;
+}
+
+export async function updateCategoryAutomation(id, enabled, frequency) {
+  const category = await db.execute({ sql: 'SELECT id FROM categories WHERE id = ?', args: [id] });
+  if (category.rows.length === 0) return false;
+
+  await db.execute({
+    sql: `INSERT INTO category_automation_settings (category_id, enabled, frequency, updated_at)
+          VALUES (?, ?, ?, ?)
+          ON CONFLICT(category_id) DO UPDATE SET enabled = excluded.enabled, frequency = excluded.frequency, updated_at = excluded.updated_at`,
+    args: [id, enabled ? 1 : 0, frequency, nowUTC8()],
+  });
   return true;
 }
 

@@ -12,6 +12,7 @@ import Toast from './components/Toast';
 import ReceiptSaver from './components/ReceiptSaver';
 import EmergencyFundDashboard from './components/EmergencyFundDashboard';
 import SettingsPage from './components/SettingsPage';
+import { useRecurringExpenses } from './hooks/useRecurringExpenses';
 import { useExpenses } from './hooks/useExpenses';
 import { useReceipts } from './hooks/useReceipts';
 import { useEmergencyFund } from './hooks/useEmergencyFund';
@@ -261,6 +262,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
 
   const categoryStore = useCategories();
   const categoryNames = categoryStore.categories.map((category) => category.name);
+  const recurringStore = useRecurringExpenses();
 
   const {
     receipts,
@@ -326,6 +328,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
   const handleAddSubmit = async (data) => {
     try {
       const created = await addExpense(data);
+      await recurringStore.refresh();
       await emergency.refresh();
       showToast(`Added expense "${created.name}" successfully!`, 'success');
       setActiveTab('history');
@@ -484,7 +487,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
         <div className="tab-content">
           {activeTab === 'add' && (
             <div className="neo-card" style={{ maxWidth: '640px', margin: '0 auto', marginTop: 'var(--space-md)' }}>
-              <ExpenseForm categories={categoryNames} onSubmit={handleAddSubmit} submitText="Add Expense" />
+              <ExpenseForm categories={categoryStore.categories} onSubmit={handleAddSubmit} submitText="Add Expense" />
             </div>
           )}
 
@@ -555,6 +558,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
               onRenameCategory={(id, name) => syncCategoryChange(() => categoryStore.renameCategory(id, name))}
               onRemoveCategory={(id) => syncCategoryChange(() => categoryStore.removeCategory(id))}
               onReorderCategories={(ids) => syncCategoryChange(() => categoryStore.reorderCategories(ids))}
+              onUpdateCategoryAutomation={(id, enabled, frequency) => categoryStore.updateAutomation(id, enabled, frequency)}
               backupPreferences={backupPreferences}
               onSaveBackupInterval={handleSaveBackupInterval}
               onResetLastBackup={handleResetLastBackup}
@@ -562,6 +566,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
               emergency={emergency}
               currency={currency}
               exchangeRate={exchangeRate}
+              recurringStore={recurringStore}
             />
           )}
 
@@ -576,7 +581,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
       >
         {editingExpense && (
           <ExpenseForm
-            categories={categoryNames}
+            categories={categoryStore.categories}
             onSubmit={handleEditSubmit}
             initialData={editingExpense}
             submitText="Save Changes"
@@ -618,7 +623,9 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
               Are you sure you want to delete the expense <span className="confirm-dialog__name">"{deletingExpense.name}"</span>?
             </p>
             <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-xs)', marginBottom: '24px' }}>
-              This action cannot be undone.
+              {deletingExpense.recurring_rule_id
+                ? 'This removes only this occurrence. Future automated payments will continue from Settings.'
+                : 'This action cannot be undone.'}
             </p>
             <div className="modal-content__actions">
               <button

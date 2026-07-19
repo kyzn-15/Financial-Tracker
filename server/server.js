@@ -21,7 +21,9 @@ import emergencyRouter from './routes/emergency.js';
 import exportRouter from './routes/export.js';
 import backupRouter from './routes/backup.js';
 import categoriesRouter from './routes/categories.js';
+import recurringExpensesRouter from './routes/recurringExpenses.js';
 import { scheduleReceiptCleanup } from './services/receiptCleanup.js';
+import { scheduleRecurringExpenses } from './services/recurringExpenses.js';
 import { assertAuthConfiguration } from './utils/auth.js';
 import {
   apiLimiter,
@@ -67,6 +69,7 @@ app.use('/api/emergency', requireAuth, emergencyRouter);
 app.use('/api/export', requireAuth, exportRouter);
 app.use('/api/backup', requireAuth, backupRouter);
 app.use('/api/categories', requireAuth, categoriesRouter);
+app.use('/api/recurring-expenses', requireAuth, recurringExpensesRouter);
 app.use('/api', requireAuth, summaryRouter);
 
 // ─── Health check ────────────────────────────────────────────────────────────
@@ -87,6 +90,7 @@ app.use((err, _req, res, _next) => {
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   scheduleReceiptCleanup();
+  scheduleRecurringExpenses();
   console.log(`🚀 Financial Tracker API running on http://localhost:${PORT}`);
   console.log(`   Endpoints:`);
   console.log(`   - GET    /api/expenses`);
