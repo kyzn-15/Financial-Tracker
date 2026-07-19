@@ -162,28 +162,74 @@ function AppSkeleton() {
             <SkeletonLine className="skeleton-line--small" />
           </div>
         </div>
-        <div className="app-skeleton__nav">
-          {Array.from({ length: 4 }).map((_, index) => <SkeletonLine key={index} />)}
-        </div>
+        <nav className="sidebar__nav app-skeleton__nav">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div className="sidebar__nav-item" key={index}>
+              <span className="app-skeleton__nav-icon skeleton-block" />
+              <SkeletonLine className="app-skeleton__nav-label" />
+            </div>
+          ))}
+        </nav>
       </aside>
       <main className="main-content app-skeleton__content">
-        <header className="app-skeleton__header">
-          <div><SkeletonLine className="skeleton-line--title" /><SkeletonLine className="skeleton-line--subtitle" /></div>
-          <SkeletonLine className="app-skeleton__header-action" />
+        <header className="header app-skeleton__header">
+          <SkeletonLine className="app-skeleton__header-title" />
+          <span className="app-skeleton__currency-toggle skeleton-block" />
+          <span className="app-skeleton__header-details skeleton-block" />
         </header>
-        <section className="app-skeleton__summary">
+        <div className="dashboard app-skeleton__dashboard">
+          <section className="dashboard-section">
+            <div className="app-skeleton__section-heading">
+              <SkeletonLine className="app-skeleton__eyebrow" />
+              <SkeletonLine className="app-skeleton__section-title" />
+              <SkeletonLine className="app-skeleton__description" />
+            </div>
+            <div className="summary-grid app-skeleton__summary">
           {Array.from({ length: 3 }).map((_, index) => (
-            <article className="neo-card app-skeleton__summary-card" key={index}>
+                <article className="summary-card app-skeleton__summary-card" key={index}>
+                  <span className="app-skeleton__summary-icon skeleton-block" />
               <SkeletonLine className="skeleton-line--small" />
               <SkeletonLine className="skeleton-line--amount" />
               <SkeletonLine className="skeleton-line--small" />
             </article>
           ))}
-        </section>
-        <section className="app-skeleton__charts">
-          <article className="neo-card app-skeleton__chart"><SkeletonLine className="skeleton-line--section" /><span className="app-skeleton__chart-shape skeleton-block" /></article>
-          <article className="neo-card app-skeleton__chart"><SkeletonLine className="skeleton-line--section" /><span className="app-skeleton__chart-shape skeleton-block" /></article>
-        </section>
+            </div>
+          </section>
+          <section className="dashboard-section dashboard-quick-access">
+            <div className="app-skeleton__section-heading">
+              <SkeletonLine className="app-skeleton__eyebrow" />
+              <SkeletonLine className="app-skeleton__section-title" />
+              <SkeletonLine className="app-skeleton__description" />
+            </div>
+            <div className="quick-access-grid">
+              {Array.from({ length: 2 }).map((_, index) => (
+                <article className="quick-access-card app-skeleton__quick-access-card" key={index}>
+                  <span className="app-skeleton__quick-access-icon skeleton-block" />
+                  <div><SkeletonLine className="app-skeleton__quick-access-title" /><SkeletonLine className="app-skeleton__quick-access-copy" /></div>
+                </article>
+              ))}
+            </div>
+          </section>
+          <section className="dashboard-section">
+            <div className="app-skeleton__section-heading">
+              <SkeletonLine className="app-skeleton__eyebrow" />
+              <SkeletonLine className="app-skeleton__section-title" />
+            </div>
+            <div className="analytics-card-grid analytics-card-grid--single">
+              <article className="analytics-card app-skeleton__chart"><SkeletonLine className="skeleton-line--section" /><span className="app-skeleton__chart-shape skeleton-block" /></article>
+            </div>
+          </section>
+          <section className="dashboard-section">
+            <div className="app-skeleton__section-heading">
+              <SkeletonLine className="app-skeleton__eyebrow" />
+              <SkeletonLine className="app-skeleton__section-title" />
+              <SkeletonLine className="app-skeleton__description" />
+            </div>
+            <div className="dashboard-analysis-grid">
+              {Array.from({ length: 3 }).map((_, index) => <article className="analytics-card app-skeleton__chart" key={index}><SkeletonLine className="skeleton-line--section" /><span className="app-skeleton__chart-shape skeleton-block" /></article>)}
+            </div>
+          </section>
+        </div>
       </main>
     </div>
   );

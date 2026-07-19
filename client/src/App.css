@@ -220,16 +220,29 @@
 .app-skeleton__sidebar { pointer-events: none; }
 .app-skeleton__logo { width: 44px; height: 44px; border-radius: var(--radius-md); }
 .app-skeleton__brand-copy { display: grid; gap: var(--space-sm); }
-.app-skeleton__nav { display: grid; gap: var(--space-sm); margin-top: var(--space-xl); }
-.app-skeleton__nav .skeleton-line { height: 46px; border-radius: var(--radius-md); }
+.app-skeleton__nav { margin-top: var(--space-xl); }
+.app-skeleton__nav-item { pointer-events: none; }
+.app-skeleton__nav-icon { width: 20px; height: 20px; border-radius: var(--radius-full); }
+.app-skeleton__nav-label { width: 72%; height: 0.7rem; }
 .app-skeleton__content { gap: var(--space-xl); }
-.app-skeleton__header { display: flex; justify-content: space-between; align-items: center; }
-.app-skeleton__header-action { width: 116px; height: 38px; }
-.app-skeleton__summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-lg); }
-.app-skeleton__summary-card { min-height: 150px; }
+.app-skeleton__header { display: flex; align-items: center; gap: var(--space-lg); }
+.app-skeleton__header-title { width: min(240px, 42%); height: 1.5rem; }
+.app-skeleton__currency-toggle { width: 132px; height: 38px; margin-left: auto; border-radius: var(--radius-full); }
+.app-skeleton__header-details { width: 220px; height: 34px; border-radius: var(--radius-full); }
+.app-skeleton__dashboard { width: 100%; }
+.app-skeleton__section-heading { display: grid; gap: var(--space-sm); }
+.app-skeleton__eyebrow { width: 54px; height: 0.65rem; }
+.app-skeleton__section-title { width: min(190px, 70%); height: 1.45rem; }
+.app-skeleton__description { width: min(320px, 90%); height: 0.75rem; }
+.app-skeleton__summary { margin-bottom: 0; }
+.app-skeleton__summary-card { min-height: 178px; }
+.app-skeleton__summary-icon { width: 44px; height: 44px; border-radius: var(--radius-sm); margin-bottom: var(--space-sm); }
 .app-skeleton__summary-card .skeleton-line:last-child { margin-top: var(--space-lg); }
-.app-skeleton__charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-lg); }
-.app-skeleton__chart { min-height: 260px; }
+.app-skeleton__quick-access-card { pointer-events: none; }
+.app-skeleton__quick-access-icon { width: 48px; height: 48px; border-radius: var(--radius); }
+.app-skeleton__quick-access-title { width: 124px; height: 1rem; }
+.app-skeleton__quick-access-copy { width: min(220px, 100%); height: 0.7rem; margin-top: var(--space-sm); }
+.app-skeleton__chart { min-height: 292px; }
 .app-skeleton__chart-shape { height: 170px; margin-top: var(--space-xl); border-radius: var(--radius-lg); }
 
 .backup-settings {
@@ -1689,6 +1702,31 @@ button.heatmap-day:focus-visible {
 }
 
 @media (max-width: 768px) {
+  .app-skeleton__nav {
+    margin-top: 0;
+  }
+
+  .app-skeleton__header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-sm);
+  }
+
+  .app-skeleton__header-title {
+    width: 112px;
+  }
+
+  .app-skeleton__currency-toggle {
+    width: 112px;
+    height: 34px;
+  }
+
+  .app-skeleton__header-details {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: 34px;
+    height: 18px;
+  }
+
   .login-shell {
     padding: var(--space-md);
   }
