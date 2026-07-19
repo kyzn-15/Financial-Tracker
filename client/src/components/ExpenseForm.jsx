@@ -10,6 +10,8 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
   const [useCurrentTime, setUseCurrentTime] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [validationError, setValidationError] = useState('');
+  const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState('monthly');
 
   useEffect(() => {
     if (initialData) {
@@ -37,15 +39,28 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
       setCurrency('MYR');
       setCustomDateTime('');
       setUseCurrentTime(true);
+      setRecurrenceEnabled(false);
+      setRecurrenceFrequency('monthly');
     }
     setValidationError('');
   }, [initialData]);
 
   useEffect(() => {
     if (!initialData && !category && categories.length > 0) {
-      setCategory(categories[0]);
+      const firstCategory = categories[0];
+      setCategory(firstCategory.name);
+      setRecurrenceEnabled(firstCategory.automation_enabled);
+      setRecurrenceFrequency(firstCategory.automation_frequency || 'monthly');
     }
   }, [categories, category, initialData]);
+
+  const handleCategoryChange = (nextCategory) => {
+    setCategory(nextCategory);
+    if (initialData) return;
+    const categorySettings = categories.find((item) => item.name === nextCategory);
+    setRecurrenceEnabled(Boolean(categorySettings?.automation_enabled));
+    setRecurrenceFrequency(categorySettings?.automation_frequency || 'monthly');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -78,6 +93,10 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
         price: Number(price),
         currency,
         timestamp: formattedTimestamp,
+        recurrence: initialData ? undefined : {
+          enabled: recurrenceEnabled,
+          frequency: recurrenceFrequency,
+        },
       });
 
       // Clear form if not editing
@@ -122,13 +141,13 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
             id="expense-category"
             className="neo-select"
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={(e) => handleCategoryChange(e.target.value)}
             required
           >
             <option value="" disabled>Select category</option>
             {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
+              <option key={cat.id} value={cat.name}>
+                {cat.name}
               </option>
             ))}
           </select>
@@ -154,6 +173,46 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
           </div>
         </div>
       </div>
+
+      {!initialData && (
+        <div className="expense-recurrence">
+          <div className="expense-recurrence__heading">
+            <div>
+              <strong>Automated input</strong>
+              <p>Create this payment again on a schedule.</p>
+            </div>
+            <label className="automation-switch">
+              <input
+                type="checkbox"
+                checked={recurrenceEnabled}
+                onChange={(event) => setRecurrenceEnabled(event.target.checked)}
+              />
+              <span aria-hidden="true" />
+              <span className="sr-only">Enable automated input</span>
+            </label>
+          </div>
+          {recurrenceEnabled && (
+            <div className="neo-input-group">
+              <label className="neo-label" htmlFor="expense-recurrence-frequency">Repeat every</label>
+              <select
+                id="expense-recurrence-frequency"
+                className="neo-select"
+                value={recurrenceFrequency}
+                onChange={(event) => setRecurrenceFrequency(event.target.value)}
+              >
+                <option value="daily">Day</option>
+                <option value="weekly">Week</option>
+                <option value="monthly">Month</option>
+              </select>
+              <p className="expense-recurrence__hint">This expense is the first occurrence. The next one follows after one interval.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {initialData?.recurring_rule_id && (
+        <p className="expense-recurrence__notice"><AppIcon name="refresh" size={15} /> This edit affects this occurrence only. Change future payments in Settings.</p>
+      )}
 
       <div className="neo-input-group">
         <label className="neo-label" htmlFor="expense-price">Price ({currency})</label>

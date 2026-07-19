@@ -10,6 +10,7 @@ export default function CategoryManager({
   onRename,
   onRemove,
   onReorder,
+  onUpdateAutomation,
 }) {
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState(null);
@@ -65,7 +66,7 @@ export default function CategoryManager({
     if (confirmingRemovalId !== category.id) {
       setConfirmingRemovalId(category.id);
       setEditingId(null);
-      setMessage(`Select remove again to confirm “${category.name}”. Historical expenses will be preserved.`);
+      setMessage(`Select remove again to confirm “${category.name}”. Historical expenses will be preserved and its recurring payments will be cancelled.`);
       return;
     }
 
@@ -81,12 +82,19 @@ export default function CategoryManager({
     await runAction(() => onReorder(reordered.map((category) => category.id)), 'Category order updated.');
   };
 
+  const updateAutomation = async (category, enabled, frequency = category.automation_frequency) => {
+    await runAction(
+      () => onUpdateAutomation(category.id, enabled, frequency),
+      `${category.name} defaults to ${enabled ? `automated ${frequency} input` : 'manual input'}.`
+    );
+  };
+
   return (
     <section className="category-manager neo-card" aria-labelledby="category-manager-title">
       <div className="settings-section-heading">
         <div>
           <h3 id="category-manager-title">Expense Categories</h3>
-          <p>Changes sync with expense entry, filters, and emergency fund settings.</p>
+          <p>Set the default for future expense entries. Every automated payment can still be disabled individually.</p>
         </div>
       </div>
 
@@ -135,6 +143,19 @@ export default function CategoryManager({
                   <span>{category.usage_count} {category.usage_count === 1 ? 'expense' : 'expenses'}</span>
                 </div>
               )}
+
+              <div className="category-manager__automation">
+                <label className="automation-switch automation-switch--labelled">
+                  <input type="checkbox" checked={category.automation_enabled} onChange={(event) => updateAutomation(category, event.target.checked)} disabled={isSaving} />
+                  <span aria-hidden="true" />
+                  <strong>{category.automation_enabled ? 'Automated' : 'Manual'}</strong>
+                </label>
+                <select className="neo-select category-manager__frequency" value={category.automation_frequency} onChange={(event) => updateAutomation(category, true, event.target.value)} disabled={isSaving || !category.automation_enabled} aria-label={`Default frequency for ${category.name}`}>
+                  <option value="daily">Every day</option>
+                  <option value="weekly">Every week</option>
+                  <option value="monthly">Every month</option>
+                </select>
+              </div>
 
               <div className="category-manager__actions">
                 {editingId === category.id ? (

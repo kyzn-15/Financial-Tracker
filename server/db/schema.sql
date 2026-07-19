@@ -42,6 +42,50 @@ FROM (
 )
 WHERE NOT EXISTS (SELECT 1 FROM categories);
 
+CREATE TABLE IF NOT EXISTS category_automation_settings (
+  category_id  INTEGER PRIMARY KEY,
+  enabled      INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN (0, 1)),
+  frequency    TEXT NOT NULL DEFAULT 'monthly' CHECK(frequency IN ('daily', 'weekly', 'monthly')),
+  updated_at   TEXT NOT NULL,
+  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+);
+
+INSERT OR IGNORE INTO category_automation_settings (category_id, enabled, frequency, updated_at)
+SELECT id,
+       CASE WHEN name COLLATE NOCASE IN ('Rent', 'Subscription', 'Insurance') THEN 1 ELSE 0 END,
+       'monthly',
+       datetime('now','+8 hours')
+FROM categories;
+
+CREATE TABLE IF NOT EXISTS recurring_expense_rules (
+  id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+  anchor_expense_id  INTEGER,
+  name               TEXT NOT NULL,
+  category           TEXT NOT NULL,
+  price              REAL NOT NULL,
+  currency           TEXT NOT NULL CHECK(currency IN ('MYR', 'IDR')),
+  frequency          TEXT NOT NULL CHECK(frequency IN ('daily', 'weekly', 'monthly')),
+  anchor_timestamp   TEXT NOT NULL,
+  next_run_at        TEXT NOT NULL,
+  status             TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'paused', 'cancelled')),
+  created_at         TEXT NOT NULL,
+  updated_at         TEXT NOT NULL,
+  FOREIGN KEY (anchor_expense_id) REFERENCES expenses(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_recurring_rules_due ON recurring_expense_rules(status, next_run_at);
+CREATE INDEX IF NOT EXISTS idx_recurring_rules_category ON recurring_expense_rules(category);
+
+CREATE TABLE IF NOT EXISTS recurring_expense_occurrences (
+  rule_id        INTEGER NOT NULL,
+  scheduled_for  TEXT NOT NULL,
+  expense_id     INTEGER NOT NULL UNIQUE,
+  created_at     TEXT NOT NULL,
+  PRIMARY KEY (rule_id, scheduled_for),
+  FOREIGN KEY (rule_id) REFERENCES recurring_expense_rules(id),
+  FOREIGN KEY (expense_id) REFERENCES expenses(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_recurring_occurrences_expense ON recurring_expense_occurrences(expense_id);
+
 CREATE TABLE IF NOT EXISTS receipts (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   filename     TEXT NOT NULL,

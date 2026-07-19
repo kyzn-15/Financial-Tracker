@@ -115,6 +115,28 @@ export async function reorderCategories(ids) {
   });
 }
 
+export async function updateCategoryAutomation(id, enabled, frequency) {
+  return request(`/categories/${id}/automation`, {
+    method: 'PUT',
+    body: JSON.stringify({ enabled, frequency }),
+  });
+}
+
+export async function getRecurringExpenses() {
+  return request('/recurring-expenses');
+}
+
+export async function updateRecurringExpense(id, data) {
+  return request(`/recurring-expenses/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function cancelRecurringExpense(id) {
+  return request(`/recurring-expenses/${id}`, { method: 'DELETE' });
+}
+
 export async function getSummary() {
   return request('/summary');
 }
@@ -198,8 +220,24 @@ export async function exportRecords() {
 
   return {
     blob,
-    filename: filenameMatch?.[1] || 'financial-tracker-export.xlsx',
+    filename: filenameMatch?.[1] || 'financial-tracker-database-backup.xlsx',
   };
+}
+
+export async function importRecords(file) {
+  const formData = new FormData();
+  formData.append('backup', file);
+  const response = await fetch(`${BASE_URL}/export/records/import`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Database import failed' }));
+    throw new Error(error.message || error.error || `HTTP ${response.status}`);
+  }
+  return response.json();
 }
 
 export async function getBackupPreferences() {
