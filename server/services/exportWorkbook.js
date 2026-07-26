@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs';
 import db from '../db/database.js';
 import { nowUTC8 } from '../utils/datetime.js';
+import { isReceiptFilename, RECEIPT_MIME_TYPES } from '../utils/receiptFiles.js';
 
 const BACKUP_FORMAT = 'financial-tracker-database-backup';
 const BACKUP_VERSION = 1;
@@ -14,6 +15,7 @@ const MAX_COLUMNS_PER_TABLE = 16_000;
 const MAX_ROWS_PER_TABLE = 1_000_000;
 const MAX_TOTAL_IMPORT_CELLS = 1_000_000;
 const INSERT_BATCH_SIZE = 250;
+const FORMULA_PREFIX_PATTERN = /^[=+\-@]/;
 
 export class BackupValidationError extends Error {
   constructor(message) {
@@ -108,7 +110,8 @@ function encodeCellValue(value) {
   if (typeof value === 'string' && (
     value.startsWith(BLOB_PREFIX) ||
     value.startsWith(BIGINT_PREFIX) ||
-    value.startsWith(ESCAPED_TEXT_PREFIX)
+    value.startsWith(ESCAPED_TEXT_PREFIX) ||
+    FORMULA_PREFIX_PATTERN.test(value)
   )) {
     return `${ESCAPED_TEXT_PREFIX}${value}`;
   }
@@ -368,6 +371,13 @@ function parseTableRows(workbook, manifestTables, currentSchema) {
         }
         return value;
       });
+      if (table.name === 'receipts') {
+        const filename = values[table.columns.findIndex((column) => column.name === 'filename')];
+        const mimeType = values[table.columns.findIndex((column) => column.name === 'mime_type')];
+        if (!isReceiptFilename(filename) || !RECEIPT_MIME_TYPES.has(mimeType)) {
+          throw new BackupValidationError('Backup contains an invalid receipt file reference.');
+        }
+      }
       rows.push(values);
     }
     return { ...table, rows };

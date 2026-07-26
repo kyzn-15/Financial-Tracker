@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import './App.css';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -25,7 +25,6 @@ const SESSION_HINT_KEY = 'financial-tracker-has-session';
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
-  const [hasSessionHint] = useState(() => window.localStorage.getItem(SESSION_HINT_KEY) === 'true');
   const [sessionExpiresAt, setSessionExpiresAt] = useState(null);
   const [theme, setTheme] = useState(() => (
     window.localStorage.getItem('financial-tracker-theme') === 'dark' ? 'dark' : 'light'
@@ -112,7 +111,11 @@ export default function App() {
   };
 
   if (isCheckingSession) {
-    return hasSessionHint ? <AppSkeleton /> : <LoginSkeleton />;
+    return (
+      <main className="login-shell" aria-busy="true" aria-label="Checking session">
+        <section className="login-panel">Checking session...</section>
+      </main>
+    );
   }
 
   if (!isAuthenticated) {
@@ -126,113 +129,6 @@ export default function App() {
       theme={theme}
       onThemeChange={setTheme}
     />
-  );
-}
-
-function SkeletonLine({ className = '' }) {
-  return <span className={`skeleton-line ${className}`} aria-hidden="true" />;
-}
-
-function LoginSkeleton() {
-  return (
-    <main className="login-shell" aria-busy="true" aria-label="Loading sign in">
-      <section className="login-panel login-skeleton">
-        <span className="login-skeleton__brand skeleton-block" aria-hidden="true" />
-        <div className="login-skeleton__copy">
-          <SkeletonLine className="skeleton-line--kicker" />
-          <SkeletonLine className="skeleton-line--title" />
-          <SkeletonLine className="skeleton-line--subtitle" />
-        </div>
-        <SkeletonLine className="login-skeleton__status" />
-        <SkeletonLine className="login-skeleton__label" />
-        <span className="login-skeleton__input skeleton-block" aria-hidden="true" />
-        <span className="login-skeleton__button skeleton-block" aria-hidden="true" />
-      </section>
-    </main>
-  );
-}
-
-function AppSkeleton() {
-  return (
-    <div className="app-layout app-skeleton" aria-busy="true" aria-label="Loading dashboard">
-      <aside className="sidebar app-skeleton__sidebar">
-        <div className="sidebar__brand">
-          <span className="app-skeleton__logo skeleton-block" aria-hidden="true" />
-          <div className="app-skeleton__brand-copy">
-            <SkeletonLine className="skeleton-line--brand" />
-            <SkeletonLine className="skeleton-line--small" />
-          </div>
-        </div>
-        <nav className="sidebar__nav app-skeleton__nav">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div className="sidebar__nav-item" key={index}>
-              <span className="app-skeleton__nav-icon skeleton-block" />
-              <SkeletonLine className="app-skeleton__nav-label" />
-            </div>
-          ))}
-        </nav>
-      </aside>
-      <main className="main-content app-skeleton__content">
-        <header className="header app-skeleton__header">
-          <SkeletonLine className="app-skeleton__header-title" />
-          <span className="app-skeleton__currency-toggle skeleton-block" />
-          <span className="app-skeleton__header-details skeleton-block" />
-        </header>
-        <div className="dashboard app-skeleton__dashboard">
-          <section className="dashboard-section">
-            <div className="app-skeleton__section-heading">
-              <SkeletonLine className="app-skeleton__eyebrow" />
-              <SkeletonLine className="app-skeleton__section-title" />
-              <SkeletonLine className="app-skeleton__description" />
-            </div>
-            <div className="summary-grid app-skeleton__summary">
-          {Array.from({ length: 3 }).map((_, index) => (
-                <article className="summary-card app-skeleton__summary-card" key={index}>
-                  <span className="app-skeleton__summary-icon skeleton-block" />
-              <SkeletonLine className="skeleton-line--small" />
-              <SkeletonLine className="skeleton-line--amount" />
-              <SkeletonLine className="skeleton-line--small" />
-            </article>
-          ))}
-            </div>
-          </section>
-          <section className="dashboard-section dashboard-quick-access">
-            <div className="app-skeleton__section-heading">
-              <SkeletonLine className="app-skeleton__eyebrow" />
-              <SkeletonLine className="app-skeleton__section-title" />
-              <SkeletonLine className="app-skeleton__description" />
-            </div>
-            <div className="quick-access-grid">
-              {Array.from({ length: 2 }).map((_, index) => (
-                <article className="quick-access-card app-skeleton__quick-access-card" key={index}>
-                  <span className="app-skeleton__quick-access-icon skeleton-block" />
-                  <div><SkeletonLine className="app-skeleton__quick-access-title" /><SkeletonLine className="app-skeleton__quick-access-copy" /></div>
-                </article>
-              ))}
-            </div>
-          </section>
-          <section className="dashboard-section">
-            <div className="app-skeleton__section-heading">
-              <SkeletonLine className="app-skeleton__eyebrow" />
-              <SkeletonLine className="app-skeleton__section-title" />
-            </div>
-            <div className="analytics-card-grid analytics-card-grid--single">
-              <article className="analytics-card app-skeleton__chart"><SkeletonLine className="skeleton-line--section" /><span className="app-skeleton__chart-shape skeleton-block" /></article>
-            </div>
-          </section>
-          <section className="dashboard-section">
-            <div className="app-skeleton__section-heading">
-              <SkeletonLine className="app-skeleton__eyebrow" />
-              <SkeletonLine className="app-skeleton__section-title" />
-              <SkeletonLine className="app-skeleton__description" />
-            </div>
-            <div className="dashboard-analysis-grid">
-              {Array.from({ length: 3 }).map((_, index) => <article className="analytics-card app-skeleton__chart" key={index}><SkeletonLine className="skeleton-line--section" /><span className="app-skeleton__chart-shape skeleton-block" /></article>)}
-            </div>
-          </section>
-        </div>
-      </main>
-    </div>
   );
 }
 

@@ -26,7 +26,9 @@ router.put('/settings', async (req, res) => {
     const categories = await getEmergencyCategoryOptions(settings);
     res.json({ settings, categories });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    if (err.statusCode === 400) return res.status(400).json({ error: err.message });
+    console.error('PUT /api/emergency/settings error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -43,7 +45,9 @@ router.get('/simulation', async (req, res) => {
   try {
     res.json(await buildEmergencySimulation(req.query));
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    if (err.statusCode === 400) return res.status(400).json({ error: err.message });
+    console.error('GET /api/emergency/simulation error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 

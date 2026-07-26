@@ -5,6 +5,10 @@ const DEFAULT_ESSENTIAL_CATEGORIES = ['Rent', 'Food', 'Transport', 'Phone', 'Ins
 const VALID_TARGET_MONTHS = [3, 6, 9, 12];
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+function validationError(message) {
+  return Object.assign(new Error(message), { statusCode: 400 });
+}
+
 function toMoney(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return 0;
@@ -318,20 +322,27 @@ export async function getEmergencyCategoryOptions(settings = null) {
 }
 
 export async function updateEmergencySettings(input) {
-  const targetMonths = Number(input.target_months);
+  const targetMonths = Number(input?.target_months);
   if (!VALID_TARGET_MONTHS.includes(targetMonths)) {
-    throw new Error('target_months must be one of 3, 6, 9, or 12');
+    throw validationError('target_months must be one of 3, 6, 9, or 12');
   }
 
-  const currentSavings = Number(input.current_savings_myr);
-  const reservedFunds = Number(input.reserved_funds_myr);
+  const currentSavings = Number(input?.current_savings_myr);
+  const reservedFunds = Number(input?.reserved_funds_myr);
   if (!Number.isFinite(currentSavings) || currentSavings < 0) {
-    throw new Error('current_savings_myr must be a non-negative number');
+    throw validationError('current_savings_myr must be a non-negative number');
   }
   if (!Number.isFinite(reservedFunds) || reservedFunds < 0) {
-    throw new Error('reserved_funds_myr must be a non-negative number');
+    throw validationError('reserved_funds_myr must be a non-negative number');
   }
 
+  if (
+    !Array.isArray(input?.essential_categories) ||
+    input.essential_categories.length > 100 ||
+    input.essential_categories.some((category) => typeof category !== 'string' || category.trim().length > 160)
+  ) {
+    throw validationError('essential_categories must be a valid category list');
+  }
   const essentialCategories = normalizeCategories(input.essential_categories);
 
   await db.execute({
@@ -387,18 +398,25 @@ function parseSimulationAdjustments(query, categoryAverages) {
     return legacyAdjustments.filter((item) => item.amountMyr || item.percent);
   }
 
+  if (typeof query.adjustments !== 'string') {
+    throw validationError('Simulation adjustments must be valid JSON');
+  }
+
   let parsed;
   try {
     parsed = JSON.parse(query.adjustments);
   } catch {
-    throw new Error('Simulation adjustments must be valid JSON');
+    throw validationError('Simulation adjustments must be valid JSON');
   }
 
   if (!Array.isArray(parsed)) {
-    throw new Error('Simulation adjustments must be an array');
+    throw validationError('Simulation adjustments must be an array');
   }
   if (parsed.length > 25) {
-    throw new Error('Simulation supports up to 25 adjustments');
+    throw validationError('Simulation supports up to 25 adjustments');
+  }
+  if (parsed.some((item) => !item || typeof item !== 'object' || Array.isArray(item))) {
+    throw validationError('Simulation adjustments must contain objects');
   }
 
   const categoryAverageByName = new Map(categoryAverages.map((item) => [item.category, toMoney(item.average_myr)]));
@@ -412,7 +430,7 @@ function parseSimulationAdjustments(query, categoryAverages) {
 
       if (type === 'percent') {
         const percent = Number(item.percent || 0);
-        if (!Number.isFinite(percent)) throw new Error('Percentage adjustments must be valid numbers');
+        if (!Number.isFinite(percent)) throw validationError('Percentage adjustments must be valid numbers');
         const baseCategory = typeof item.baseCategory === 'string' ? item.baseCategory : '';
         const baseAmountMyr = categoryAverageByName.get(baseCategory) ?? 0;
         return {
@@ -426,7 +444,7 @@ function parseSimulationAdjustments(query, categoryAverages) {
       }
 
       const amountMyr = Number(item.amountMyr || 0);
-      if (!Number.isFinite(amountMyr)) throw new Error('Amount adjustments must be valid numbers');
+      if (!Number.isFinite(amountMyr)) throw validationError('Amount adjustments must be valid numbers');
       return {
         label,
         type,

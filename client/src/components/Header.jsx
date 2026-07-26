@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import AppIcon from './AppIcon';
 
 const FALLBACK_MYR_TO_IDR = 4500;

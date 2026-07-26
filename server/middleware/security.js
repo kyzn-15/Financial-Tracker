@@ -98,6 +98,11 @@ export const securityHeaders = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'none'"],
+      scriptSrc: ["'none'"],
+      styleSrc: ["'none'"],
+      imgSrc: ["'none'"],
+      fontSrc: ["'none'"],
+      objectSrc: ["'none'"],
       baseUri: ["'none'"],
       formAction: ["'none'"],
       frameAncestors: ["'none'"],
