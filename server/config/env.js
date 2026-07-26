@@ -12,9 +12,13 @@ function loadEnvFile(filename) {
   }
 }
 
-loadEnvFile('.env');
-if (process.env.NODE_ENV === 'production') {
-  loadEnvFile('.env.production');
+const configuredNodeEnv = process.env.NODE_ENV?.trim() || 'development';
+if (!['development', 'test', 'production'].includes(configuredNodeEnv)) {
+  throw new Error('NODE_ENV must be development, test, or production');
 }
 
-export const isProduction = process.env.NODE_ENV === 'production';
+process.env.NODE_ENV = configuredNodeEnv;
+loadEnvFile(configuredNodeEnv === 'production' ? '.env.production' : '.env');
+
+export const isProduction = configuredNodeEnv === 'production';
+export const isTest = configuredNodeEnv === 'test';

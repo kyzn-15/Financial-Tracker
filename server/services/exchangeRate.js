@@ -6,6 +6,11 @@ let cache = null;
 // TTL in milliseconds (default 15 minutes)
 const CACHE_TTL_MS =
   (parseInt(process.env.EXCHANGE_RATE_CACHE_MINUTES, 10) || 15) * 60 * 1000;
+const EXCHANGE_RATE_API_URL = process.env.EXCHANGE_RATE_API_URL?.trim();
+
+if (!EXCHANGE_RATE_API_URL) {
+  throw new Error('EXCHANGE_RATE_API_URL must be configured');
+}
 
 /**
  * Check if the cache is still valid (not expired).
@@ -32,9 +37,7 @@ export async function getExchangeRate() {
   }
 
   try {
-    const res = await fetch(
-      'https://open.er-api.com/v6/latest/MYR'
-    );
+    const res = await fetch(EXCHANGE_RATE_API_URL);
 
     if (!res.ok) {
       console.error(`Exchange rate API returned status ${res.status}`);

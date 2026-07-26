@@ -3,10 +3,6 @@ import { rateLimit } from 'express-rate-limit';
 import { isProduction } from '../config/env.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
-const DEFAULT_DEVELOPMENT_ORIGINS = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-];
 
 function parseOrigin(value) {
   let url;
@@ -27,8 +23,11 @@ function parseOrigin(value) {
     throw new Error('CLIENT_ORIGIN entries must be origins without paths or credentials');
   }
 
-  if (isProduction && url.protocol !== 'https:' && !['localhost', '127.0.0.1', '::1'].includes(url.hostname)) {
-    throw new Error('Production CLIENT_ORIGIN entries must use HTTPS');
+  if (
+    isProduction &&
+    (url.protocol !== 'https:' || ['localhost', '127.0.0.1', '::1'].includes(url.hostname))
+  ) {
+    throw new Error('Production CLIENT_ORIGIN entries must use HTTPS and cannot be loopback');
   }
 
   return url.origin;
@@ -40,11 +39,11 @@ function loadAllowedOrigins() {
     .map((value) => value.trim())
     .filter(Boolean);
 
-  if (isProduction && (!configured || configured.length === 0)) {
-    throw new Error('CLIENT_ORIGIN must be configured in production');
+  if (!configured || configured.length === 0) {
+    throw new Error('CLIENT_ORIGIN must be configured');
   }
 
-  return new Set((configured?.length ? configured : DEFAULT_DEVELOPMENT_ORIGINS).map(parseOrigin));
+  return new Set(configured.map(parseOrigin));
 }
 
 const allowedOrigins = loadAllowedOrigins();

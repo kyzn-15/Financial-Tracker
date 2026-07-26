@@ -82,7 +82,7 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   scheduleReceiptCleanup();
   scheduleRecurringExpenses();
-  console.log(`🚀 Financial Tracker API running on http://localhost:${PORT}`);
+  console.log(`🚀 Financial Tracker API running on port ${PORT} (${process.env.NODE_ENV})`);
   console.log(`   Endpoints:`);
   console.log(`   - GET    /api/expenses`);
   console.log(`   - POST   /api/expenses`);

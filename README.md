@@ -25,7 +25,7 @@ A beautiful, modern full-stack web application designed using the **Neomorphism 
 
 - **Frontend**: React 19 + Vite, Chart.js (`react-chartjs-2`), Custom Vanilla CSS variables
 - **Backend**: Node.js + Express, Turso via `@libsql/client` (SQLite-compatible), `dotenv`, `cors`
-- **Currency Data**: Frankfurter Public API (`https://api.frankfurter.dev`) — 100% free and requires **no API keys**.
+- **Currency Data**: Configured through `EXCHANGE_RATE_API_URL`; no API key is required by the current provider.
 
 ---
 
@@ -58,15 +58,16 @@ Create or modify `server/.env` for local backend configuration:
 
 ```env
 PORT=4000
-TURSO_DATABASE_URL=
-TURSO_AUTH_TOKEN=
+CLIENT_ORIGIN=http://localhost:5173
+DB_PATH=./tracker.db
 EXCHANGE_RATE_CACHE_MINUTES=15
+EXCHANGE_RATE_API_URL=https://open.er-api.com/v6/latest/MYR
 ADMIN_USERNAME=
 ADMIN_PIN_HASH=
 AUTH_SESSION_SECRET=
 ```
 
-Create or modify `client/.env` for local frontend configuration:
+Create or modify `client/.env.development` for local frontend configuration:
 
 ```env
 VITE_API_URL=http://localhost:4000/api
@@ -74,21 +75,29 @@ VITE_API_URL=http://localhost:4000/api
 
 ### Separate frontend and backend deployment
 
-The frontend reads its API URL from the `VITE_API_URL` build variable. Set it in the frontend hosting provider before building or deploying:
+The frontend requires its API URL in the `VITE_API_URL` build variable. Set it in the frontend hosting provider before building or deploying:
 
 ```env
-VITE_API_URL=https://financial-tracker-3uvc.onrender.com
+VITE_API_URL=https://api.example.com
 ```
 
-`VITE_API_URL` may be the backend origin or include the `/api` path; the client normalizes either form. If it is not set, local development continues to use `/api` through the Vite proxy.
+`VITE_API_URL` may be the backend origin or include the `/api` path; the client normalizes either form. Startup fails when it is missing instead of falling back to another server.
 
 Set the backend's production environment variables to allow the deployed frontend:
 
 ```env
 NODE_ENV=production
-CLIENT_ORIGIN=https://financial-tracker-pied-delta.vercel.app
+CLIENT_ORIGIN=https://app.example.com
+TURSO_DATABASE_URL=libsql://your-production-database
+TURSO_AUTH_TOKEN=your-production-token
+EXCHANGE_RATE_API_URL=https://your-exchange-rate-provider.example/latest/MYR
+ADMIN_USERNAME=your-production-admin
+ADMIN_PIN_HASH=your-production-bcrypt-hash
+AUTH_SESSION_SECRET=your-production-session-secret
 TRUST_PROXY=1
 ```
+
+`NODE_ENV` must be supplied by the process or hosting platform. Development loads `server/.env` and always uses the local `DB_PATH`; production loads `server/.env.production` and requires the remote Turso settings. Environment files are excluded from Git and Docker images, so configure production values in the hosting provider.
 
 Use HTTPS for both sites. For reliable cookie-based login, host the frontend and API on subdomains of the same parent domain (for example, `app.example.com` and `api.example.com`). Browsers can block the session cookie when the frontend and API use unrelated domains.
 
@@ -101,14 +110,14 @@ Start both the backend server and frontend development server:
 cd server
 npm run start
 ```
-The server will run on `http://localhost:4000`, initialize the configured Turso database schema, and populate an empty expenses table with sample seed data.
+The server will run on the configured port, initialize the isolated local SQLite-compatible database, and populate an empty expenses table with sample seed data.
 
 #### Start the Frontend:
 ```bash
 cd client
 npm run dev
 ```
-The development client will run on `http://localhost:5173/` and proxy API calls to the backend.
+The development client calls the backend configured by `client/.env.development`.
 
 ---
 
