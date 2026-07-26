@@ -13,6 +13,7 @@ import exportRouter from './routes/export.js';
 import backupRouter from './routes/backup.js';
 import categoriesRouter from './routes/categories.js';
 import recurringExpensesRouter from './routes/recurringExpenses.js';
+import settingsRouter from './routes/settings.js';
 import { scheduleReceiptCleanup } from './services/receiptCleanup.js';
 import { scheduleRecurringExpenses } from './services/recurringExpenses.js';
 import { assertAuthConfiguration } from './utils/auth.js';
@@ -61,6 +62,7 @@ app.use('/api/export', requireAuth, exportRouter);
 app.use('/api/backup', requireAuth, backupRouter);
 app.use('/api/categories', requireAuth, categoriesRouter);
 app.use('/api/recurring-expenses', requireAuth, recurringExpensesRouter);
+app.use('/api/settings', requireAuth, settingsRouter);
 app.use('/api', requireAuth, summaryRouter);
 
 // ─── Health check ────────────────────────────────────────────────────────────
