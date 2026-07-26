@@ -370,6 +370,14 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
     }
   };
 
+  const handleResetApp = async (resetToken, pin) => {
+    await api.resetAppData(resetToken, pin);
+    window.sessionStorage.removeItem(`financial-tracker-backup-reminder-dismissed:${sessionExpiresAt}`);
+    window.localStorage.removeItem('financial-tracker-theme');
+    onThemeChange('light');
+    await onLogout();
+  };
+
   const syncCategoryChange = async (mutation) => {
     const result = await mutation();
     updateFilters({ category: '' });
@@ -525,6 +533,8 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }) 
               currency={currency}
               exchangeRate={exchangeRate}
               recurringStore={recurringStore}
+              onCreateResetIntent={api.createResetIntent}
+              onResetApp={handleResetApp}
             />
           )}
 

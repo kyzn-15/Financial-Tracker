@@ -1,8 +1,12 @@
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
+if (!configuredApiUrl) {
+  throw new Error('VITE_API_URL must be configured');
+}
+
 const configuredApiBase = configuredApiUrl?.replace(/\/+$/, '');
 const BASE_URL = configuredApiBase
   ? configuredApiBase.endsWith('/api') ? configuredApiBase : `${configuredApiBase}/api`
-  : '/api';
+  : null;
 
 async function request(url, options = {}) {
   const response = await fetch(`${BASE_URL}${url}`, {
@@ -253,4 +257,15 @@ export async function recordBackup() {
 
 export async function resetLastBackup() {
   return request('/backup/last-backup', { method: 'DELETE' });
+}
+
+export async function createResetIntent() {
+  return request('/settings/reset-intent', { method: 'POST' });
+}
+
+export async function resetAppData(resetToken, pin) {
+  return request('/settings/data', {
+    method: 'DELETE',
+    body: JSON.stringify({ confirmation: 'RESET', resetToken, pin }),
+  });
 }
