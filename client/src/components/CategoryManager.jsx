@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import AppIcon from './AppIcon';
 
 export default function CategoryManager({

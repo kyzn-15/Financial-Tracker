@@ -1,4 +1,3 @@
-import React from 'react';
 import { formatCurrencyAmount } from '../utils/formatters';
 import { getCategoryIconName } from '../utils/categoryIcons';
 import AppIcon from './AppIcon';

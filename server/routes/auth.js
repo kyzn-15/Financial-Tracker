@@ -5,6 +5,7 @@ import {
   createSessionCookie,
   createSessionToken,
   getCookie,
+  revokeSessionToken,
   SESSION_COOKIE_NAME,
   verifySessionToken,
 } from '../utils/auth.js';
@@ -50,7 +51,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ error: 'Invalid username or PIN.' });
     }
 
-    const token = createSessionToken(admin.username);
+    const token = await createSessionToken(admin.username);
 
     res.setHeader('Set-Cookie', createSessionCookie(token));
     return res.json({ authenticated: true });
@@ -60,33 +61,48 @@ router.post('/login', loginLimiter, async (req, res) => {
   }
 });
 
-router.get('/session', (req, res) => {
-  const token = getCookie(req, SESSION_COOKIE_NAME);
-  const session = verifySessionToken(token);
+router.get('/session', async (req, res) => {
+  try {
+    const token = getCookie(req, SESSION_COOKIE_NAME);
+    const session = await verifySessionToken(token);
 
-  if (!session) {
-    return res.status(401).json({ authenticated: false });
+    if (!session) {
+      return res.status(401).json({ authenticated: false });
+    }
+
+    return res.json({ authenticated: true, expiresAt: session.expiresAt });
+  } catch (err) {
+    console.error('GET /api/auth/session error:', err.message);
+    return res.status(500).json({ error: 'Could not verify the session.' });
   }
-
-  return res.json({ authenticated: true, expiresAt: session.expiresAt });
 });
 
-router.post('/logout', (_req, res) => {
+router.post('/logout', async (req, res) => {
   res.setHeader('Set-Cookie', createClearSessionCookie());
-  return res.status(204).send();
+  try {
+    await revokeSessionToken(getCookie(req, SESSION_COOKIE_NAME));
+    return res.status(204).send();
+  } catch (err) {
+    console.error('POST /api/auth/logout error:', err.message);
+    return res.status(500).json({ error: 'Could not invalidate the session.' });
+  }
 });
 
-export function requireAuth(req, res, next) {
-  const token = getCookie(req, SESSION_COOKIE_NAME);
-  const session = verifySessionToken(token);
+export async function requireAuth(req, res, next) {
+  try {
+    const token = getCookie(req, SESSION_COOKIE_NAME);
+    const session = await verifySessionToken(token);
 
-  if (!session) {
-    res.setHeader('Set-Cookie', createClearSessionCookie());
-    return res.status(401).json({ error: 'Authentication required.' });
+    if (!session) {
+      res.setHeader('Set-Cookie', createClearSessionCookie());
+      return res.status(401).json({ error: 'Authentication required.' });
+    }
+
+    req.auth = session;
+    return next();
+  } catch (err) {
+    return next(err);
   }
-
-  req.auth = session;
-  return next();
 }
 
 export default router;
