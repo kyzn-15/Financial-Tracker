@@ -1,4 +1,3 @@
-import React from 'react';
 import { formatDate } from '../utils/formatters';
 
 export function MonthlyComparisonCard({ comparison, currency, formatCurrency }) {
@@ -42,7 +41,6 @@ export function MonthlyComparisonCard({ comparison, currency, formatCurrency }) 
     </div>
   );
 }
-
 export function CategoryGrowthCard({ growth, formatCurrency }) {
   if (!growth) {
     return (
@@ -77,7 +75,6 @@ export function CategoryGrowthCard({ growth, formatCurrency }) {
     </div>
   );
 }
-
 export function LargestPurchaseCard({ purchase, formatCurrency }) {
   if (!purchase) {
     return (
@@ -105,16 +102,6 @@ export function LargestPurchaseCard({ purchase, formatCurrency }) {
           ? 'There is no current-month spending to compare this purchase against.'
           : `This purchase accounted for ${purchase.shareOfCurrentMonth.toFixed(1)}% of this month's spending${purchase.isCurrentMonth ? '.' : ', even though it was made outside the current month.'}`}
       </p>
-    </div>
-  );
-}
-
-export default function AnalyticsCards({ comparison, categoryGrowth, largestPurchase, currency, formatCurrency }) {
-  return (
-    <div className="analytics-card-grid">
-      <MonthlyComparisonCard comparison={comparison} currency={currency} formatCurrency={formatCurrency} />
-      <CategoryGrowthCard growth={categoryGrowth} formatCurrency={formatCurrency} />
-      <LargestPurchaseCard purchase={largestPurchase} formatCurrency={formatCurrency} />
     </div>
   );
 }

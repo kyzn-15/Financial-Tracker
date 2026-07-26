@@ -5,12 +5,12 @@ import { randomUUID } from 'crypto';
 import multer from 'multer';
 import db from '../db/database.js';
 import { nowUTC8, addDaysUTC8 } from '../utils/datetime.js';
-import { RECEIPTS_UPLOAD_DIR, RETENTION_DAYS } from '../services/receiptCleanup.js';
+import { RETENTION_DAYS } from '../services/receiptCleanup.js';
+import { RECEIPTS_UPLOAD_DIR, RECEIPT_MIME_TYPES, resolveReceiptFilePath } from '../utils/receiptFiles.js';
 import { receiptUploadLimiter } from '../middleware/security.js';
 
 const router = Router();
 
-const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 const EXT_BY_MIME = {
   'image/jpeg': '.jpg',
   'image/png': '.png',
@@ -34,7 +34,7 @@ function detectImageMimeType(filePath) {
 
 function verifyUploadedImage(file) {
   const mimeType = detectImageMimeType(file.path);
-  if (!mimeType || !ALLOWED_MIME_TYPES.has(mimeType)) {
+  if (!mimeType || !RECEIPT_MIME_TYPES.has(mimeType)) {
     throw new Error('Uploaded file is not a supported image.');
   }
 
@@ -62,7 +62,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (ALLOWED_MIME_TYPES.has(file.mimetype)) {
+    if (RECEIPT_MIME_TYPES.has(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error('Only JPEG, PNG, WebP, or HEIC images are allowed'));
@@ -106,7 +106,7 @@ router.post('/', receiptUploadLimiter, async (req, res) => {
       return res.status(400).json({ error: message });
     }
     if (err) {
-      return res.status(400).json({ error: err.message });
+      return res.status(400).json({ error: 'Invalid receipt upload.' });
     }
     if (!req.file) {
       return res.status(400).json({ error: 'Receipt image is required' });
@@ -143,16 +143,23 @@ router.post('/', receiptUploadLimiter, async (req, res) => {
 
 router.get('/:id/image', async (req, res) => {
   try {
+    const id = parseReceiptId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid receipt id.' });
     const result = await db.execute({
       sql: 'SELECT filename, mime_type FROM receipts WHERE id = ?',
-      args: [req.params.id],
+      args: [id],
     });
     const receipt = result.rows[0];
     if (!receipt) {
       return res.status(404).json({ error: 'Receipt not found' });
     }
 
-    const filePath = path.join(RECEIPTS_UPLOAD_DIR, receipt.filename);
+    let filePath;
+    try {
+      filePath = resolveReceiptFilePath(receipt.filename);
+    } catch {
+      return res.status(404).json({ error: 'Receipt image not found' });
+    }
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'Receipt image not found' });
     }
@@ -167,9 +174,11 @@ router.get('/:id/image', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
+    const id = parseReceiptId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid receipt id.' });
     const result = await db.execute({
       sql: 'SELECT id, filename FROM receipts WHERE id = ?',
-      args: [req.params.id],
+      args: [id],
     });
     const receipt = result.rows[0];
     if (!receipt) {
@@ -186,10 +195,20 @@ router.delete('/:id', async (req, res) => {
 });
 
 function deleteReceiptFile(filename) {
-  const filePath = path.join(RECEIPTS_UPLOAD_DIR, filename);
+  let filePath;
+  try {
+    filePath = resolveReceiptFilePath(filename);
+  } catch {
+    return;
+  }
   if (fs.existsSync(filePath)) {
     fs.unlinkSync(filePath);
   }
+}
+
+function parseReceiptId(value) {
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
 export default router;

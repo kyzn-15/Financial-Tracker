@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import SummaryCards from './SummaryCards';
 import CategoryChart from './CategoryChart';
 import TrendChart from './TrendChart';

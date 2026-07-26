@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function FinancialInsights({ insights = [] }) {
   return (
     <section className="financial-insights" aria-labelledby="financial-insights-title">

@@ -1,4 +1,3 @@
-import React from 'react';
 import AppIcon from './AppIcon';
 
 export default function Sidebar({ activeTab, setActiveTab }) {

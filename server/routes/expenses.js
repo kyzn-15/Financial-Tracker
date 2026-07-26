@@ -9,6 +9,8 @@ const router = Router();
 const MAX_EXPENSE_TEXT_LENGTH = 160;
 const MAX_EXPENSE_AMOUNT = 1_000_000_000;
 const UTC8_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?\+08:00$/;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const SORT_COLUMNS = new Set(['id', 'name', 'category', 'price_myr', 'price_idr', 'timestamp', 'created_at']);
 
 function validateExpenseInput(input) {
   const { name, category, price, currency, timestamp } = input ?? {};
@@ -48,6 +50,39 @@ function validateRecurrence(input) {
   return { enabled: true, frequency: input.frequency };
 }
 
+function normalizeFilterTimestamp(value, endOfDay) {
+  if (value == null || value === '') return '';
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (DATE_PATTERN.test(trimmed)) {
+    const date = new Date(`${trimmed}T00:00:00Z`);
+    if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== trimmed) return null;
+    return `${trimmed}T${endOfDay ? '23:59:59' : '00:00:00'}+08:00`;
+  }
+  return UTC8_TIMESTAMP_PATTERN.test(trimmed) && !Number.isNaN(Date.parse(trimmed)) ? trimmed : null;
+}
+
+function validateExpenseFilters(query) {
+  const name = typeof query.name === 'string' ? query.name.trim() : query.name == null ? '' : null;
+  const category = typeof query.category === 'string' ? query.category.trim() : query.category == null ? '' : null;
+  const startDate = normalizeFilterTimestamp(query.startDate, false);
+  const endDate = normalizeFilterTimestamp(query.endDate, true);
+  const sort = query.sort == null || query.sort === '' ? 'timestamp' : query.sort;
+  const order = query.order == null || query.order === ''
+    ? 'DESC'
+    : typeof query.order === 'string' ? query.order.toUpperCase() : null;
+
+  if (
+    name == null || name.length > MAX_EXPENSE_TEXT_LENGTH ||
+    category == null || category.length > MAX_EXPENSE_TEXT_LENGTH ||
+    startDate == null || endDate == null ||
+    !SORT_COLUMNS.has(sort) || !['ASC', 'DESC'].includes(order) ||
+    (startDate && endDate && Date.parse(startDate) > Date.parse(endDate))
+  ) return null;
+
+  return { name, category, startDate, endDate, sort, order };
+}
+
 async function resolveCategoryName(category) {
   const result = await db.execute({
     sql: 'SELECT name FROM categories WHERE name = ? COLLATE NOCASE',
@@ -81,13 +116,15 @@ router.post('/', async (req, res) => {
 // ─── GET /api/expenses — List expenses with optional filters ────────────────
 router.get('/', async (req, res) => {
   try {
-    const { name, category, startDate, endDate, sort, order } = req.query;
+    const filters = validateExpenseFilters(req.query);
+    if (!filters) return res.status(400).json({ error: 'Invalid expense filters.' });
+    const { name, category, startDate, endDate, sort, order } = filters;
 
     const conditions = [];
     const params = [];
 
-    if (typeof name === 'string' && name.trim()) {
-      const escapedName = name.trim().replace(/[\\%_]/g, '\\$&');
+    if (name) {
+      const escapedName = name.replace(/[\\%_]/g, '\\$&');
       conditions.push("name LIKE ? ESCAPE '\\' COLLATE NOCASE");
       params.push(`%${escapedName}%`);
     }
@@ -106,42 +143,19 @@ router.get('/', async (req, res) => {
 
     const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
 
-    // Whitelist sort columns to prevent SQL injection
-    const allowedSortColumns = ['id', 'name', 'category', 'price_myr', 'price_idr', 'timestamp', 'created_at'];
-    const sortColumn = allowedSortColumns.includes(sort) ? sort : 'timestamp';
-    const sortOrder = order?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-
     const sql = `SELECT * FROM (
                    SELECT expenses.*,
                           recurring_expense_occurrences.rule_id AS recurring_rule_id,
                           recurring_expense_occurrences.scheduled_for AS recurrence_scheduled_for
                    FROM expenses
                    LEFT JOIN recurring_expense_occurrences ON recurring_expense_occurrences.expense_id = expenses.id
-                 ) AS expense_records ${whereClause} ORDER BY ${sortColumn} ${sortOrder}`;
+                 ) AS expense_records ${whereClause} ORDER BY ${sort} ${order}`;
     const result = await db.execute({ sql, args: params });
     const rows = result.rows;
 
     res.json(rows);
   } catch (err) {
     console.error('GET /api/expenses error:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// ─── GET /api/expenses/:id — Get a single expense ──────────────────────────
-router.get('/:id', async (req, res) => {
-  try {
-    const id = parseExpenseId(req.params.id);
-    if (!id) return res.status(400).json({ error: 'Invalid expense id' });
-    const expense = await getExpenseRecord(id);
-
-    if (!expense) {
-      return res.status(404).json({ error: 'Expense not found' });
-    }
-
-    res.json(expense);
-  } catch (err) {
-    console.error('GET /api/expenses/:id error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

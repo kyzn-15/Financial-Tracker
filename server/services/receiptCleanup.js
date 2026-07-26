@@ -1,21 +1,20 @@
 import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import db from '../db/database.js';
 import { nowUTC8 } from '../utils/datetime.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-export const RECEIPTS_UPLOAD_DIR = path.join(__dirname, '..', 'uploads', 'receipts');
+import { RECEIPTS_UPLOAD_DIR, resolveReceiptFilePath } from '../utils/receiptFiles.js';
 
 const RETENTION_DAYS = 7;
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 function deleteReceiptFile(filename) {
-  const filePath = path.join(RECEIPTS_UPLOAD_DIR, filename);
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
+  let filePath;
+  try {
+    filePath = resolveReceiptFilePath(filename);
+  } catch {
+    console.warn('Skipped unsafe receipt filename during cleanup.');
+    return;
   }
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 }
 
 export async function purgeExpiredReceipts() {

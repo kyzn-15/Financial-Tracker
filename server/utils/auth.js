@@ -1,11 +1,13 @@
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
 import { isProduction } from '../config/env.js';
+import db from '../db/database.js';
 
 export const SESSION_DURATION_MS = 6 * 60 * 60 * 1000;
 export const SESSION_COOKIE_NAME = 'financial_tracker_session';
 
 const CLOCK_SKEW_MS = 60 * 1000;
 const SESSION_VERSION = 1;
+const ACTIVE_SESSION_KEY = 'active_session_id';
 const BCRYPT_HASH_PATTERN = /^\$2[aby]\$(\d{2})\$[./A-Za-z0-9]{53}$/;
 
 function getSessionSecret() {
@@ -42,6 +44,29 @@ function sign(value) {
   return createHmac('sha256', getSessionSecret()).update(value).digest('base64url');
 }
 
+function getCredentialVersion() {
+  return sign(`credential:${process.env.ADMIN_PIN_HASH || ''}`);
+}
+
+async function getActiveSessionId() {
+  const result = await db.execute({
+    sql: 'SELECT value FROM app_metadata WHERE key = ?',
+    args: [ACTIVE_SESSION_KEY],
+  });
+  return typeof result.rows[0]?.value === 'string' ? result.rows[0].value : null;
+}
+
+async function rotateActiveSessionId() {
+  const sessionId = randomUUID();
+  await db.execute({
+    sql: `INSERT INTO app_metadata (key, value, updated_at)
+          VALUES (?, ?, datetime('now','+8 hours'))
+          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    args: [ACTIVE_SESSION_KEY, sessionId],
+  });
+  return sessionId;
+}
+
 function safeEqual(a, b) {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
 
@@ -71,11 +96,13 @@ export function assertAuthConfiguration() {
   }
 }
 
-export function createSessionToken(username) {
+export async function createSessionToken(username) {
   const issuedAt = Date.now();
   const payload = {
     version: SESSION_VERSION,
     username,
+    credentialVersion: getCredentialVersion(),
+    sessionId: await rotateActiveSessionId(),
     issuedAt,
     expiresAt: issuedAt + SESSION_DURATION_MS,
   };
@@ -113,7 +140,7 @@ export function getCookie(req, name) {
   }
 }
 
-export function verifySessionToken(token) {
+export async function verifySessionToken(token) {
   if (!token || typeof token !== 'string') return null;
 
   const parts = token.split('.');
@@ -131,6 +158,9 @@ export function verifySessionToken(token) {
     if (
       payload?.version !== SESSION_VERSION ||
       payload.username !== getConfiguredUsername() ||
+      payload.credentialVersion !== getCredentialVersion() ||
+      typeof payload.sessionId !== 'string' ||
+      payload.sessionId !== await getActiveSessionId() ||
       !Number.isFinite(payload.issuedAt) ||
       !Number.isFinite(payload.expiresAt) ||
       payload.issuedAt > now + CLOCK_SKEW_MS ||
@@ -144,4 +174,10 @@ export function verifySessionToken(token) {
   } catch {
     return null;
   }
+}
+
+export async function revokeSessionToken(token) {
+  if (!await verifySessionToken(token)) return false;
+  await rotateActiveSessionId();
+  return true;
 }

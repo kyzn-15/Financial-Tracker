@@ -71,16 +71,6 @@ export function formatDate(isoString) {
 }
 
 /**
- * Get current UTC+8 datetime as ISO string for datetime-local input
- */
-export function getCurrentUTC8() {
-  const now = new Date();
-  // UTC+8 offset in ms
-  const utc8 = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-  return utc8.toISOString().slice(0, 16);
-}
-
-/**
  * Chart color palette
  */
 export const CHART_COLORS = [
