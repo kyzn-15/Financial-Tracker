@@ -278,6 +278,39 @@
   color: var(--danger);
 }
 
+.reset-settings {
+  border: 1px solid var(--danger);
+}
+
+.reset-settings h3,
+.reset-confirmation__warning,
+.reset-confirmation__error {
+  color: var(--danger);
+}
+
+.reset-confirmation__warning {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius);
+  background: var(--danger-soft);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.reset-confirmation__pin-field {
+  margin-top: var(--space-md);
+}
+
+.reset-confirmation__pin {
+  letter-spacing: 0.2em;
+}
+
+.reset-confirmation__error {
+  margin-top: var(--space-md);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

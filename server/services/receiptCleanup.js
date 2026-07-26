@@ -1,4 +1,6 @@
 import fs from 'fs';
+import path from 'path';
+import { randomUUID } from 'crypto';
 import db from '../db/database.js';
 import { nowUTC8 } from '../utils/datetime.js';
 import { RECEIPTS_UPLOAD_DIR, resolveReceiptFilePath } from '../utils/receiptFiles.js';
@@ -38,6 +40,39 @@ export async function purgeExpiredReceipts() {
   stale.forEach((row) => deleteReceiptFile(row.filename));
   console.log(`🧹 Purged ${stale.length} expired receipt(s)`);
   return stale.length;
+}
+
+export function stageReceiptFilesForReset() {
+  const parentDir = path.dirname(RECEIPTS_UPLOAD_DIR);
+  fs.mkdirSync(parentDir, { recursive: true });
+
+  let stagedDir = null;
+  if (fs.existsSync(RECEIPTS_UPLOAD_DIR)) {
+    stagedDir = path.join(parentDir, `.receipts-reset-${randomUUID()}`);
+    fs.renameSync(RECEIPTS_UPLOAD_DIR, stagedDir);
+  }
+  try {
+    fs.mkdirSync(RECEIPTS_UPLOAD_DIR, { recursive: true });
+  } catch (error) {
+    if (stagedDir) fs.renameSync(stagedDir, RECEIPTS_UPLOAD_DIR);
+    throw error;
+  }
+  return stagedDir;
+}
+
+export function restoreStagedReceiptFiles(stagedDir) {
+  fs.rmSync(RECEIPTS_UPLOAD_DIR, { recursive: true, force: true });
+  if (stagedDir) {
+    fs.renameSync(stagedDir, RECEIPTS_UPLOAD_DIR);
+  } else {
+    fs.mkdirSync(RECEIPTS_UPLOAD_DIR, { recursive: true });
+  }
+}
+
+export function discardStagedReceiptFiles(stagedDir) {
+  if (stagedDir) {
+    fs.rmSync(stagedDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+  }
 }
 
 export function scheduleReceiptCleanup() {

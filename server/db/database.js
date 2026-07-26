@@ -53,6 +53,12 @@ export async function initSchema() {
  * If the expenses table is empty, populate it with seed data.
  */
 export async function seedIfEmpty() {
+  const seededResult = await db.execute({
+    sql: "SELECT 1 FROM app_metadata WHERE key = 'sample_data_seeded_v1'",
+    args: [],
+  });
+  if (seededResult.rows.length > 0) return;
+
   const result = await db.execute({
     sql: 'SELECT COUNT(*) AS count FROM expenses',
     args: [],
@@ -67,6 +73,12 @@ export async function seedIfEmpty() {
   } else {
     console.log(`ℹ️  Database already has ${count} expense(s), skipping seed`);
   }
+
+  await db.execute({
+    sql: `INSERT OR REPLACE INTO app_metadata (key, value)
+          VALUES ('sample_data_seeded_v1', 'complete')`,
+    args: [],
+  });
 }
 
 export default db;

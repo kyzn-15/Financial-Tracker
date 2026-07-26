@@ -258,3 +258,14 @@ export async function recordBackup() {
 export async function resetLastBackup() {
   return request('/backup/last-backup', { method: 'DELETE' });
 }
+
+export async function createResetIntent() {
+  return request('/settings/reset-intent', { method: 'POST' });
+}
+
+export async function resetAppData(resetToken, pin) {
+  return request('/settings/data', {
+    method: 'DELETE',
+    body: JSON.stringify({ confirmation: 'RESET', resetToken, pin }),
+  });
+}
