@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatCurrencyAmount, formatDateTime } from '../utils/formatters';
 import { getCategoryIconName } from '../utils/categoryIcons';
 import AppIcon from './AppIcon';

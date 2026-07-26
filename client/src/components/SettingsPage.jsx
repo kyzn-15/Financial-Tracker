@@ -1,4 +1,3 @@
-import React from 'react';
 import BackupSettings from './BackupSettings';
 import CategoryManager from './CategoryManager';
 import { EmergencySettingsPanel } from './EmergencyFundDashboard';

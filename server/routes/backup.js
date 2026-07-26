@@ -21,7 +21,9 @@ router.put('/preferences', async (req, res) => {
   try {
     res.json(await updateBackupReminderInterval(req.auth.username, req.body?.reminder_interval_days));
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    if (err.statusCode === 400) return res.status(400).json({ error: err.message });
+    console.error('PUT /api/backup/preferences error:', err);
+    return res.status(500).json({ error: 'Failed to save backup preferences.' });
   }
 });
 

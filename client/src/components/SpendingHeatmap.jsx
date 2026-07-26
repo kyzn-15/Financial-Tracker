@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { formatCurrencyAmount, formatDate } from '../utils/formatters';
 import AppIcon from './AppIcon';
 

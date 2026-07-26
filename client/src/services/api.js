@@ -62,10 +62,6 @@ export async function getExpenses(filters = {}) {
   return request(`/expenses${query ? `?${query}` : ''}`);
 }
 
-export async function getExpense(id) {
-  return request(`/expenses/${id}`);
-}
-
 export async function createExpense(data) {
   return request('/expenses', {
     method: 'POST',

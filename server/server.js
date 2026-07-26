@@ -1,15 +1,6 @@
 // server.js — Main entry point for the Financial Tracker API
 import './config/env.js';
 
-if (process.env.NODE_ENV === 'production') {
-  const silence = () => {};
-  console.log = silence;
-  console.info = silence;
-  console.warn = silence;
-  console.error = silence;
-  console.debug = silence;
-}
-
 import express from 'express';
 import cors from 'cors';
 import { initSchema, seedIfEmpty } from './db/database.js';
@@ -95,7 +86,6 @@ app.listen(PORT, () => {
   console.log(`   Endpoints:`);
   console.log(`   - GET    /api/expenses`);
   console.log(`   - POST   /api/expenses`);
-  console.log(`   - GET    /api/expenses/:id`);
   console.log(`   - PUT    /api/expenses/:id`);
   console.log(`   - DELETE /api/expenses/:id`);
   console.log(`   - GET    /api/receipts`);

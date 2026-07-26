@@ -46,7 +46,7 @@ export async function getBackupPreferences(username) {
 export async function updateBackupReminderInterval(username, reminderIntervalDays) {
   const interval = Number(reminderIntervalDays);
   if (!VALID_INTERVALS.includes(interval)) {
-    throw new Error('reminder_interval_days must be 1, 14, or 30');
+    throw Object.assign(new Error('reminder_interval_days must be 1, 14, or 30'), { statusCode: 400 });
   }
 
   await getBackupPreferences(username);

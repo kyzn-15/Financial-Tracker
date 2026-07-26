@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Chart as ChartJS, ArcElement, Legend, Tooltip } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { CHART_COLORS, convertMyrAmount, formatCurrencyAmount } from '../utils/formatters';
