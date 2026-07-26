@@ -19,8 +19,11 @@ async function request(url, options = {}) {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Something went wrong' }));
-    throw new Error(error.message || error.error || `HTTP ${response.status}`);
+    const error = await response.json().catch(() => ({}));
+    const fallback = response.status === 404
+      ? 'Backend endpoint not found. Redeploy Render from the latest main commit.'
+      : `Request failed (HTTP ${response.status}).`;
+    throw new Error(error.message || error.error || fallback);
   }
 
   if (response.status === 204) return null;
