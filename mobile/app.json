@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "Financial Tracker",
+    "slug": "financial-tracker-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.financialtracker.mobile"
+    },
+    "android": {
+      "package": "com.financialtracker.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow Financial Tracker to take receipt photos.",
+          "photosPermission": "Allow Financial Tracker to choose receipt photos.",
+          "microphonePermission": false
+        }
+      ]
+    ]
+  }
+}
