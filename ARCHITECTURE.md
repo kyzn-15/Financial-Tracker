@@ -39,7 +39,7 @@ client/
 server/
   server.js           Startup, middleware, route mounting, and background schedules
   config/env.js       Environment selection and validation
-  middleware/         CORS, headers, trusted-origin checks, rate limits, proxy setup
+  middleware/         CORS, headers, trusted-origin checks, rate limits, proxy setup, not-found responses
   routes/             HTTP validation and response adapters
   services/           Domain workflows and cross-route business logic
   db/database.js      Shared libSQL client, schema initialization, and optional seed data

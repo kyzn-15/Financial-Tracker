@@ -25,6 +25,7 @@ import {
   securityHeaders,
   setApiResponseHeaders,
 } from './middleware/security.js';
+import { notFoundHandler } from './middleware/notFound.js';
 
 // ─── Initialize database ────────────────────────────────────────────────────
 await initSchema();
@@ -69,6 +70,9 @@ app.use('/api', requireAuth, summaryRouter);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// ─── 404 fallback ────────────────────────────────────────────────────────────
+app.use(notFoundHandler);
 
 app.use((err, _req, res, _next) => {
   if (res.headersSent) return;
