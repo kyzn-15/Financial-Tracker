@@ -40,7 +40,21 @@ interface SettingsPageProps {
   onResetApp: (resetToken: string, pin: string) => Promise<void>;
 }
 
-const SETTINGS_GROUPS = [
+interface SettingsSection {
+  id: 'appearance' | 'categories' | 'recurring' | 'emergency' | 'backup' | 'security';
+  name: string;
+  icon: string;
+  tone?: 'danger';
+  description: string;
+}
+
+interface SettingsGroup {
+  id: string;
+  title: string;
+  sections: SettingsSection[];
+}
+
+const SETTINGS_GROUPS: SettingsGroup[] = [
   {
     id: 'personalization',
     title: 'Personalization',
@@ -122,7 +136,8 @@ export default function SettingsPage({
 }: SettingsPageProps) {
   const isDark = theme === 'dark';
   const myrToIdr = exchangeRate?.myrToIdr || 4500;
-  const [activeSectionId, setActiveSectionId] = useState(null);
+  type SettingsSectionId = SettingsSection['id'];
+const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>(null);
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [resetCountdown, setResetCountdown] = useState(10);
   const [resetIntent, setResetIntent] = useState('');
@@ -130,8 +145,8 @@ export default function SettingsPage({
   const [isPreparingReset, setIsPreparingReset] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [resetError, setResetError] = useState('');
-  const overviewHeadingRef = useRef(null);
-  const breadcrumbRef = useRef(null);
+  const overviewHeadingRef = useRef<HTMLElement>(null);
+  const breadcrumbRef = useRef<HTMLElement>(null);
   const hasNavigatedRef = useRef(false);
 
   const activeSection = ALL_SECTIONS.find((section) => section.id === activeSectionId) || null;
@@ -150,7 +165,7 @@ export default function SettingsPage({
     return () => window.clearTimeout(timeoutId);
   }, [isResetOpen, resetCountdown]);
 
-  const openSection = (sectionId) => {
+  const openSection = (sectionId: SettingsSectionId | null) => {
     hasNavigatedRef.current = true;
     setActiveSectionId(sectionId);
   };
@@ -231,19 +246,19 @@ export default function SettingsPage({
     </>
   );
 
-  const renderBreadcrumb = () => (
+  const renderBreadcrumb = (section: SettingsSection) => (
     <nav ref={breadcrumbRef} className="settings-breadcrumb" aria-label="Breadcrumb" tabIndex={-1}>
       <button type="button" className="settings-breadcrumb__link" onClick={() => openSection(null)}>
         <AppIcon name="arrow-left" size={14} />
         Settings
       </button>
       <AppIcon className="settings-breadcrumb__separator" name="chevron-right" size={14} />
-      <span className="settings-breadcrumb__current" aria-current="page">{activeSection.name}</span>
+      <span className="settings-breadcrumb__current" aria-current="page">{section.name}</span>
     </nav>
   );
 
-  const renderSection = () => {
-    switch (activeSection.id) {
+  const renderSection = (section: SettingsSection) => {
+    switch (section.id) {
       case 'appearance':
         return (
           <section className="theme-settings neo-card" aria-labelledby="appearance-settings-title">
@@ -395,8 +410,8 @@ export default function SettingsPage({
     <div className="settings-page">
       {!activeSection ? renderOverview() : (
         <>
-          {renderBreadcrumb()}
-          {renderSection()}
+          {renderBreadcrumb(activeSection)}
+          {renderSection(activeSection)}
         </>
       )}
     </div>
