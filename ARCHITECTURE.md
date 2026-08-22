@@ -5,7 +5,7 @@
 Financial Tracker is a single-user personal-finance web application. A React single-page client talks directly to an Express JSON API. The API owns authentication, validation, business rules, persistence, uploads, export/import, and scheduled maintenance. Data is SQLite-compatible through `@libsql/client`: development uses a configured local database file, while production requires a remote Turso/libSQL database.
 
 ```
-React client -> /api Express server -> @libsql/client -> local SQLite file or Turso
+React (TypeScript) client -> /api Express server -> @libsql/client -> local SQLite file or Turso
                          |-> configured MYR-to-IDR exchange-rate API
                          |-> local receipt-image storage
 ```
@@ -14,26 +14,28 @@ The application supports MYR and IDR expenses, storing the entered currency, bot
 
 ## Technology and runtime
 
-- Client: React 19, Vite 8, JSX, Chart.js with `react-chartjs-2`, Lucide icons, and vanilla Neomorphic CSS.
+- Client: React 19, Vite 8, TypeScript (strict mode) with TSX components, Chart.js with `react-chartjs-2`, Lucide icons, and vanilla Neomorphic CSS.
 - Server: Node.js 18+, Express 4, native ES modules.
 - Data: `@libsql/client`; schema and idempotent migrations are in `server/db/schema.sql`.
 - Security and auth: bcrypt, signed HttpOnly cookie sessions, Helmet, credentialed CORS, origin checks, and rate limiting.
 - File and data interchange: Multer for receipt and workbook uploads; ExcelJS for portable XLSX database backups.
 
-`server/config/env.js` loads `server/.env` in development/test and `server/.env.production` in production. The client requires `VITE_API_URL`; `client/src/services/api.js` normalizes an origin or `/api` URL into the API base URL. Server startup fails when required environment, origin, database, exchange-rate, or authentication settings are missing or unsafe.
+`server/config/env.js` loads `server/.env` in development/test and `server/.env.production` in production. The client requires `VITE_API_URL`; `client/src/services/api.ts` normalizes an origin or `/api` URL into the API base URL. Server startup fails when required environment, origin, database, exchange-rate, or authentication settings are missing or unsafe.
 
 ## Repository layout
 
 ```
 client/
   src/
-    components/       Presentational screens, forms, charts, dialogs, and controls
+    components/       Presentational screens, forms, charts, dialogs, and controls (TSX)
     hooks/            Feature state and API-refresh orchestration
-    services/api.js   The sole client HTTP boundary
-    utils/            Formatting, chart theme, category icons, and dashboard calculations
-    App.jsx           Authentication gate, tab shell, and feature composition
+    services/api.ts   The sole client HTTP boundary
+    types.ts          Shared domain types for API payloads, stores, and component props
+    utils/            Formatting, chart theme, category icons, errors, and dashboard calculations
+    App.tsx           Authentication gate, tab shell, and feature composition
     App.css,index.css Application theme and layout styles
-  vite.config.js      Validates VITE_API_URL at build/start time
+  tsconfig.json       Strict TypeScript configuration
+  vite.config.ts      Validates VITE_API_URL at build/start time
 server/
   server.js           Startup, middleware, route mounting, and background schedules
   config/env.js       Environment selection and validation
@@ -49,14 +51,14 @@ server/
 
 ## Frontend
 
-`main.jsx` renders `App`. `App.jsx` first calls `/api/auth/session`, then either renders `LoginPage` or the authenticated tabbed application. It retains only a local storage session hint for loading UI; the server cookie remains authoritative. It also owns the active tab, theme preference, toast/modal UI, and the cross-feature refreshes required after mutations.
+`main.tsx` renders `App`. `App.tsx` first calls `/api/auth/session`, then either renders `LoginPage` or the authenticated tabbed application. It retains only a local storage session hint for loading UI; the server cookie remains authoritative. It also owns the active tab, theme preference, toast/modal UI, and the cross-feature refreshes required after mutations.
 
 Feature hooks encapsulate client state and API calls:
 
 - `useExpenses` loads expenses, dashboard summary, and exchange-rate metadata; it owns history filters and CRUD refreshes.
 - `useCategories`, `useRecurringExpenses`, `useReceipts`, and `useEmergencyFund` own the analogous feature state. Receipt and emergency data are loaded on their relevant tabs; recurring rules also refresh on focus and once per minute.
 
-Components implement the UI rather than direct HTTP access. `Dashboard` composes summary and chart components; `ExpenseForm` and `ExpenseList` handle expense entry/history; the remaining feature components cover categories, recurring payments, receipts, emergency-fund planning, settings, backup controls, navigation, and shared modal/toast/icon UI. `services/api.js` sends credentialed requests and centralizes JSON error handling; multipart receipt and XLSX requests are the intentional exceptions to its JSON request helper.
+Components implement the UI rather than direct HTTP access. `Dashboard` composes summary and chart components; `ExpenseForm` and `ExpenseList` handle expense entry/history; the remaining feature components cover categories, recurring payments, receipts, emergency-fund planning, settings, backup controls, navigation, and shared modal/toast/icon UI. `services/api.ts` sends credentialed requests and centralizes JSON error handling; multipart receipt and XLSX requests are the intentional exceptions to its JSON request helper. Shared domain types live in `client/src/types.ts`, and the build runs `tsc --noEmit` before bundling.
 
 ## Backend request flow and boundaries
 
@@ -65,7 +67,7 @@ Components implement the UI rather than direct HTTP access. `Dashboard` composes
 For a normal request the flow is:
 
 ```
-client component -> hook -> services/api.js -> Express security middleware
+client component -> hook -> services/api.ts -> Express security middleware
 -> authenticated route -> service/database -> JSON, binary, or 204 response
 ```
 
@@ -120,7 +122,7 @@ Database export writes all database tables plus a schema manifest to XLSX. Impor
 
 ## Architectural constraints
 
-- Keep client HTTP in `client/src/services/api.js`; keep UI in components and feature state in hooks.
+- Keep client HTTP in `client/src/services/api.ts`; keep UI in TSX components, feature state in hooks, and shared types in `client/src/types.ts`.
 - Keep HTTP concerns in routes and shared business workflows in services; do not grow `server.js` beyond composition/startup.
 - Preserve the `/api` boundary and protect new data routes with `requireAuth` unless they are intentionally public.
 - Currency is limited to MYR/IDR and time values must remain UTC+8 ISO strings. Use the existing helpers rather than ad hoc conversion or date formatting.
