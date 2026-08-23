@@ -14,7 +14,9 @@ import backupRouter from './routes/backup.js';
 import categoriesRouter from './routes/categories.js';
 import recurringExpensesRouter from './routes/recurringExpenses.js';
 import settingsRouter from './routes/settings.js';
+import recycleBinRouter from './routes/recycleBin.js';
 import { scheduleReceiptCleanup } from './services/receiptCleanup.js';
+import { scheduleRecycleBinCleanup } from './services/recycleBin.js';
 import { scheduleRecurringExpenses } from './services/recurringExpenses.js';
 import { assertAuthConfiguration } from './utils/auth.js';
 import {
@@ -64,6 +66,7 @@ app.use('/api/backup', requireAuth, backupRouter);
 app.use('/api/categories', requireAuth, categoriesRouter);
 app.use('/api/recurring-expenses', requireAuth, recurringExpensesRouter);
 app.use('/api/settings', requireAuth, settingsRouter);
+app.use('/api/recycle-bin', requireAuth, recycleBinRouter);
 app.use('/api', requireAuth, summaryRouter);
 
 // ─── Health check ────────────────────────────────────────────────────────────
@@ -87,6 +90,7 @@ app.use((err, _req, res, _next) => {
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   scheduleReceiptCleanup();
+  scheduleRecycleBinCleanup();
   scheduleRecurringExpenses();
   console.log(`🚀 Financial Tracker API running on port ${PORT} (${process.env.NODE_ENV})`);
   console.log(`   Endpoints:`);
@@ -98,6 +102,12 @@ app.listen(PORT, () => {
   console.log(`   - POST   /api/receipts`);
   console.log(`   - GET    /api/receipts/:id/image`);
   console.log(`   - DELETE /api/receipts/:id`);
+  console.log(`   - GET    /api/recycle-bin`);
+  console.log(`   - POST   /api/recycle-bin/expenses/:id/restore`);
+  console.log(`   - DELETE /api/recycle-bin/expenses/:id`);
+  console.log(`   - POST   /api/recycle-bin/receipts/:id/restore`);
+  console.log(`   - DELETE /api/recycle-bin/receipts/:id`);
+  console.log(`   - DELETE /api/recycle-bin`);
   console.log(`   - GET    /api/summary`);
   console.log(`   - GET    /api/exchange-rate`);
   console.log(`   - GET    /api/export/records`);

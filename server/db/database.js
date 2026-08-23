@@ -40,9 +40,32 @@ const db = createClient({
 });
 
 /**
+ * Ensure soft-delete columns exist on databases created before the
+ * Recycle Bin migration. Safe to run repeatedly; skips fresh databases
+ * where schema.sql has already created the columns.
+ */
+async function ensureSoftDeleteColumns() {
+  const targets = [
+    { table: 'expenses', column: 'deleted_at' },
+    { table: 'receipts', column: 'deleted_at' },
+  ];
+
+  for (const { table, column } of targets) {
+    const info = await db.execute(`PRAGMA table_info(${table})`);
+    const tableExists = info.rows.length > 0;
+    const columnExists = info.rows.some((row) => row.name === column);
+    if (tableExists && !columnExists) {
+      await db.execute({ sql: `ALTER TABLE ${table} ADD COLUMN ${column} TEXT`, args: [] });
+      console.log(`✅ Added ${table}.${column} for Recycle Bin support`);
+    }
+  }
+}
+
+/**
  * Run the schema.sql file to create tables and indexes.
  */
 export async function initSchema() {
+  await ensureSoftDeleteColumns();
   const schemaPath = path.join(__dirname, 'schema.sql');
   const schema = fs.readFileSync(schemaPath, 'utf-8');
   await db.executeMultiple(schema);

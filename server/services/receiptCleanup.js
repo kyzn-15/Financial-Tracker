@@ -25,8 +25,10 @@ export async function purgeExpiredReceipts() {
   }
 
   const cutoff = nowUTC8();
+  // Soft-deleted receipts stay recoverable in the Recycle Bin until the
+  // recycle-bin retention cleanup removes them, so they are skipped here.
   const result = await db.execute({
-    sql: 'SELECT id, filename FROM receipts WHERE expires_at <= ?',
+    sql: 'SELECT id, filename FROM receipts WHERE deleted_at IS NULL AND expires_at <= ?',
     args: [cutoff],
   });
   const stale = result.rows;

@@ -1,6 +1,7 @@
 import type {
   BackupPreferences,
   Category,
+  EmptyRecycleBinResult,
   EmergencySettingsInput,
   EmergencySettingsPayload,
   EmergencySimulation,
@@ -11,6 +12,7 @@ import type {
   ExpenseInput,
   ImportResult,
   Receipt,
+  RecycleBinContents,
   RecurrenceFrequency,
   RecurringExpense,
   RecurringExpenseInput,
@@ -297,4 +299,28 @@ export async function resetAppData(resetToken: string, pin: string): Promise<voi
     method: 'DELETE',
     body: JSON.stringify({ confirmation: 'RESET', resetToken, pin }),
   }, true);
+}
+
+export async function getRecycleBin(): Promise<RecycleBinContents> {
+  return request<RecycleBinContents>('/recycle-bin');
+}
+
+export async function restoreRecycledExpense(id: number): Promise<void> {
+  await request<{ message: string }>(`/recycle-bin/expenses/${id}/restore`, { method: 'POST' });
+}
+
+export async function purgeRecycledExpense(id: number): Promise<void> {
+  return request(`/recycle-bin/expenses/${id}`, { method: 'DELETE' }, true);
+}
+
+export async function restoreRecycledReceipt(id: number): Promise<void> {
+  await request<{ message: string }>(`/recycle-bin/receipts/${id}/restore`, { method: 'POST' });
+}
+
+export async function purgeRecycledReceipt(id: number): Promise<void> {
+  return request(`/recycle-bin/receipts/${id}`, { method: 'DELETE' }, true);
+}
+
+export async function emptyRecycleBin(): Promise<EmptyRecycleBinResult> {
+  return request<EmptyRecycleBinResult>('/recycle-bin', { method: 'DELETE' });
 }

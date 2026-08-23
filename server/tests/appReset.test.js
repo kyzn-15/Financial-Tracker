@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -14,6 +15,11 @@ delete process.env.TURSO_AUTH_TOKEN;
 const { default: db, initSchema, seedIfEmpty } = await import('../db/database.js');
 const { resetAppData } = await import('../services/appReset.js');
 const { consumeResetIntent, createResetIntent } = await import('../services/resetIntent.js');
+const {
+  discardStagedReceiptFiles,
+  stageReceiptFilesForReset,
+} = await import('../services/receiptCleanup.js');
+const { RECEIPTS_UPLOAD_DIR, resolveReceiptFilePath } = await import('../utils/receiptFiles.js');
 
 test('reset intent is delayed, session-bound, and single-use', () => {
   const now = 1_000_000;
@@ -27,12 +33,25 @@ test('reset intent is delayed, session-bound, and single-use', () => {
 
 test('reset removes user data and restores only clean defaults', async () => {
   await initSchema();
+
+  // A receipt file on disk (active receipt) must not survive the reset either.
+  const activeReceiptFilename = `${randomUUID()}.jpg`;
+  writeFileSync(resolveReceiptFilePath(activeReceiptFilename), 'reset-test-image');
+
   await db.batch([
     { sql: "INSERT INTO categories (name, sort_order) VALUES ('Custom', 99)", args: [] },
     {
       sql: `INSERT INTO expenses
             (name, category, price_myr, price_idr, original_currency, exchange_rate_used, timestamp)
             VALUES ('Private expense', 'Custom', 10, 40000, 'MYR', 4000, '2026-01-01T00:00:00+08:00')`,
+      args: [],
+    },
+    {
+      // Recycle Bin data must be permanently destroyed by reset, never kept recoverable.
+      sql: `INSERT INTO expenses
+            (name, category, price_myr, price_idr, original_currency, exchange_rate_used, timestamp, deleted_at)
+            VALUES ('Recycled expense', 'Custom', 5, 20000, 'MYR', 4000, '2026-01-01T00:00:00+08:00',
+                    '2026-01-02T00:00:00+08:00')`,
       args: [],
     },
     {
@@ -49,8 +68,14 @@ test('reset removes user data and restores only clean defaults', async () => {
     },
     {
       sql: `INSERT INTO receipts (filename, mime_type, uploaded_at, expires_at)
-            VALUES ('123e4567-e89b-42d3-a456-426614174000.jpg', 'image/jpeg',
+            VALUES ('${activeReceiptFilename}', 'image/jpeg',
                     '2026-01-01T00:00:00+08:00', '2026-01-08T00:00:00+08:00')`,
+      args: [],
+    },
+    {
+      sql: `INSERT INTO receipts (filename, mime_type, uploaded_at, expires_at, deleted_at)
+            VALUES ('123e4567-e89b-42d3-a456-426614174000.jpg', 'image/jpeg',
+                    '2026-01-01T00:00:00+08:00', '2026-01-08T00:00:00+08:00', '2026-01-02T00:00:00+08:00')`,
       args: [],
     },
     {
@@ -72,7 +97,11 @@ test('reset removes user data and restores only clean defaults', async () => {
     },
   ], 'write');
 
+  // Follow the exact reset route sequence: stage receipt files, wipe the
+  // database, then permanently discard the staged files.
+  const stagedDir = stageReceiptFilesForReset();
   await resetAppData();
+  discardStagedReceiptFiles(stagedDir);
 
   for (const table of [
     'expenses',
@@ -85,6 +114,15 @@ test('reset removes user data and restores only clean defaults', async () => {
     const result = await db.execute(`SELECT COUNT(*) AS count FROM ${table}`);
     assert.equal(Number(result.rows[0].count), 0, table);
   }
+
+  // Recycle Bin is empty after reset: nothing soft-deleted remains recoverable.
+  const recycledExpenses = await db.execute('SELECT COUNT(*) AS count FROM expenses WHERE deleted_at IS NOT NULL');
+  assert.equal(Number(recycledExpenses.rows[0].count), 0);
+  const recycledReceipts = await db.execute('SELECT COUNT(*) AS count FROM receipts WHERE deleted_at IS NOT NULL');
+  assert.equal(Number(recycledReceipts.rows[0].count), 0);
+
+  assert.equal(existsSync(resolveReceiptFilePath(activeReceiptFilename)), false, 'receipt file removed');
+  assert.equal(existsSync(RECEIPTS_UPLOAD_DIR), true, 'uploads directory recreated');
 
   const categories = await db.execute('SELECT id, name FROM categories ORDER BY id');
   assert.equal(categories.rows.length, 16);
