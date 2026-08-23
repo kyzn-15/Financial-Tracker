@@ -59,7 +59,7 @@ async function getCompleteMonths(limit = 3) {
   const result = await db.execute({
     sql: `SELECT substr(timestamp, 1, 7) AS month
           FROM expenses
-          WHERE substr(timestamp, 1, 7) < ?
+          WHERE deleted_at IS NULL AND substr(timestamp, 1, 7) < ?
           GROUP BY month
           ORDER BY month DESC
           LIMIT ?`,
@@ -75,7 +75,7 @@ async function getCategoryTotalsForMonths(months) {
                  category,
                  COALESCE(SUM(price_myr), 0) AS total_myr
           FROM expenses
-          WHERE substr(timestamp, 1, 7) IN (${placeholders(months)})
+          WHERE deleted_at IS NULL AND substr(timestamp, 1, 7) IN (${placeholders(months)})
           GROUP BY month, category`,
     args: months,
   });
@@ -90,7 +90,7 @@ async function getCurrentMonthCategoryTotals() {
                  category,
                  COALESCE(SUM(price_myr), 0) AS total_myr
           FROM expenses
-          WHERE timestamp >= ? AND timestamp < ?
+          WHERE deleted_at IS NULL AND timestamp >= ? AND timestamp < ?
           GROUP BY month, category`,
     args: [monthStartFromKey(monthKey), monthStartFromKey(nextMonthKey)],
   });

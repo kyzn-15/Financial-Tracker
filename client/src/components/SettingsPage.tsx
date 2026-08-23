@@ -3,6 +3,7 @@ import BackupSettings from './BackupSettings';
 import CategoryManager from './CategoryManager';
 import { EmergencySettingsPanel } from './EmergencyFundDashboard';
 import AppIcon from './AppIcon';
+import RecycleBinManager from './RecycleBinManager';
 import RecurringPaymentsManager from './RecurringPaymentsManager';
 import Modal from './Modal';
 import type {
@@ -14,6 +15,7 @@ import type {
   ExchangeRate,
   RecurrenceFrequency,
   RecurringExpenseStore,
+  RecycleBinStore,
   ResetIntent,
   Theme,
 } from '../types';
@@ -35,13 +37,15 @@ interface SettingsPageProps {
   currency: Currency;
   exchangeRate: ExchangeRate | null;
   recurringStore: RecurringExpenseStore;
+  recycleBin: RecycleBinStore;
   onUpdateCategoryAutomation: (id: number, enabled: boolean, frequency: RecurrenceFrequency) => Promise<Category[]>;
   onCreateResetIntent: () => Promise<ResetIntent>;
   onResetApp: (resetToken: string, pin: string) => Promise<void>;
+  onNotify: (message: string, type?: 'info' | 'success' | 'error') => void;
 }
 
 interface SettingsSection {
-  id: 'appearance' | 'categories' | 'recurring' | 'emergency' | 'backup' | 'security';
+  id: 'appearance' | 'categories' | 'recurring' | 'emergency' | 'backup' | 'recycle-bin' | 'security';
   name: string;
   icon: string;
   tone?: 'danger';
@@ -102,6 +106,12 @@ const SETTINGS_GROUPS: SettingsGroup[] = [
         description: 'Set backup reminders and track your most recent export.',
       },
       {
+        id: 'recycle-bin',
+        name: 'Recycle Bin',
+        icon: 'trash',
+        description: 'Restore or permanently remove deleted expenses and receipts within 7 days.',
+      },
+      {
         id: 'security',
         name: 'Security & Reset',
         icon: 'shield-check',
@@ -130,9 +140,11 @@ export default function SettingsPage({
   currency,
   exchangeRate,
   recurringStore,
+  recycleBin,
   onUpdateCategoryAutomation,
   onCreateResetIntent,
   onResetApp,
+  onNotify,
 }: SettingsPageProps) {
   const isDark = theme === 'dark';
   const myrToIdr = exchangeRate?.myrToIdr || 4500;
@@ -310,6 +322,15 @@ const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>
             isSaving={isSavingBackupPreferences}
           />
         );
+      case 'recycle-bin':
+        return (
+          <RecycleBinManager
+            store={recycleBin}
+            currency={currency}
+            exchangeRate={exchangeRate}
+            onNotify={onNotify}
+          />
+        );
       case 'emergency':
         return !emergency.settingsPayload ? (
           <div className={`settings-page__status neo-card ${emergency.error ? 'settings-page__status--error' : ''}`}>
@@ -352,7 +373,8 @@ const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>
                   emergency fund settings, and backup preferences.
                 </p>
                 <p className="reset-confirmation__warning">
-                  This process is irreversible. Export a database backup first if you may need this data again.
+                  Unlike normal deletion, nothing removed here goes to the Recycle Bin. This process is irreversible.
+                  Export a database backup first if you may need this data again.
                 </p>
                 <div className="reset-confirmation__pin-field">
                   <label className="neo-label" htmlFor="reset-pin">Current PIN</label>

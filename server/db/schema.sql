@@ -7,10 +7,12 @@ CREATE TABLE IF NOT EXISTS expenses (
   original_currency   TEXT NOT NULL CHECK(original_currency IN ('MYR','IDR')),
   exchange_rate_used  REAL,
   timestamp           TEXT NOT NULL,
-  created_at          TEXT NOT NULL DEFAULT (datetime('now','+8 hours'))
+  created_at          TEXT NOT NULL DEFAULT (datetime('now','+8 hours')),
+  deleted_at          TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_expenses_timestamp ON expenses(timestamp);
 CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
+CREATE INDEX IF NOT EXISTS idx_expenses_deleted_at ON expenses(deleted_at);
 
 CREATE TABLE IF NOT EXISTS categories (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -91,9 +93,11 @@ CREATE TABLE IF NOT EXISTS receipts (
   filename     TEXT NOT NULL,
   mime_type    TEXT NOT NULL,
   uploaded_at  TEXT NOT NULL,
-  expires_at   TEXT NOT NULL
+  expires_at   TEXT NOT NULL,
+  deleted_at   TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_receipts_expires_at ON receipts(expires_at);
+CREATE INDEX IF NOT EXISTS idx_receipts_deleted_at ON receipts(deleted_at);
 
 CREATE TABLE IF NOT EXISTS emergency_settings (
   id                    INTEGER PRIMARY KEY,
