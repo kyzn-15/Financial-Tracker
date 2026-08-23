@@ -29,7 +29,7 @@ export async function listCategories() {
                  COUNT(expenses.id) AS usage_count
           FROM categories
           LEFT JOIN category_automation_settings ON category_automation_settings.category_id = categories.id
-          LEFT JOIN expenses ON expenses.category = categories.name COLLATE NOCASE
+          LEFT JOIN expenses ON expenses.category = categories.name COLLATE NOCASE AND expenses.deleted_at IS NULL
           GROUP BY categories.id, categories.name, categories.sort_order, category_automation_settings.enabled, category_automation_settings.frequency
           ORDER BY categories.sort_order ASC, categories.id ASC`,
     args: [],

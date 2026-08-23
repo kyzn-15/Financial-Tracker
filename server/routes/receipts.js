@@ -6,6 +6,7 @@ import multer from 'multer';
 import db from '../db/database.js';
 import { nowUTC8, addDaysUTC8 } from '../utils/datetime.js';
 import { RETENTION_DAYS } from '../services/receiptCleanup.js';
+import { softDeleteReceipt } from '../services/recycleBin.js';
 import { RECEIPTS_UPLOAD_DIR, RECEIPT_MIME_TYPES, resolveReceiptFilePath } from '../utils/receiptFiles.js';
 import { receiptUploadLimiter } from '../middleware/security.js';
 
@@ -82,9 +83,11 @@ function toReceiptResponse(row) {
 
 router.get('/', async (_req, res) => {
   try {
+    // Soft-deleted receipts live in the Recycle Bin, not the receipts tab.
     const result = await db.execute({
       sql: `SELECT id, filename, mime_type, uploaded_at, expires_at
             FROM receipts
+            WHERE deleted_at IS NULL
             ORDER BY uploaded_at DESC`,
       args: [],
     });
@@ -176,17 +179,14 @@ router.delete('/:id', async (req, res) => {
   try {
     const id = parseReceiptId(req.params.id);
     if (!id) return res.status(400).json({ error: 'Invalid receipt id.' });
-    const result = await db.execute({
-      sql: 'SELECT id, filename FROM receipts WHERE id = ?',
-      args: [id],
-    });
-    const receipt = result.rows[0];
-    if (!receipt) {
+
+    // Normal deletion is a soft delete: metadata and the image file stay
+    // recoverable in the Recycle Bin until retention cleanup removes them.
+    const deleted = await softDeleteReceipt(id);
+    if (!deleted) {
       return res.status(404).json({ error: 'Receipt not found' });
     }
 
-    deleteReceiptFile(receipt.filename);
-    await db.execute({ sql: 'DELETE FROM receipts WHERE id = ?', args: [receipt.id] });
     res.status(204).send();
   } catch (err) {
     console.error('DELETE /api/receipts/:id error:', err);
