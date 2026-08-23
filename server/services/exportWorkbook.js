@@ -319,9 +319,33 @@ function compareSchema(manifestTables, currentSchema) {
 
   manifestTables.forEach((manifestTable) => {
     const currentTable = currentByName.get(manifestTable.name);
-    if (JSON.stringify(manifestTable.columns) !== JSON.stringify(schemaSignature(currentTable.columns))) {
-      throw new BackupValidationError(`Table "${manifestTable.name}" does not match the current database schema. No data was imported.`);
-    }
+    const currentByNameColumn = new Map(currentTable.columns.map((column) => [column.name, column]));
+
+    manifestTable.columns.forEach((manifestColumn) => {
+      const currentColumn = currentByNameColumn.get(manifestColumn.name);
+      const currentSignature = currentColumn
+        ? JSON.stringify(schemaSignature([currentColumn])[0])
+        : null;
+      const manifestSignature = JSON.stringify({
+        name: String(manifestColumn.name),
+        type: String(manifestColumn.type || '').toUpperCase(),
+        notNull: Boolean(manifestColumn.notNull),
+        primaryKey: Number(manifestColumn.primaryKey || 0),
+      });
+
+      if (currentSignature !== manifestSignature) {
+        throw new BackupValidationError(`Table "${manifestTable.name}" does not match the current database schema. No data was imported.`);
+      }
+    });
+
+    // Columns added by newer app versions (e.g. soft-delete markers) may be
+    // absent from older backups when they are nullable and not part of the key.
+    currentTable.columns.forEach((currentColumn) => {
+      const manifestHasColumn = manifestTable.columns.some((column) => column.name === currentColumn.name);
+      if (!manifestHasColumn && (currentColumn.notNull || currentColumn.primaryKey > 0)) {
+        throw new BackupValidationError(`Table "${manifestTable.name}" does not match the current database schema. No data was imported.`);
+      }
+    });
   });
 }
 
@@ -338,19 +362,21 @@ function parseTableRows(workbook, manifestTables, currentSchema) {
     }
     expectedSheets.add(manifestTable.worksheetName);
 
-    table.columns.forEach((column, index) => {
+    // Validate against the backup's own column list so backups created before
+    // a nullable-column migration still import; missing columns default to NULL.
+    manifestTable.columns.forEach((column, index) => {
       if (sheet.getCell(1, index + 1).value !== column.name) {
         throw new BackupValidationError(`Headers for table "${table.name}" do not match the current database.`);
       }
     });
-    if (sheet.getCell(1, table.columns.length + 1).value !== ROW_MARKER_COLUMN) {
+    if (sheet.getCell(1, manifestTable.columns.length + 1).value !== ROW_MARKER_COLUMN) {
       throw new BackupValidationError(`Worksheet for table "${table.name}" is missing its safety marker.`);
     }
     if (sheet.actualRowCount !== manifestTable.rowCount + 1) {
       throw new BackupValidationError(`Row count for table "${table.name}" does not match the backup manifest.`);
     }
 
-    totalCells += manifestTable.rowCount * table.columns.length;
+    totalCells += manifestTable.rowCount * manifestTable.columns.length;
     if (totalCells > MAX_TOTAL_IMPORT_CELLS) {
       throw new BackupValidationError('Backup contains too much data to import safely in one operation.');
     }
@@ -358,10 +384,10 @@ function parseTableRows(workbook, manifestTables, currentSchema) {
     const rows = [];
     for (let rowIndex = 0; rowIndex < manifestTable.rowCount; rowIndex += 1) {
       const sheetRow = rowIndex + 2;
-      if (sheet.getCell(sheetRow, table.columns.length + 1).value !== rowIndex + 1) {
+      if (sheet.getCell(sheetRow, manifestTable.columns.length + 1).value !== rowIndex + 1) {
         throw new BackupValidationError(`Row safety marker is invalid in table "${table.name}".`);
       }
-      const values = table.columns.map((column, columnIndex) => {
+      const values = manifestTable.columns.map((column, columnIndex) => {
         const value = decodeCellValue(
           sheet.getCell(sheetRow, columnIndex + 1),
           `Table "${table.name}", row ${rowIndex + 1}, column "${column.name}"`
@@ -372,15 +398,15 @@ function parseTableRows(workbook, manifestTables, currentSchema) {
         return value;
       });
       if (table.name === 'receipts') {
-        const filename = values[table.columns.findIndex((column) => column.name === 'filename')];
-        const mimeType = values[table.columns.findIndex((column) => column.name === 'mime_type')];
+        const filename = values[manifestTable.columns.findIndex((column) => column.name === 'filename')];
+        const mimeType = values[manifestTable.columns.findIndex((column) => column.name === 'mime_type')];
         if (!isReceiptFilename(filename) || !RECEIPT_MIME_TYPES.has(mimeType)) {
           throw new BackupValidationError('Backup contains an invalid receipt file reference.');
         }
       }
       rows.push(values);
     }
-    return { ...table, rows };
+    return { ...table, columns: manifestTable.columns, rows };
   });
 
   if (workbook.worksheets.some((sheet) => !expectedSheets.has(sheet.name))) {

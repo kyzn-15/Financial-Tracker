@@ -42,11 +42,11 @@ server/
   middleware/         CORS, headers, trusted-origin checks, rate limits, proxy setup, not-found responses
   routes/             HTTP validation and response adapters
   services/           Domain workflows and cross-route business logic
-  db/database.js      Shared libSQL client, schema initialization, and optional seed data
+  db/database.js      Shared libSQL client, schema initialization, column migrations, and optional seed data
   db/schema.sql       Tables, indexes, defaults, and one-time data migrations
   utils/              Session, time, and safe receipt-path utilities
   uploads/receipts/   Runtime receipt-image files (created as needed)
-  tests/              Node test coverage for security, reset, environment isolation, and analytics
+  tests/              Node test coverage for security, reset, recycle-bin lifecycle, environment isolation, and analytics
 ```
 
 ## Frontend
@@ -56,9 +56,9 @@ server/
 Feature hooks encapsulate client state and API calls:
 
 - `useExpenses` loads expenses, dashboard summary, and exchange-rate metadata; it owns history filters and CRUD refreshes.
-- `useCategories`, `useRecurringExpenses`, `useReceipts`, and `useEmergencyFund` own the analogous feature state. Receipt and emergency data are loaded on their relevant tabs; recurring rules also refresh on focus and once per minute.
+- `useCategories`, `useRecurringExpenses`, `useReceipts`, `useEmergencyFund`, and `useRecycleBin` own the analogous feature state. Receipt and emergency data are loaded on their relevant tabs; the Recycle Bin loads when its Settings section opens; recurring rules also refresh on focus and once per minute.
 
-Components implement the UI rather than direct HTTP access. `Dashboard` composes summary and chart components; `ExpenseForm` and `ExpenseList` handle expense entry/history; the remaining feature components cover categories, recurring payments, receipts, emergency-fund planning, settings, backup controls, navigation, and shared modal/toast/icon UI. `services/api.ts` sends credentialed requests and centralizes JSON error handling; multipart receipt and XLSX requests are the intentional exceptions to its JSON request helper. Shared domain types live in `client/src/types.ts`, and the build runs `tsc --noEmit` before bundling.
+Components implement the UI rather than direct HTTP access. `Dashboard` composes summary and chart components; `ExpenseForm` and `ExpenseList` handle expense entry/history; the remaining feature components cover categories, recurring payments, receipts, emergency-fund planning, settings, backup controls, the Recycle Bin inside Settings, navigation, and shared modal/toast/icon UI. `services/api.ts` sends credentialed requests and centralizes JSON error handling; multipart receipt and XLSX requests are the intentional exceptions to its JSON request helper. Shared domain types live in `client/src/types.ts`, and the build runs `tsc --noEmit` before bundling.
 
 ## Backend request flow and boundaries
 
@@ -76,11 +76,12 @@ Routes validate and normalize HTTP input, select status codes, and serialize res
 Mounted resource areas are:
 
 - `auth`: login, session check, and logout.
-- `expenses`: expense CRUD with filters/sorting and optional recurrence creation.
-- `summary` and `exchange-rate`: dashboard aggregates and current rate metadata.
+- `expenses`: expense CRUD with filters/sorting and optional recurrence creation. `DELETE /api/expenses/:id` is a soft delete that moves the expense to the Recycle Bin.
+- `summary` and `exchange-rate`: dashboard aggregates and current rate metadata. All aggregates read active (non-deleted) expenses only.
 - `categories`: category CRUD, ordering, and recurrence automation settings.
 - `recurring-expenses`: list, update/pause, and cancel rules.
-- `receipts`: restricted image upload, metadata, image retrieval, and deletion.
+- `receipts`: restricted image upload, metadata, image retrieval, and deletion. Receipt deletion is a soft delete; images remain served while a deleted receipt stays recoverable.
+- `recycle-bin`: list soft-deleted expenses and receipts, restore individual items, permanently delete individual items, and empty the bin.
 - `emergency`: emergency-fund settings, calculations, and simulations.
 - `export`: complete database workbook export/import.
 - `backup`: per-user backup reminder preferences.
@@ -96,15 +97,31 @@ The API allowlists `CLIENT_ORIGIN`, accepts credentialed CORS only for it, and r
 
 ## Data model and data flow
 
-`schema.sql` is safe to execute on every startup. It creates these tables:
+`schema.sql` is safe to execute on every startup. Before it runs, `initSchema` idempotently adds missing `deleted_at` columns (`ALTER TABLE`) so databases created before the Recycle Bin migration are upgraded without data loss; on fresh databases the columns already exist in the `CREATE TABLE` statements. It creates these tables:
 
-- `expenses`: canonical transaction records, including MYR and IDR values, original currency, rate used, and UTC+8 timestamp.
+- `expenses`: canonical transaction records, including MYR and IDR values, original currency, rate used, and UTC+8 timestamp. `deleted_at IS NULL` marks an active expense; a set `deleted_at` moves the row into the Recycle Bin.
 - `categories` and `category_automation_settings`: ordered categories and recurrence defaults.
 - `recurring_expense_rules` and `recurring_expense_occurrences`: recurring-payment definitions and their idempotent generated expenses.
-- `receipts`: image metadata and seven-day expiry; image bytes stay under `server/uploads/receipts/` rather than in the database.
+- `receipts`: image metadata, seven-day viewing expiry, and Recycle Bin soft-delete marker (`deleted_at`); image bytes stay under `server/uploads/receipts/` rather than in the database.
 - `emergency_settings`: savings, reserved funds, target months, and essential categories.
 - `backup_preferences`: reminder interval and most recent export time, keyed by administrator username.
 - `app_metadata`: internal seed/migration markers and the active session ID.
+
+Deletion semantics are enforced at the service/query level:
+
+```
+Normal delete (expense or receipt)
+→ soft delete (deleted_at = now, UTC+8)
+→ Recycle Bin, recoverable for 7 days
+→ permanent cleanup by the scheduled retention job
+
+Reset App
+→ immediate permanent destructive reset of active AND recycled data
+→ receipt files removed via staging
+→ no Recycle Bin recovery path
+```
+
+Every active-data query (history, dashboard totals, monthly/category/daily/heatmap/weekday aggregates, largest purchase, emergency-fund baselines, category usage counts) filters on `deleted_at IS NULL`, so recycled records are invisible outside the Recycle Bin. Soft-deleting a generated expense never cancels or modifies its recurring rule; permanently purging one releases the rule's anchor (`anchor_expense_id = NULL`, mirroring the schema's `ON DELETE SET NULL`) and removes its occurrence rows. Restoring a receipt whose normal `expires_at` elapsed inside the bin grants a fresh seven-day window instead of being re-purged immediately.
 
 The schema also preserves categories already referenced by expenses or emergency settings on the one-time category migration. `seedIfEmpty` loads `server/db/seed.sql` only once for a new, empty expenses dataset; app reset instead restores default categories and marks sample data as already seeded.
 
@@ -114,11 +131,11 @@ Dashboard summary data is calculated server-side from `expenses` for current/pre
 
 ## Background work, files, and recovery
 
-At server start, `scheduleReceiptCleanup` purges expired receipt metadata and files, then repeats daily. `scheduleRecurringExpenses` processes due active rules immediately and every minute; occurrence rows prevent duplicate generated expenses.
+At server start, two retention jobs run immediately and then daily: `scheduleReceiptCleanup` purges expired receipt metadata and files (skipping soft-deleted receipts, which stay recoverable), and `scheduleRecycleBinCleanup` permanently purges recycled expenses and receipts whose `deleted_at` is older than seven days, including their image files. Both are idempotent, tolerate missing files, and re-check `deleted_at` on every delete so items restored mid-run are never destroyed. `scheduleRecurringExpenses` processes due active rules immediately and every minute; occurrence rows prevent duplicate generated expenses.
 
 Receipt uploads accept only signature-verified JPEG, PNG, WebP, HEIC, or HEIF images up to 10 MB. Files are assigned UUID names and resolved only through the safe receipt-path utility.
 
-Database export writes all database tables plus a schema manifest to XLSX. Import validates the workbook, manifest, schemas, and values before replacing data within the export service's restore workflow. An app-data reset requires a time-delayed, single-use reset intent plus the current PIN; it stages receipt files before database reset so failed resets can restore them.
+Database export writes all database tables plus a schema manifest to XLSX; because it is a complete-database dump, Recycle Bin state (`deleted_at`) is preserved across backup/restore rather than silently resurrected. Import validates the workbook, manifest, schemas, and values before replacing data within the export service's restore workflow. Imports of backups created before the soft-delete migration remain compatible: nullable columns added by newer versions may be absent from an older manifest and import as `NULL` (active). An app-data reset requires a time-delayed, single-use reset intent plus the current PIN; it stages receipt files before database reset so failed resets can restore them, and discards them after success — recycled records and their files are destroyed along with active data.
 
 ## Architectural constraints
 
@@ -127,3 +144,4 @@ Database export writes all database tables plus a schema manifest to XLSX. Impor
 - Preserve the `/api` boundary and protect new data routes with `requireAuth` unless they are intentionally public.
 - Currency is limited to MYR/IDR and time values must remain UTC+8 ISO strings. Use the existing helpers rather than ad hoc conversion or date formatting.
 - Treat schema changes, exports/imports, recurrence behavior, and reset/receipt file coordination as coupled persistence workflows.
+- Normal deletion must stay a soft delete and every new active-data query must exclude `deleted_at IS NOT NULL` rows. Reset App must remain immediately destructive: never route reset through soft deletion, and never expose recycled data outside authenticated Recycle Bin endpoints.

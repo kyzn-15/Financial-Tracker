@@ -99,6 +99,39 @@ export interface Receipt {
   image_url: string;
 }
 
+export interface RecycleBinExpenseItem {
+  id: number;
+  name: string;
+  category: string;
+  price_myr: number;
+  price_idr: number;
+  original_currency: Currency;
+  timestamp: string;
+  deleted_at: string;
+  expires_at: string;
+}
+
+export interface RecycleBinReceiptItem {
+  id: number;
+  mime_type: string;
+  uploaded_at: string;
+  image_url: string;
+  image_available: boolean;
+  deleted_at: string;
+  expires_at: string;
+}
+
+export interface RecycleBinContents {
+  retention_days: number;
+  expenses: RecycleBinExpenseItem[];
+  receipts: RecycleBinReceiptItem[];
+}
+
+export interface EmptyRecycleBinResult {
+  expenses: number;
+  receipts: number;
+}
+
 export interface MoneyPair {
   myr: number;
   idr: number;
@@ -357,6 +390,20 @@ export interface RecurringExpenseStore {
   refresh: () => Promise<RecurringExpense[]>;
   update: (id: number, data: RecurringExpenseInput) => Promise<RecurringExpense>;
   cancel: (id: number) => Promise<void>;
+}
+
+export interface RecycleBinStore {
+  contents: RecycleBinContents | null;
+  loading: boolean;
+  error: string | null;
+  busyId: string | null;
+  load: () => Promise<RecycleBinContents>;
+  refresh: () => Promise<RecycleBinContents>;
+  restoreExpense: (id: number) => Promise<void>;
+  purgeExpense: (id: number) => Promise<void>;
+  restoreReceipt: (id: number) => Promise<void>;
+  purgeReceipt: (id: number) => Promise<void>;
+  emptyBin: () => Promise<EmptyRecycleBinResult>;
 }
 
 export interface EmergencyFundStore {

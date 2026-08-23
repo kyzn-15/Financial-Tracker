@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import './App.css';
 import Header from './components/Header';
@@ -18,6 +18,7 @@ import { useExpenses } from './hooks/useExpenses';
 import { useReceipts } from './hooks/useReceipts';
 import { useEmergencyFund } from './hooks/useEmergencyFund';
 import { useCategories } from './hooks/useCategories';
+import { useRecycleBin } from './hooks/useRecycleBin';
 import * as api from './services/api';
 import AppIcon from './components/AppIcon';
 import type {
@@ -27,6 +28,7 @@ import type {
   Expense,
   ExpenseInput,
   LoginCredentials,
+  RecycleBinStore,
   Theme,
   ToastMessage,
   ToastType,
@@ -251,6 +253,30 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
   } = useReceipts(activeTab);
 
   const emergency = useEmergencyFund(activeTab);
+  const recycleBin = useRecycleBin();
+
+  // Recycle Bin restores/purges change active data, so refresh affected features.
+  const recycleBinStore = useMemo<RecycleBinStore>(() => ({
+    ...recycleBin,
+    restoreExpense: async (id: number) => {
+      await recycleBin.restoreExpense(id);
+      await Promise.all([refreshExpenses(), emergency.refresh()]);
+    },
+    purgeExpense: async (id: number) => {
+      await recycleBin.purgeExpense(id);
+      await Promise.all([refreshExpenses(), emergency.refresh()]);
+    },
+    restoreReceipt: (id: number) => recycleBin.restoreReceipt(id),
+    purgeReceipt: async (id: number) => {
+      await recycleBin.purgeReceipt(id);
+      await refreshReceipts();
+    },
+    emptyBin: async () => {
+      const result = await recycleBin.emptyBin();
+      await Promise.all([refreshExpenses(), emergency.refresh()]);
+      return result;
+    },
+  }), [recycleBin, refreshExpenses, refreshReceipts, emergency]);
 
   useEffect(() => {
     let isMounted = true;
@@ -334,7 +360,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
     try {
       await removeExpense(deletingExpense.id);
       await emergency.refresh();
-      showToast(`Deleted expense "${deletingExpense.name}" successfully!`, 'success');
+      showToast(`"${deletingExpense.name}" moved to the Recycle Bin. It will be permanently deleted after 7 days.`, 'success');
       setDeletingExpense(null);
     } catch (err) {
       showToast(`Failed to delete expense: ${getErrorMessage(err, 'Unknown error')}`, 'error');
@@ -354,7 +380,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
   const handleReceiptDelete = async (id: number): Promise<void> => {
     try {
       await removeReceipt(id);
-      showToast('Receipt deleted.', 'success');
+      showToast('Receipt moved to the Recycle Bin. It will be permanently deleted after 7 days.', 'success');
     } catch (err) {
       showToast(`Failed to delete receipt: ${getErrorMessage(err, 'Unknown error')}`, 'error');
       throw err;
@@ -613,8 +639,10 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
               currency={currency}
               exchangeRate={exchangeRate}
               recurringStore={recurringStore}
+              recycleBin={recycleBinStore}
               onCreateResetIntent={api.createResetIntent}
               onResetApp={handleResetApp}
+              onNotify={showToast}
             />
           )}
 
@@ -710,8 +738,8 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
             </p>
             <p className="confirm-dialog__note">
               {deletingExpense.recurring_rule_id
-                ? 'This removes only this occurrence. Future automated payments will continue from Settings.'
-                : 'This action cannot be undone.'}
+                ? 'This moves only this occurrence to the Recycle Bin. Future automated payments will continue from Settings.'
+                : `"${deletingExpense.name}" will be moved to the Recycle Bin and can be restored for 7 days before it is permanently deleted.`}
             </p>
             <div className="confirm-dialog__actions">
               <button
@@ -726,7 +754,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
                 type="button"
                 onClick={handleDeleteConfirm}
               >
-                Yes, Delete
+                Move to Recycle Bin
               </button>
             </div>
           </div>

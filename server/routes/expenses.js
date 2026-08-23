@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import db from '../db/database.js';
 import { calculateExpenseAmounts, createExpenseRecord, getExpenseRecord, RECURRENCE_FREQUENCIES } from '../services/expenseRecords.js';
+import { softDeleteExpense } from '../services/recycleBin.js';
 import { nowUTC8 } from '../utils/datetime.js';
 
 const router = Router();
@@ -120,7 +121,7 @@ router.get('/', async (req, res) => {
     if (!filters) return res.status(400).json({ error: 'Invalid expense filters.' });
     const { name, category, startDate, endDate, sort, order } = filters;
 
-    const conditions = [];
+    const conditions = ['deleted_at IS NULL'];
     const params = [];
 
     if (name) {
@@ -166,7 +167,7 @@ router.put('/:id', async (req, res) => {
     const id = parseExpenseId(req.params.id);
     if (!id) return res.status(400).json({ error: 'Invalid expense id' });
 
-    const existingResult = await db.execute({ sql: 'SELECT * FROM expenses WHERE id = ?', args: [id] });
+    const existingResult = await db.execute({ sql: 'SELECT * FROM expenses WHERE id = ? AND deleted_at IS NULL', args: [id] });
     const existing = existingResult.rows[0];
     if (!existing) {
       return res.status(404).json({ error: 'Expense not found' });
@@ -199,18 +200,19 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// ─── DELETE /api/expenses/:id — Delete an expense ───────────────────────────
+// ─── DELETE /api/expenses/:id — Move an expense to the Recycle Bin ─────────
 router.delete('/:id', async (req, res) => {
   try {
     const id = parseExpenseId(req.params.id);
     if (!id) return res.status(400).json({ error: 'Invalid expense id' });
-    const existingResult = await db.execute({ sql: 'SELECT * FROM expenses WHERE id = ?', args: [id] });
-    const existing = existingResult.rows[0];
-    if (!existing) {
+
+    // Normal deletion is a soft delete: the expense stays recoverable in the
+    // Recycle Bin for RETENTION_DAYS before automatic permanent cleanup.
+    const deleted = await softDeleteExpense(id);
+    if (!deleted) {
       return res.status(404).json({ error: 'Expense not found' });
     }
 
-    await db.execute({ sql: 'DELETE FROM expenses WHERE id = ?', args: [id] });
     res.status(204).send();
   } catch (err) {
     console.error('DELETE /api/expenses/:id error:', err);
