@@ -29,13 +29,13 @@ export default function FilterBar({ categories = [], filters, onChange, onClear 
   const hasActiveFilters = filters.name || filters.category || filters.startDate || filters.endDate;
 
   return (
-    <div className="filter-bar neo-card neo-card--sm">
+    <div className="filter-bar clay-card clay-card--sm">
       <div className="filter-bar__group filter-bar__group--search">
         <label className="filter-bar__label" htmlFor="filter-name">Search expense</label>
         <input
           id="filter-name"
           type="search"
-          className="neo-input"
+          className="clay-input"
           value={filters.name}
           onChange={handleNameChange}
           placeholder="Search by expense name"
@@ -46,7 +46,7 @@ export default function FilterBar({ categories = [], filters, onChange, onClear 
         <label className="filter-bar__label" htmlFor="filter-category">Category</label>
         <select
           id="filter-category"
-          className="neo-select"
+          className="clay-select"
           value={filters.category}
           onChange={handleCategoryChange}
         >
@@ -64,7 +64,7 @@ export default function FilterBar({ categories = [], filters, onChange, onClear 
         <input
           id="filter-start-date"
           type="date"
-          className="neo-input"
+          className="clay-input"
           value={filters.startDate ? filters.startDate.split('T')[0] : ''}
           onChange={handleStartDateChange}
         />
@@ -75,7 +75,7 @@ export default function FilterBar({ categories = [], filters, onChange, onClear 
         <input
           id="filter-end-date"
           type="date"
-          className="neo-input"
+          className="clay-input"
           value={filters.endDate ? filters.endDate.split('T')[0] : ''}
           onChange={handleEndDateChange}
         />
@@ -83,7 +83,7 @@ export default function FilterBar({ categories = [], filters, onChange, onClear 
 
       {hasActiveFilters && (
         <button
-          className="neo-btn neo-btn--secondary neo-btn--sm"
+          className="clay-btn clay-btn--secondary clay-btn--sm"
           onClick={onClear}
           type="button"
         >

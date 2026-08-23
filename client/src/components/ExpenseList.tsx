@@ -31,8 +31,8 @@ export default function ExpenseList({ expenses, filters, currency = 'MYR', excha
   const getHeaderClass = (column: ExpenseSortColumn): string => filters.sort === column ? 'sorted' : '';
 
   return (
-    <div className="neo-card">
-      <h2 className="neo-card__title"><span className="card-icon"><AppIcon name="clipboard" /></span> Expense Records ({totalItems})</h2>
+    <div className="clay-card">
+      <h2 className="clay-card__title"><span className="card-icon"><AppIcon name="clipboard" /></span> Expense Records ({totalItems})</h2>
       {totalItems === 0 ? <div className="empty-state"><div className="empty-state__icon"><AppIcon name="search" size={28} /></div><div className="empty-state__text">No expenses found</div><div className="empty-state__sub">Try adjusting your filters or add a new expense.</div></div> : <>
         <div className="expense-table-wrapper">
           <table className="expense-table">
@@ -61,12 +61,12 @@ export default function ExpenseList({ expenses, filters, currency = 'MYR', excha
                 <td data-label="Category"><span className="category-badge"><AppIcon name={getCategoryIconName(expense.category)} size={15} /><span>{expense.category}</span></span></td>
                 <td data-label={`Price (${currency})`}><div className={isOriginalCurrency ? 'price-original' : 'price-converted'}>{formatCurrency(amount)}{isOriginalCurrency && <span className="price-original__marker" title="Original currency"><AppIcon name="badge-check" size={13} /></span>}</div></td>
                 <td data-label="Exchange Rate" className="expense-table__rate">{expense.exchange_rate_used ? `1 MYR = ${rate} IDR` : 'Pending'}</td>
-                <td data-label="Actions"><div className="actions-cell"><button className="neo-btn neo-btn--secondary neo-btn--icon" onClick={() => onEdit(expense)} title="Edit expense" aria-label="Edit expense"><AppIcon name="pencil" size={16} /></button><button className="neo-btn neo-btn--danger neo-btn--icon" onClick={() => onDelete(expense)} title="Delete expense" aria-label="Delete expense"><AppIcon name="trash" size={16} /></button></div></td>
+                <td data-label="Actions"><div className="actions-cell"><button className="clay-btn clay-btn--secondary clay-btn--icon" onClick={() => onEdit(expense)} title="Edit expense" aria-label="Edit expense"><AppIcon name="pencil" size={16} /></button><button className="clay-btn clay-btn--danger clay-btn--icon" onClick={() => onDelete(expense)} title="Delete expense" aria-label="Delete expense"><AppIcon name="trash" size={16} /></button></div></td>
               </tr>;
             })}</tbody>
           </table>
         </div>
-        {totalPages > 1 && <div className="pagination"><button className="neo-btn neo-btn--secondary neo-btn--sm" disabled={currentPage === 1} onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}><AppIcon name="arrow-left" size={15} /> Prev</button><span className="pagination__info">Page {currentPage} of {totalPages}</span><button className="neo-btn neo-btn--secondary neo-btn--sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}>Next <AppIcon name="arrow-right" size={15} /></button></div>}
+        {totalPages > 1 && <div className="pagination"><button className="clay-btn clay-btn--secondary clay-btn--sm" disabled={currentPage === 1} onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}><AppIcon name="arrow-left" size={15} /> Prev</button><span className="pagination__info">Page {currentPage} of {totalPages}</span><button className="clay-btn clay-btn--secondary clay-btn--sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}>Next <AppIcon name="arrow-right" size={15} /></button></div>}
       </>}
     </div>
   );

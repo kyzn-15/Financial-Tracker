@@ -92,7 +92,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
   const renderExpenseItem = (expense: (typeof expenses)[number]) => {
     const busyKey = store.busyId === `expense-${expense.id}`;
     return (
-      <article key={`expense-${expense.id}`} className="recycle-item neo-card">
+      <article key={`expense-${expense.id}`} className="recycle-item clay-card">
         <span className="recycle-item__icon">
           <AppIcon name={getCategoryIconName(expense.category)} size={18} />
         </span>
@@ -109,7 +109,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
         <div className="recycle-item__actions">
           <button
             type="button"
-            className="neo-btn neo-btn--secondary neo-btn--sm"
+            className="clay-btn clay-btn--secondary clay-btn--sm"
             onClick={() => handleRestore('expense', expense.id, expense.name)}
             disabled={busy || busyKey}
           >
@@ -117,7 +117,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
           </button>
           <button
             type="button"
-            className="neo-btn neo-btn--danger neo-btn--sm"
+            className="clay-btn clay-btn--danger clay-btn--sm"
             onClick={() => setPurgeTarget({ type: 'expense', id: expense.id, label: expense.name })}
             disabled={busy || busyKey}
           >
@@ -131,7 +131,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
   const renderReceiptItem = (receipt: (typeof receipts)[number]) => {
     const busyKey = store.busyId === `receipt-${receipt.id}`;
     return (
-      <article key={`receipt-${receipt.id}`} className="recycle-item neo-card">
+      <article key={`receipt-${receipt.id}`} className="recycle-item clay-card">
         <span className="recycle-item__icon">
           {receipt.image_available ? (
             <img src={receipt.image_url} alt="" className="recycle-item__thumb" loading="lazy" />
@@ -152,7 +152,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
         <div className="recycle-item__actions">
           <button
             type="button"
-            className="neo-btn neo-btn--secondary neo-btn--sm"
+            className="clay-btn clay-btn--secondary clay-btn--sm"
             onClick={() => handleRestore('receipt', receipt.id, 'receipt')}
             disabled={busy || busyKey}
           >
@@ -160,7 +160,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
           </button>
           <button
             type="button"
-            className="neo-btn neo-btn--danger neo-btn--sm"
+            className="clay-btn clay-btn--danger clay-btn--sm"
             onClick={() => setPurgeTarget({ type: 'receipt', id: receipt.id, label: `receipt from ${formatDate(receipt.uploaded_at)}` })}
             disabled={busy || busyKey}
           >
@@ -172,7 +172,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
   };
 
   return (
-    <section className="recycle-bin neo-card" aria-labelledby="recycle-bin-title">
+    <section className="recycle-bin clay-card" aria-labelledby="recycle-bin-title">
       <div className="settings-section-heading">
         <div>
           <h3 id="recycle-bin-title">Recycle Bin</h3>
@@ -181,7 +181,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
           </p>
         </div>
         <button
-          className="neo-btn neo-btn--danger"
+          className="clay-btn clay-btn--danger"
           type="button"
           onClick={() => setIsEmptyOpen(true)}
           disabled={busy || isEmpty}
@@ -197,7 +197,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
       ) : store.error && !store.contents ? (
         <div className="recycle-bin__status recycle-bin__status--error">
           <AppIcon name="alert" size={16} /> {store.error}
-          <button className="neo-btn neo-btn--secondary neo-btn--sm" type="button" onClick={() => store.load().catch(() => {})}>
+          <button className="clay-btn clay-btn--secondary clay-btn--sm" type="button" onClick={() => store.load().catch(() => {})}>
             Retry
           </button>
         </div>
@@ -244,7 +244,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
             </p>
             <div className="confirm-dialog__actions">
               <button
-                className="neo-btn neo-btn--secondary"
+                className="clay-btn clay-btn--secondary"
                 type="button"
                 onClick={() => setPurgeTarget(null)}
                 disabled={isPurging}
@@ -252,7 +252,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
                 Cancel
               </button>
               <button
-                className="neo-btn neo-btn--danger"
+                className="clay-btn clay-btn--danger"
                 type="button"
                 onClick={confirmPurge}
                 disabled={isPurging}
@@ -281,7 +281,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
           </p>
           <div className="confirm-dialog__actions">
             <button
-              className="neo-btn neo-btn--secondary"
+              className="clay-btn clay-btn--secondary"
               type="button"
               onClick={() => setIsEmptyOpen(false)}
               disabled={isEmptying}
@@ -289,7 +289,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
               Cancel
             </button>
             <button
-              className="neo-btn neo-btn--danger"
+              className="clay-btn clay-btn--danger"
               type="button"
               onClick={confirmEmpty}
               disabled={isEmptying}

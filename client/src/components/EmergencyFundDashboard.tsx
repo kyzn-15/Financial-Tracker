@@ -57,7 +57,7 @@ interface EmergencyMetricProps {
 
 function EmergencyMetric({ label, value, sub }: EmergencyMetricProps) {
   return (
-    <div className="emergency-metric neo-card neo-card--sm">
+    <div className="emergency-metric clay-card clay-card--sm">
       <span className="emergency-metric__label">{label}</span>
       <strong className="emergency-metric__value">{value}</strong>
       {sub && <span className="emergency-metric__sub">{sub}</span>}
@@ -142,20 +142,20 @@ export function EmergencySettingsPanel({ settingsPayload, onSave, saving, curren
   };
 
   return (
-    <form className="emergency-settings neo-card" onSubmit={handleSubmit}>
+    <form className="emergency-settings clay-card" onSubmit={handleSubmit}>
       <div className="emergency-section-heading">
         <h3>Emergency Fund Settings</h3>
         <p>Only unrestricted savings and selected essentials count toward coverage.</p>
       </div>
 
       <div className="emergency-form-grid">
-        <div className="neo-input-group">
-          <label className="neo-label" htmlFor="emergency-current-savings">Current Savings</label>
+        <div className="clay-input-group">
+          <label className="clay-label" htmlFor="emergency-current-savings">Current Savings</label>
           <div className="money-input">
             <span>{currency === 'MYR' ? 'RM' : 'Rp'}</span>
             <input
               id="emergency-current-savings"
-              className="neo-input"
+              className="clay-input"
               type="number"
               min="0"
               step="0.01"
@@ -165,13 +165,13 @@ export function EmergencySettingsPanel({ settingsPayload, onSave, saving, curren
           </div>
         </div>
 
-        <div className="neo-input-group">
-          <label className="neo-label" htmlFor="emergency-reserved-funds">Reserved Funds</label>
+        <div className="clay-input-group">
+          <label className="clay-label" htmlFor="emergency-reserved-funds">Reserved Funds</label>
           <div className="money-input">
             <span>{currency === 'MYR' ? 'RM' : 'Rp'}</span>
             <input
               id="emergency-reserved-funds"
-              className="neo-input"
+              className="clay-input"
               type="number"
               min="0"
               step="0.01"
@@ -181,11 +181,11 @@ export function EmergencySettingsPanel({ settingsPayload, onSave, saving, curren
           </div>
         </div>
 
-        <div className="neo-input-group">
-          <label className="neo-label" htmlFor="emergency-target-months">Target Months</label>
+        <div className="clay-input-group">
+          <label className="clay-label" htmlFor="emergency-target-months">Target Months</label>
           <select
             id="emergency-target-months"
-            className="neo-select"
+            className="clay-select"
             value={form.target_months}
             onChange={(event) => updateField('target_months', Number(event.target.value))}
           >
@@ -199,7 +199,7 @@ export function EmergencySettingsPanel({ settingsPayload, onSave, saving, curren
       <div className="emergency-category-picker">
         <div className="emergency-category-picker__header">
           <div>
-            <span className="neo-label">Essential Categories</span>
+            <span className="clay-label">Essential Categories</span>
             <p>Choose which spending categories count toward emergency coverage.</p>
           </div>
           <strong>{form.essential_categories.length} selected</strong>
@@ -210,13 +210,13 @@ export function EmergencySettingsPanel({ settingsPayload, onSave, saving, curren
         ) : (
           <>
             <div className="emergency-category-actions">
-              <button type="button" className="neo-btn neo-btn--secondary neo-btn--sm" onClick={useRecommendedCategories}>
+              <button type="button" className="clay-btn clay-btn--secondary clay-btn--sm" onClick={useRecommendedCategories}>
                 Recommended
               </button>
-              <button type="button" className="neo-btn neo-btn--secondary neo-btn--sm" onClick={() => setEssentialCategories(categories)}>
+              <button type="button" className="clay-btn clay-btn--secondary clay-btn--sm" onClick={() => setEssentialCategories(categories)}>
                 Select All
               </button>
-              <button type="button" className="neo-btn neo-btn--secondary neo-btn--sm" onClick={() => setEssentialCategories([])}>
+              <button type="button" className="clay-btn clay-btn--secondary clay-btn--sm" onClick={() => setEssentialCategories([])}>
                 Clear
               </button>
             </div>
@@ -239,7 +239,7 @@ export function EmergencySettingsPanel({ settingsPayload, onSave, saving, curren
 
       <div className="emergency-actions">
         {message && <p className="emergency-settings__message">{message}</p>}
-        <button className="neo-btn neo-btn--primary" type="submit" disabled={saving}>
+        <button className="clay-btn clay-btn--primary" type="submit" disabled={saving}>
           {saving ? 'Saving...' : 'Save Settings'}
         </button>
       </div>
@@ -251,7 +251,7 @@ function CoverageOverview({ summary }: { summary: EmergencySummary }) {
   const statusClass = `emergency-status emergency-status--${summary.status.tone}`;
 
   return (
-    <section className="emergency-overview neo-card">
+    <section className="emergency-overview clay-card">
       <div className="emergency-overview__top">
         <div>
           <span className="emergency-kicker">Emergency Fund</span>
@@ -291,7 +291,7 @@ function GoalCard({ summary, planMonths, setPlanMonths, formatAmount }: GoalCard
   const monthlyNeeded = planMonths > 0 ? summary.remainingSavingsMyr / planMonths : 0;
 
   return (
-    <section className="emergency-goal neo-card">
+    <section className="emergency-goal clay-card">
       <div className="emergency-section-heading">
         <h3>Goal</h3>
         <p>Target savings are based on essential monthly expenses.</p>
@@ -302,10 +302,10 @@ function GoalCard({ summary, planMonths, setPlanMonths, formatAmount }: GoalCard
         <EmergencyMetric label="Remaining" value={formatAmount(summary.remainingSavingsMyr)} sub="Needed to reach target" />
       </div>
       <div className="emergency-plan">
-        <label className="neo-label" htmlFor="emergency-plan-months">Reach Goal In</label>
+        <label className="clay-label" htmlFor="emergency-plan-months">Reach Goal In</label>
         <select
           id="emergency-plan-months"
-          className="neo-select"
+          className="clay-select"
           value={planMonths}
           onChange={(event) => setPlanMonths(Number(event.target.value))}
         >
@@ -324,7 +324,7 @@ function GoalCard({ summary, planMonths, setPlanMonths, formatAmount }: GoalCard
 
 function Insights({ insights }: { insights: EmergencySummary['insights'] }) {
   return (
-    <section className="emergency-insights neo-card">
+    <section className="emergency-insights clay-card">
       <div className="emergency-section-heading">
         <h3>Insights</h3>
       </div>
@@ -346,7 +346,7 @@ function Timeline({ summary, formatAmount }: { summary: EmergencySummary; format
   const monthlyExpense = summary.averageMonthlyEssentialExpenseMyr;
 
   return (
-    <section className="emergency-timeline neo-card">
+    <section className="emergency-timeline clay-card">
       <div className="emergency-section-heading">
         <h3>Emergency Timeline</h3>
       </div>
@@ -451,7 +451,7 @@ function Simulator({ simulation, runSimulation, categoryAverages, currency, myrT
   };
 
   return (
-    <section className="emergency-simulator neo-card">
+    <section className="emergency-simulator clay-card">
       <div className="emergency-section-heading">
         <h3>What If?</h3>
         <p>Build custom monthly changes without editing saved expenses.</p>
@@ -465,7 +465,7 @@ function Simulator({ simulation, runSimulation, categoryAverages, currency, myrT
               <label className="simulation-field simulation-field--name">
                 <span>Name</span>
                 <input
-                  className="neo-input"
+                  className="clay-input"
                   type="text"
                   value={item.label}
                   placeholder={`Adjustment ${index + 1}`}
@@ -476,7 +476,7 @@ function Simulator({ simulation, runSimulation, categoryAverages, currency, myrT
               <label className="simulation-field simulation-field--type">
                 <span>Type</span>
                 <select
-                  className="neo-select"
+                  className="clay-select"
                   value={item.type}
                   onChange={(event) => updateAdjustment(item.id, 'type', event.target.value === 'percent' ? 'percent' : 'amount')}
                 >
@@ -490,7 +490,7 @@ function Simulator({ simulation, runSimulation, categoryAverages, currency, myrT
                   <label className="simulation-field simulation-field--category">
                     <span>Category</span>
                     <select
-                      className="neo-select"
+                      className="clay-select"
                       value={item.baseCategory}
                       onChange={(event) => updateAdjustment(item.id, 'baseCategory', event.target.value)}
                     >
@@ -503,7 +503,7 @@ function Simulator({ simulation, runSimulation, categoryAverages, currency, myrT
                   <label className="simulation-field simulation-field--value">
                     <span>Change %</span>
                     <input
-                      className="neo-input"
+                      className="clay-input"
                       type="number"
                       step="0.1"
                       value={item.percent}
@@ -515,7 +515,7 @@ function Simulator({ simulation, runSimulation, categoryAverages, currency, myrT
                 <label className="simulation-field simulation-field--value">
                   <span>Monthly {currency}</span>
                   <input
-                    className="neo-input"
+                    className="clay-input"
                     type="number"
                     step="0.01"
                     value={convertMyrAmount(item.amountMyr, currency, myrToIdr)}
@@ -539,8 +539,8 @@ function Simulator({ simulation, runSimulation, categoryAverages, currency, myrT
         {message && <p className="simulation-message">{message}</p>}
 
         <div className="simulation-actions">
-          <button className="neo-btn neo-btn--secondary" type="button" onClick={addAdjustment}>Add Calculation</button>
-          <button className="neo-btn neo-btn--primary" type="submit" disabled={adjustments.length === 0}>Recalculate</button>
+          <button className="clay-btn clay-btn--secondary" type="button" onClick={addAdjustment}>Add Calculation</button>
+          <button className="clay-btn clay-btn--primary" type="submit" disabled={adjustments.length === 0}>Recalculate</button>
         </div>
       </form>
 
@@ -640,7 +640,7 @@ function Analytics({ summary, planMonths, currency, myrToIdr, formatAmount }: An
           </div>
         </div>
 
-        <div className="neo-card emergency-ranking">
+        <div className="clay-card emergency-ranking">
           <div className="emergency-section-heading">
             <h3>Top Essential Categories</h3>
           </div>
@@ -657,7 +657,7 @@ function Analytics({ summary, planMonths, currency, myrToIdr, formatAmount }: An
           )}
         </div>
 
-        <div className="neo-card readiness-card">
+        <div className="clay-card readiness-card">
           <div className="readiness-card__score">{summary.analytics.readinessScore.score} / 100</div>
           <p>{summary.analytics.readinessScore.explanation}</p>
           <div className="readiness-parts">
@@ -708,7 +708,7 @@ export default function EmergencyFundDashboard({ emergency, currency = 'MYR', ex
   }
 
   if (error && !summary) {
-    return <div className="neo-card emergency-error">Error fetching emergency fund data: {error}</div>;
+    return <div className="clay-card emergency-error">Error fetching emergency fund data: {error}</div>;
   }
 
   if (!summary) {
@@ -717,7 +717,7 @@ export default function EmergencyFundDashboard({ emergency, currency = 'MYR', ex
 
   return (
     <div className="emergency-dashboard">
-      {error && <div className="neo-card emergency-error">{error}</div>}
+      {error && <div className="clay-card emergency-error">{error}</div>}
       <div className="emergency-hero-grid">
         <CoverageOverview summary={summary} />
         <GoalCard summary={summary} planMonths={planMonths} setPlanMonths={setPlanMonths} formatAmount={formatAmount} />

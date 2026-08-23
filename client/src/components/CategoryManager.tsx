@@ -105,7 +105,7 @@ export default function CategoryManager({
   };
 
   return (
-    <section className="category-manager neo-card" aria-labelledby="category-manager-title">
+    <section className="category-manager clay-card" aria-labelledby="category-manager-title">
       <div className="settings-section-heading">
         <div>
           <h3 id="category-manager-title">Expense Categories</h3>
@@ -114,11 +114,11 @@ export default function CategoryManager({
       </div>
 
       <form className="category-manager__add" onSubmit={handleAdd}>
-        <label className="neo-label" htmlFor="new-category-name">New category</label>
+        <label className="clay-label" htmlFor="new-category-name">New category</label>
         <div className="category-manager__add-row">
           <input
             id="new-category-name"
-            className="neo-input"
+            className="clay-input"
             type="text"
             maxLength={60}
             value={newName}
@@ -126,7 +126,7 @@ export default function CategoryManager({
             onChange={(event) => setNewName(event.target.value)}
             disabled={isSaving}
           />
-          <button className="neo-btn neo-btn--primary" type="submit" disabled={isSaving}>Add</button>
+          <button className="clay-btn clay-btn--primary" type="submit" disabled={isSaving}>Add</button>
         </div>
       </form>
 
@@ -143,7 +143,7 @@ export default function CategoryManager({
 
               {editingId === category.id ? (
                 <input
-                  className="neo-input category-manager__edit-input"
+                  className="clay-input category-manager__edit-input"
                   type="text"
                   maxLength={60}
                   value={editingName}
@@ -165,7 +165,7 @@ export default function CategoryManager({
                   <span aria-hidden="true" />
                   <strong>{category.automation_enabled ? 'Automated' : 'Manual'}</strong>
                 </label>
-                <select className="neo-select category-manager__frequency" value={category.automation_frequency} onChange={(event) => updateAutomation(category, true, event.target.value === 'daily' || event.target.value === 'weekly' ? event.target.value : 'monthly')} disabled={isSaving || !category.automation_enabled} aria-label={`Default frequency for ${category.name}`}>
+                <select className="clay-select category-manager__frequency" value={category.automation_frequency} onChange={(event) => updateAutomation(category, true, event.target.value === 'daily' || event.target.value === 'weekly' ? event.target.value : 'monthly')} disabled={isSaving || !category.automation_enabled} aria-label={`Default frequency for ${category.name}`}>
                   <option value="daily">Every day</option>
                   <option value="weekly">Every week</option>
                   <option value="monthly">Every month</option>
@@ -175,13 +175,13 @@ export default function CategoryManager({
               <div className="category-manager__actions">
                 {editingId === category.id ? (
                   <>
-                    <button className="neo-btn neo-btn--primary neo-btn--sm" type="button" onClick={() => handleRename(category)} disabled={isSaving}>Save</button>
-                    <button className="neo-btn neo-btn--secondary neo-btn--sm" type="button" onClick={() => setEditingId(null)} disabled={isSaving}>Cancel</button>
+                    <button className="clay-btn clay-btn--primary clay-btn--sm" type="button" onClick={() => handleRename(category)} disabled={isSaving}>Save</button>
+                    <button className="clay-btn clay-btn--secondary clay-btn--sm" type="button" onClick={() => setEditingId(null)} disabled={isSaving}>Cancel</button>
                   </>
                 ) : (
                   <>
-                    <button className="neo-btn neo-btn--secondary neo-btn--sm" type="button" onClick={() => startEditing(category)} disabled={isSaving}>Edit</button>
-                    <button className="neo-btn neo-btn--danger neo-btn--sm" type="button" onClick={() => handleRemove(category)} disabled={isSaving}>
+                    <button className="clay-btn clay-btn--secondary clay-btn--sm" type="button" onClick={() => startEditing(category)} disabled={isSaving}>Edit</button>
+                    <button className="clay-btn clay-btn--danger clay-btn--sm" type="button" onClick={() => handleRemove(category)} disabled={isSaving}>
                       {confirmingRemovalId === category.id ? 'Confirm remove' : 'Remove'}
                     </button>
                   </>
@@ -196,7 +196,7 @@ export default function CategoryManager({
         <div className="category-manager__feedback" role="status" aria-live="polite">
           <p className="category-manager__status">{message || error}</p>
           {error && (
-            <button className="neo-btn neo-btn--secondary neo-btn--sm" type="button" onClick={() => onRetry().catch(() => {})} disabled={loading}>
+            <button className="clay-btn clay-btn--secondary clay-btn--sm" type="button" onClick={() => onRetry().catch(() => {})} disabled={loading}>
               {loading ? 'Retrying...' : 'Retry'}
             </button>
           )}

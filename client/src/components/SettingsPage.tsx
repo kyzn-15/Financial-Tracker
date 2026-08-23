@@ -232,7 +232,7 @@ const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>
       {SETTINGS_GROUPS.map((group) => (
         <section key={group.id} className="settings-group" aria-labelledby={`settings-group-${group.id}`}>
           <h3 className="settings-group__title" id={`settings-group-${group.id}`}>{group.title}</h3>
-          <div className="settings-group__list neo-card">
+          <div className="settings-group__list clay-card">
             {group.sections.map((section) => (
               <button
                 key={section.id}
@@ -273,7 +273,7 @@ const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>
     switch (section.id) {
       case 'appearance':
         return (
-          <section className="theme-settings neo-card" aria-labelledby="appearance-settings-title">
+          <section className="theme-settings clay-card" aria-labelledby="appearance-settings-title">
             <div className="settings-section-heading">
               <div>
                 <h3 id="appearance-settings-title">Theme</h3>
@@ -333,7 +333,7 @@ const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>
         );
       case 'emergency':
         return !emergency.settingsPayload ? (
-          <div className={`settings-page__status neo-card ${emergency.error ? 'settings-page__status--error' : ''}`}>
+          <div className={`settings-page__status clay-card ${emergency.error ? 'settings-page__status--error' : ''}`}>
             {emergency.error
               ? `Could not load emergency fund settings: ${emergency.error}`
               : 'Loading emergency fund settings...'}
@@ -350,13 +350,13 @@ const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>
       case 'security':
         return (
           <>
-            <section className="reset-settings neo-card" aria-labelledby="reset-settings-title">
+            <section className="reset-settings clay-card" aria-labelledby="reset-settings-title">
               <div className="settings-section-heading">
                 <div>
                   <h3 id="reset-settings-title">Danger zone</h3>
                   <p>Permanently delete every saved record and restart with a clean app.</p>
                 </div>
-                <button className="neo-btn neo-btn--danger" type="button" onClick={openResetDialog}>
+                <button className="clay-btn clay-btn--danger" type="button" onClick={openResetDialog}>
                   Reset app
                 </button>
               </div>
@@ -377,10 +377,10 @@ const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>
                   Export a database backup first if you may need this data again.
                 </p>
                 <div className="reset-confirmation__pin-field">
-                  <label className="neo-label" htmlFor="reset-pin">Current PIN</label>
+                  <label className="clay-label" htmlFor="reset-pin">Current PIN</label>
                   <input
                     id="reset-pin"
-                    className="neo-input reset-confirmation__pin"
+                    className="clay-input reset-confirmation__pin"
                     type="password"
                     inputMode="numeric"
                     autoComplete="current-password"
@@ -394,7 +394,7 @@ const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>
                 {resetError && <p id="reset-error" className="reset-confirmation__error">{resetError}</p>}
                 <div className="confirm-dialog__actions">
                   <button
-                    className="neo-btn neo-btn--secondary"
+                    className="clay-btn clay-btn--secondary"
                     type="button"
                     onClick={closeResetDialog}
                     disabled={isResetting}
@@ -402,7 +402,7 @@ const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>
                     Cancel
                   </button>
                   <button
-                    className="neo-btn neo-btn--danger"
+                    className="clay-btn clay-btn--danger"
                     type="button"
                     onClick={confirmReset}
                     disabled={

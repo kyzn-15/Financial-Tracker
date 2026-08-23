@@ -97,8 +97,8 @@ export default function ReceiptSaver({
 
   return (
     <div className="receipt-saver">
-      <div className="neo-card receipt-saver__upload">
-        <h3 className="neo-card__title">Save a Receipt</h3>
+      <div className="clay-card receipt-saver__upload">
+        <h3 className="clay-card__title">Save a Receipt</h3>
         <p className="receipt-saver__hint">
           Snap a photo to remember what you bought. Receipts are kept for 7 days, then removed automatically.
         </p>
@@ -115,7 +115,7 @@ export default function ReceiptSaver({
         <div className="receipt-saver__actions">
           <button
             type="button"
-            className="neo-btn neo-btn--secondary"
+            className="clay-btn clay-btn--secondary"
             onClick={() => fileInputRef.current?.click()}
           >
             <AppIcon name="camera" /> Take / Choose Photo
@@ -123,7 +123,7 @@ export default function ReceiptSaver({
           {selectedFile && (
             <button
               type="button"
-              className="neo-btn neo-btn--primary"
+              className="clay-btn clay-btn--primary"
               onClick={handleUpload}
               disabled={uploading}
             >
@@ -139,7 +139,7 @@ export default function ReceiptSaver({
         {previewUrl && (
           <div className="receipt-saver__preview">
             <img src={previewUrl} alt="Receipt preview" />
-            <button type="button" className="neo-btn neo-btn--sm neo-btn--secondary" onClick={clearPreview}>
+            <button type="button" className="clay-btn clay-btn--sm clay-btn--secondary" onClick={clearPreview}>
               Clear
             </button>
           </div>
@@ -147,7 +147,7 @@ export default function ReceiptSaver({
       </div>
 
       <div className="receipt-saver__list-section">
-        <h3 className="neo-card__title">Saved Receipts</h3>
+        <h3 className="clay-card__title">Saved Receipts</h3>
 
         {loading && receipts.length === 0 ? (
           <div className="loading-spinner">
@@ -164,7 +164,7 @@ export default function ReceiptSaver({
             {receipts.map((receipt) => {
               const daysLeft = daysUntilExpiry(receipt.expires_at);
               return (
-                <article key={receipt.id} className="neo-card receipt-card">
+                <article key={receipt.id} className="clay-card receipt-card">
                   <a
                     href={getReceiptImageUrl(receipt.id)}
                     target="_blank"
@@ -188,7 +188,7 @@ export default function ReceiptSaver({
                   </div>
                   <button
                     type="button"
-                    className="neo-btn neo-btn--danger neo-btn--sm neo-btn--full"
+                    className="clay-btn clay-btn--danger clay-btn--sm clay-btn--full"
                     onClick={() => handleDelete(receipt)}
                     disabled={deletingId === receipt.id}
                   >

@@ -189,7 +189,7 @@ function AppSkeleton() {
         </header>
         <section className="app-skeleton__summary">
           {Array.from({ length: 3 }).map((_, index) => (
-            <article className="neo-card app-skeleton__summary-card" key={index}>
+            <article className="clay-card app-skeleton__summary-card" key={index}>
               <SkeletonLine className="skeleton-line--small" />
               <SkeletonLine className="skeleton-line--amount" />
               <SkeletonLine className="skeleton-line--small" />
@@ -197,8 +197,8 @@ function AppSkeleton() {
           ))}
         </section>
         <section className="app-skeleton__charts">
-          <article className="neo-card app-skeleton__chart"><SkeletonLine className="skeleton-line--section" /><span className="app-skeleton__chart-shape skeleton-block" /></article>
-          <article className="neo-card app-skeleton__chart"><SkeletonLine className="skeleton-line--section" /><span className="app-skeleton__chart-shape skeleton-block" /></article>
+          <article className="clay-card app-skeleton__chart"><SkeletonLine className="skeleton-line--section" /><span className="app-skeleton__chart-shape skeleton-block" /></article>
+          <article className="clay-card app-skeleton__chart"><SkeletonLine className="skeleton-line--section" /><span className="app-skeleton__chart-shape skeleton-block" /></article>
         </section>
       </main>
     </div>
@@ -543,7 +543,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
         {/* Main Content Area */}
         <div className="tab-content">
           {activeTab === 'add' && (
-            <div className="neo-card" style={{ maxWidth: '640px', margin: '0 auto', marginTop: 'var(--space-md)' }}>
+            <div className="clay-card" style={{ maxWidth: '640px', margin: '0 auto', marginTop: 'var(--space-md)' }}>
               <ExpenseForm categories={categoryStore.categories} onSubmit={handleAddSubmit} submitText="Add Expense" />
             </div>
           )}
@@ -569,14 +569,14 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
                   onChange={handleImportFileSelection}
                 />
                 <button
-                  className="neo-btn neo-btn--secondary"
+                  className="clay-btn clay-btn--secondary"
                   type="button"
                   onClick={() => importInputRef.current?.click()}
                   disabled={isExporting || isImporting}
                 >
                   {isImporting ? 'Importing...' : 'Import Database'}
                 </button>
-                <button className="neo-btn neo-btn--secondary" type="button" onClick={handleExportRecords} disabled={isExporting || isImporting}>
+                <button className="clay-btn clay-btn--secondary" type="button" onClick={handleExportRecords} disabled={isExporting || isImporting}>
                   {isExporting ? 'Exporting...' : 'Export Database'}
                 </button>
               </div>
@@ -677,10 +677,10 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
         <div className="backup-reminder">
           <p>Your database is due for a manual backup. Export the XLSX file and store it somewhere safe.</p>
           <div className="modal-content__actions backup-reminder__actions">
-            <button className="neo-btn neo-btn--primary" type="button" onClick={handleExportRecords} disabled={isExporting}>
+            <button className="clay-btn clay-btn--primary" type="button" onClick={handleExportRecords} disabled={isExporting}>
               {isExporting ? 'Exporting...' : 'Export database now'}
             </button>
-            <button className="neo-btn neo-btn--secondary" type="button" onClick={handleRemindLater} disabled={isExporting}>
+            <button className="clay-btn clay-btn--secondary" type="button" onClick={handleRemindLater} disabled={isExporting}>
               Remind me next time
             </button>
           </div>
@@ -705,7 +705,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
             </p>
             <div className="confirm-dialog__actions">
               <button
-                className="neo-btn neo-btn--secondary"
+                className="clay-btn clay-btn--secondary"
                 type="button"
                 onClick={() => setPendingImportFile(null)}
                 disabled={isImporting}
@@ -713,7 +713,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
                 Cancel
               </button>
               <button
-                className="neo-btn neo-btn--danger"
+                className="clay-btn clay-btn--danger"
                 type="button"
                 onClick={handleImportConfirm}
                 disabled={isImporting}
@@ -743,14 +743,14 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
             </p>
             <div className="confirm-dialog__actions">
               <button
-                className="neo-btn neo-btn--secondary"
+                className="clay-btn clay-btn--secondary"
                 type="button"
                 onClick={() => setDeletingExpense(null)}
               >
                 Cancel
               </button>
               <button
-                className="neo-btn neo-btn--danger"
+                className="clay-btn clay-btn--danger"
                 type="button"
                 onClick={handleDeleteConfirm}
               >

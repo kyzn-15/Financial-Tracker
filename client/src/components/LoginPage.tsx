@@ -125,13 +125,13 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
         {step === 'username' ? (
           <form className="login-form" onSubmit={handleUsernameSubmit}>
-            <label className="neo-label" htmlFor="login-username">
+            <label className="clay-label" htmlFor="login-username">
               Username
             </label>
             <input
               ref={usernameInputRef}
               id="login-username"
-              className="neo-input login-input"
+              className="clay-input login-input"
               type="text"
               value={username}
               autoComplete="username"
@@ -145,19 +145,19 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
             {error && <p className="login-error">{error}</p>}
 
-            <button className="neo-btn neo-btn--primary neo-btn--full" type="submit">
+            <button className="clay-btn clay-btn--primary clay-btn--full" type="submit">
               Continue
             </button>
           </form>
         ) : (
           <form className="login-form" onSubmit={handlePinSubmit}>
-            <label className="neo-label" htmlFor="login-pin">
+            <label className="clay-label" htmlFor="login-pin">
               PIN
             </label>
             <input
               ref={pinInputRef}
               id="login-pin"
-              className="neo-input login-input login-input--pin"
+              className="clay-input login-input login-input--pin"
               type="password"
               value={pin}
               inputMode="numeric"
@@ -181,14 +181,14 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
             <div className="login-actions">
               <button
-                className="neo-btn neo-btn--secondary"
+                className="clay-btn clay-btn--secondary"
                 type="button"
                 onClick={handleBack}
                 disabled={isSubmitting}
               >
                 Back
               </button>
-              <button className="neo-btn neo-btn--primary" type="submit" disabled={pin.length !== 6 || isSubmitting}>
+              <button className="clay-btn clay-btn--primary" type="submit" disabled={pin.length !== 6 || isSubmitting}>
                 {isSubmitting ? 'Checking...' : 'Unlock'}
               </button>
             </div>

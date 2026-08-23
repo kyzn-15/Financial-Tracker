@@ -135,12 +135,12 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
         </div>
       )}
 
-      <div className="neo-input-group">
-        <label className="neo-label" htmlFor="expense-name">Expense Name</label>
+      <div className="clay-input-group">
+        <label className="clay-label" htmlFor="expense-name">Expense Name</label>
         <input
           id="expense-name"
           type="text"
-          className="neo-input"
+          className="clay-input"
           placeholder="e.g. Nasi Goreng"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -149,11 +149,11 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
       </div>
 
       <div className="expense-form__row">
-        <div className="neo-input-group">
-          <label className="neo-label" htmlFor="expense-category">Category</label>
+        <div className="clay-input-group">
+          <label className="clay-label" htmlFor="expense-category">Category</label>
           <select
             id="expense-category"
-            className="neo-select"
+            className="clay-select"
             value={category}
             onChange={(e) => handleCategoryChange(e.target.value)}
             required
@@ -167,8 +167,8 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
           </select>
         </div>
 
-        <div className="neo-input-group">
-          <label className="neo-label">Currency</label>
+        <div className="clay-input-group">
+          <label className="clay-label">Currency</label>
           <div className="currency-toggle">
             <button
               type="button"
@@ -206,11 +206,11 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
             </label>
           </div>
           {recurrenceEnabled && (
-            <div className="neo-input-group">
-              <label className="neo-label" htmlFor="expense-recurrence-frequency">Repeat every</label>
+            <div className="clay-input-group">
+              <label className="clay-label" htmlFor="expense-recurrence-frequency">Repeat every</label>
               <select
                 id="expense-recurrence-frequency"
-                className="neo-select"
+                className="clay-select"
                 value={recurrenceFrequency}
                 onChange={(event) => setRecurrenceFrequency(event.target.value === 'daily' || event.target.value === 'weekly' ? event.target.value : 'monthly')}
               >
@@ -228,13 +228,13 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
         <p className="expense-recurrence__notice"><AppIcon name="refresh" size={15} /> This edit affects this occurrence only. Change future payments in Settings.</p>
       )}
 
-      <div className="neo-input-group">
-        <label className="neo-label" htmlFor="expense-price">Price ({currency})</label>
+      <div className="clay-input-group">
+        <label className="clay-label" htmlFor="expense-price">Price ({currency})</label>
         <input
           id="expense-price"
           type="number"
           step="0.01"
-          className="neo-input"
+          className="clay-input"
           placeholder="0.00"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
@@ -242,8 +242,8 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
         />
       </div>
 
-      <div className="neo-input-group">
-        <label className="neo-label">Date / Time</label>
+      <div className="clay-input-group">
+        <label className="clay-label">Date / Time</label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: 'var(--font-size-sm)' }}>
             <input
@@ -258,7 +258,7 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
           {!useCurrentTime && (
             <input
               type="datetime-local"
-              className="neo-input"
+              className="clay-input"
               value={customDateTime}
               onChange={(e) => setCustomDateTime(e.target.value)}
               required={!useCurrentTime}
@@ -270,7 +270,7 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
       <div className="expense-form__actions">
         <button
           type="submit"
-          className="neo-btn neo-btn--primary neo-btn--full"
+          className="clay-btn clay-btn--primary clay-btn--full"
           disabled={submitting}
         >
           {submitting ? 'Processing...' : submitText}
@@ -279,7 +279,7 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
         {isCancelable && onCancel && (
           <button
             type="button"
-            className="neo-btn neo-btn--secondary"
+            className="clay-btn clay-btn--secondary"
             onClick={onCancel}
             disabled={submitting}
           >

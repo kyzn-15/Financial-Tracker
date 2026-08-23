@@ -39,7 +39,7 @@ export default function BackupSettings({ preferences, onSaveInterval, onResetLas
     if (preferences) setSelectedInterval(preferences.reminder_interval_days);
   }, [preferences]);
 
-  if (!preferences) return <div className="backup-settings neo-card">Loading backup settings...</div>;
+  if (!preferences) return <div className="backup-settings clay-card">Loading backup settings...</div>;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -61,7 +61,7 @@ export default function BackupSettings({ preferences, onSaveInterval, onResetLas
   };
 
   return (
-    <section className="backup-settings neo-card" aria-labelledby="backup-settings-title">
+    <section className="backup-settings clay-card" aria-labelledby="backup-settings-title">
       <div className="backup-settings__heading">
         <p className="login-kicker">Data protection</p>
         <h3 id="backup-settings-title">Database backup reminder</h3>
@@ -74,10 +74,10 @@ export default function BackupSettings({ preferences, onSaveInterval, onResetLas
       </div>
 
       <form className="backup-settings__form" onSubmit={handleSubmit}>
-        <label className="neo-label" htmlFor="backup-reminder-interval">Remind me</label>
+        <label className="clay-label" htmlFor="backup-reminder-interval">Remind me</label>
         <select
           id="backup-reminder-interval"
-          className="neo-select"
+          className="clay-select"
           value={selectedInterval}
           onChange={(event) => setSelectedInterval(Number(event.target.value))}
           disabled={isSaving}
@@ -87,10 +87,10 @@ export default function BackupSettings({ preferences, onSaveInterval, onResetLas
           ))}
         </select>
         <div className="backup-settings__actions">
-          <button className="neo-btn neo-btn--primary" type="submit" disabled={isSaving}>
+          <button className="clay-btn clay-btn--primary" type="submit" disabled={isSaving}>
             {isSaving ? 'Saving...' : 'Save reminder'}
           </button>
-          <button className="neo-btn neo-btn--danger" type="button" onClick={handleReset} disabled={isSaving || !preferences.last_backup_at}>
+          <button className="clay-btn clay-btn--danger" type="button" onClick={handleReset} disabled={isSaving || !preferences.last_backup_at}>
             Clear last backup date
           </button>
         </div>
