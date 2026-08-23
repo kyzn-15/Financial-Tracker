@@ -15,13 +15,13 @@ export function getChartTheme(): ChartTheme {
   const isDark = document.documentElement.dataset.theme === 'dark';
 
   return {
-    accent: value('--accent', '#4a8bc2'),
-    success: value('--success', '#4fe2a1'),
-    danger: value('--danger', '#d3182d'),
-    info: value('--info', '#74b9ff'),
-    surface: value('--bg', '#ecf0f3'),
-    text: value('--text-secondary', '#636e72'),
-    grid: isDark ? 'rgba(188, 198, 207, 0.16)' : 'rgba(163, 177, 198, 0.2)',
-    accentFill: isDark ? 'rgba(105, 174, 228, 0.16)' : 'rgba(74, 139, 194, 0.1)',
+    accent: value('--accent', '#3d55ee'),
+    success: value('--success', '#10b981'),
+    danger: value('--danger', '#ef4444'),
+    info: value('--info', '#06b6d4'),
+    surface: value('--surface-raised', '#ffffff'),
+    text: value('--text-secondary', '#51617a'),
+    grid: isDark ? 'rgba(170, 182, 203, 0.13)' : 'rgba(81, 97, 122, 0.14)',
+    accentFill: isDark ? 'rgba(128, 149, 245, 0.18)' : 'rgba(61, 85, 238, 0.12)',
   };
 }

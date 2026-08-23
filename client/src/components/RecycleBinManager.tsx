@@ -109,7 +109,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
         <div className="recycle-item__actions">
           <button
             type="button"
-            className="clay-btn clay-btn--secondary clay-btn--sm"
+            className="clay-btn clay-btn--primary clay-btn--sm"
             onClick={() => handleRestore('expense', expense.id, expense.name)}
             disabled={busy || busyKey}
           >
@@ -152,7 +152,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
         <div className="recycle-item__actions">
           <button
             type="button"
-            className="clay-btn clay-btn--secondary clay-btn--sm"
+            className="clay-btn clay-btn--primary clay-btn--sm"
             onClick={() => handleRestore('receipt', receipt.id, 'receipt')}
             disabled={busy || busyKey}
           >
@@ -175,8 +175,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
     <section className="recycle-bin clay-card" aria-labelledby="recycle-bin-title">
       <div className="settings-section-heading">
         <div>
-          <h3 id="recycle-bin-title">Recycle Bin</h3>
-          <p>
+          <h3 id="recycle-bin-title">Recycle Bin</h3>          <p>
             Deleted expenses and receipts are kept for {retentionDays} days, then permanently deleted automatically.
           </p>
         </div>

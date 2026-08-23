@@ -67,8 +67,8 @@ export default function Header({ exchangeRate, activeTab, currency, onCurrencyCh
               <span className="rate-value">{rateDisplay}</span>
               <span>IDR</span>
             </span>
+            <span className="header__time">{time} · UTC+8</span>
           </div>
-          <div className="header__time">{time} (UTC+8)</div>
           <button className="header__logout-btn" type="button" onClick={onLogout} disabled={isLoggingOut} title="End this secure session">
             <span className="header__logout-icon"><AppIcon name="logout" size={13} /></span>
             <span>{isLoggingOut ? 'Logging out' : 'Logout'}</span>

@@ -19,7 +19,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       
       <nav className="sidebar__nav">
         <button
-          className={`sidebar__nav-item ${activeTab === 'add' ? 'sidebar__nav-item--active' : ''}`}
+          className={`sidebar__nav-item sidebar__nav-item--cta ${activeTab === 'add' ? 'sidebar__nav-item--active' : ''}`}
           onClick={() => setActiveTab('add')}
         >
           <span className="sidebar__nav-icon"><AppIcon name="plus" /></span>

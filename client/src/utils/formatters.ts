@@ -71,12 +71,13 @@ export function formatDate(isoString: string | null | undefined): string {
 }
 
 /**
- * Chart color palette
+ * Chart color palette (fintech claymorphism)
+ * Blue → Violet → Emerald → Amber → Cyan → Coral, plus lighter tints.
  */
 export const CHART_COLORS = [
-  '#4a8bc2', '#4fe2a1', '#d3182d', '#74b9ff',
-  '#fdcb6e', '#587aa3', '#8abbb2', '#d8a8a1',
-  '#8dbec4', '#d9c88f', '#b9c5d1', '#687786',
-  '#b96f75',
+  '#3d55ee', '#8b5cf6', '#10b981', '#f59e0b',
+  '#06b6d4', '#ef4444', '#8095f5', '#a78bfa',
+  '#34d399', '#fbbf24', '#22d3ee', '#f87171',
+  '#6366f1',
 ];
 import type { Currency, NumericValue } from '../types';

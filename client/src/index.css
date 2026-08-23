@@ -1,47 +1,70 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ========================================
-   CLAYMORPHISM DESIGN SYSTEM
+   CLAYMORPHISM DESIGN SYSTEM — COLORFUL FINTECH
    Soft molded surfaces, layered elevation,
-   rounded geometry, tactile motion.
+   rounded geometry, tactile motion, and a
+   controlled fintech palette.
    ======================================== */
 
 :root {
-  /* ---- Base Palette ---- */
-  --bg:             #e9edf3;
-  --bg-alt:         #dfe5ee;
-  --surface:        #eef1f7;
-  --surface-raised: #f8fafd;
-  --surface-hover:  #eff3f9;
-  --surface-deep:   #dbe2ec;
+  /* ---- Neutral Foundation (soft blue-tinted) ---- */
+  /* --bg-alt = page background (sidebar area) · --bg = content panel */
+  --bg:             #eef2f8;
+  --bg-alt:         #e2e8f2;
+  --surface:        #e9edf5;
+  --surface-raised: #ffffff;
+  --surface-hover:  #f1f5fa;
+  --surface-deep:   #dbe2ee;
 
   /* ---- Legacy tone aliases (shimmer/scrollbar accents) ---- */
   --tone-light:     #ffffff;
-  --tone-mid:       #c9d3e2;
-  --tone-deep:      #aebccd;
+  --tone-mid:       #c7d2e3;
+  --tone-deep:      #a9bacd;
 
   /* ---- Borders ---- */
-  --border:         rgba(148, 163, 190, 0.28);
-  --border-strong:  rgba(148, 163, 190, 0.45);
+  --border:         rgba(148, 163, 190, 0.25);
+  --border-strong:  rgba(148, 163, 190, 0.42);
 
-  /* ---- Accent Colors (Soft navy and complementary tones) ---- */
-  --accent:         rgb(74, 139, 194);
-  --accent-rgb:     74, 139, 194;
-  --accent-hover:   #3f7eb4;
-  --accent-glow:    rgba(74, 139, 194, 0.28);
-  --accent-soft:    rgba(74, 139, 194, 0.10);
-  --success:        rgb(34, 173, 116);
-  --success-soft:   rgba(34, 173, 116, 0.14);
-  --danger:         rgb(206, 32, 55);
-  --danger-rgb:     211, 24, 45;
-  --danger-soft:    rgba(211, 24, 45, 0.12);
-  --warning:        #e0a63f;
-  --info:           #74b9ff;
+  /* ---- Primary Brand — Indigo ---- */
+  --accent:         #3d55ee;
+  --accent-rgb:     61, 85, 238;
+  --accent-strong:  #3043cf;
+  --accent-light:   #8095f5;
+  --accent-soft:    rgba(61, 85, 238, 0.10);
+  --accent-glow:    rgba(61, 85, 238, 0.22);
+
+  /* ---- Secondary Accent — Violet ---- */
+  --violet:         #8b5cf6;
+  --violet-rgb:     139, 92, 246;
+  --violet-strong:  #7c3aed;
+  --violet-soft:    rgba(139, 92, 246, 0.12);
+
+  /* ---- Semantic Financial Colors ---- */
+  --success:        #10b981;
+  --success-rgb:    16, 185, 129;
+  --success-strong: #059669;
+  --success-soft:   rgba(16, 185, 129, 0.12);
+
+  --warning:        #f59e0b;
+  --warning-rgb:    245, 158, 11;
+  --warning-strong: #b45309;
+  --warning-soft:   rgba(245, 158, 11, 0.14);
+
+  --danger:         #ef4444;
+  --danger-rgb:     239, 68, 68;
+  --danger-strong:  #dc2626;
+  --danger-soft:    rgba(239, 68, 68, 0.10);
+
+  --info:           #06b6d4;
+  --info-rgb:       6, 182, 212;
+  --info-strong:    #0e7490;
+  --info-soft:      rgba(6, 182, 212, 0.12);
 
   /* ---- Text ---- */
-  --text-primary:   #262c36;
-  --text-secondary: #5b6672;
-  --text-muted:     #8b97a6;
+  --text-primary:   #1f2a37;
+  --text-secondary: #51617a;
+  --text-muted:     #8a97ab;
   --text-inverse:   #ffffff;
 
   /* ---- Border Radius (Clay scale) ---- */
@@ -52,6 +75,7 @@
   --radius-lg:      22px;
   --radius-xl:      28px;
   --radius-hero:    32px;
+  --radius-panel:   36px;
   --radius-full:    9999px;
 
   /* ---- Spacing Scale ---- */
@@ -62,40 +86,60 @@
   --space-xl:       32px;
   --space-2xl:      48px;
 
-  /* ---- Clay Elevation System ---- */
-  /* Each level: soft ambient drop shadow below + inner top highlight,
-     so components feel like molded pieces resting ON the surface. */
+  /* ---- Clay Elevation System (soft + diffuse) ---- */
   --clay-sm:
-    0 1px 2px rgba(49, 69, 104, 0.08),
-    0 4px 10px -2px rgba(49, 69, 104, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    inset 0 -2px 4px rgba(163, 177, 204, 0.10);
+    0 1px 2px rgba(30, 42, 80, 0.05),
+    0 4px 14px -2px rgba(30, 42, 80, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.80),
+    inset 0 -2px 4px rgba(148, 163, 190, 0.07);
   --clay-md:
-    0 2px 3px rgba(49, 69, 104, 0.06),
-    0 14px 28px -10px rgba(49, 69, 104, 0.18),
-    inset 0 2px 0 rgba(255, 255, 255, 0.90),
-    inset 0 -4px 8px rgba(163, 177, 204, 0.12);
+    0 2px 3px rgba(30, 42, 80, 0.04),
+    0 16px 36px -12px rgba(30, 42, 80, 0.14),
+    inset 0 2px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -4px 8px rgba(148, 163, 190, 0.08);
   --clay-lg:
-    0 3px 4px rgba(49, 69, 104, 0.06),
-    0 26px 48px -16px rgba(49, 69, 104, 0.24),
-    inset 0 2px 0 rgba(255, 255, 255, 0.92),
-    inset 0 -6px 14px rgba(163, 177, 204, 0.14);
+    0 3px 4px rgba(30, 42, 80, 0.04),
+    0 28px 56px -18px rgba(30, 42, 80, 0.18),
+    inset 0 2px 0 rgba(255, 255, 255, 0.88),
+    inset 0 -6px 14px rgba(148, 163, 190, 0.10);
   --clay-floating:
-    0 6px 10px -4px rgba(30, 44, 74, 0.10),
-    0 36px 72px -20px rgba(30, 44, 74, 0.30),
-    inset 0 2px 0 rgba(255, 255, 255, 0.95);
+    0 6px 10px -4px rgba(22, 32, 62, 0.07),
+    0 40px 80px -24px rgba(22, 32, 62, 0.26),
+    inset 0 2px 0 rgba(255, 255, 255, 0.90);
   --clay-pressed:
-    inset 0 2px 5px rgba(49, 69, 104, 0.16),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.60);
+    inset 0 2px 5px rgba(30, 42, 80, 0.13),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.65);
+  --clay-inset:
+    inset 2px 3px 6px rgba(30, 42, 80, 0.10),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.70);
+
+  /* ---- Tinted Clay Surfaces (5–15% color influence) ---- */
+  --clay-blue-surface:   linear-gradient(150deg, #eff4ff 0%, #e0e8fe 100%);
+  --clay-blue-border:    rgba(61, 85, 238, 0.20);
+  --clay-violet-surface: linear-gradient(150deg, #f7f4ff 0%, #ebe3fe 100%);
+  --clay-violet-border:  rgba(139, 92, 246, 0.22);
+  --clay-green-surface:  linear-gradient(150deg, #effcf6 0%, #daf3e8 100%);
+  --clay-green-border:   rgba(16, 185, 129, 0.24);
+  --clay-amber-surface:  linear-gradient(150deg, #fffbeb 0%, #fdf0cd 100%);
+  --clay-amber-border:   rgba(245, 158, 11, 0.28);
+  --clay-cyan-surface:   linear-gradient(150deg, #ecfeff 0%, #d3f3f8 100%);
+  --clay-cyan-border:    rgba(6, 182, 212, 0.24);
+  --clay-danger-surface: linear-gradient(150deg, #fff5f5 0%, #ffe3e3 100%);
+  --clay-danger-border:  rgba(239, 68, 68, 0.22);
+
+  /* ---- Hero Card (Monthly Total centerpiece) ---- */
+  --hero-gradient:   linear-gradient(150deg, #6478f4 0%, #3d55ee 45%, #2c40d8 100%);
+  --hero-inner-bg:     rgba(18, 28, 116, 0.16);
+  --hero-inner-border: rgba(255, 255, 255, 0.18);
 
   /* ---- Clay Accents ---- */
   --clay-highlight: rgba(255, 255, 255, 0.85);
-  --clay-blob:      rgba(255, 255, 255, 0.55);
-  --overlay-bg:     rgba(216, 224, 236, 0.62);
-  --shadow-nav:     -28px 0 56px -30px rgba(53, 73, 110, 0.28);
-  --shadow-nav-mobile: 0 -18px 40px -18px rgba(53, 73, 110, 0.30);
-  --glass-bg:       rgba(248, 250, 253, 0.82);
-  --glass-border:   1px solid rgba(255, 255, 255, 0.65);
+  --clay-blob:      rgba(61, 85, 238, 0.08);
+  --overlay-bg:     rgba(222, 230, 242, 0.62);
+  --shadow-nav:     -32px 0 64px -36px rgba(30, 42, 80, 0.28);
+  --shadow-nav-mobile: 0 -18px 40px -18px rgba(30, 42, 80, 0.28);
+  --glass-bg:       rgba(255, 255, 255, 0.80);
+  --glass-border:   1px solid rgba(255, 255, 255, 0.70);
 
   /* ---- Typography ---- */
   --font-family:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -117,67 +161,106 @@
 
 [data-theme='dark'] {
   color-scheme: dark;
-  --bg:             #20252b;
-  --bg-alt:         #181c21;
-  --surface:        #272e37;
-  --surface-raised: #2b333d;
-  --surface-hover:  #303945;
-  --surface-deep:   #161a20;
 
-  --tone-light:     #313a45;
-  --tone-mid:       #10141a;
-  --tone-deep:      #0b0e12;
+  /* ---- Neutral Foundation (deep blue-slate) ---- */
+  --bg:             #131a2b;
+  --bg-alt:         #0b101c;
+  --surface:        #212c42;
+  --surface-raised: #1b2436;
+  --surface-hover:  #232f47;
+  --surface-deep:   #10151f;
 
-  --border:         rgba(255, 255, 255, 0.07);
-  --border-strong:  rgba(255, 255, 255, 0.14);
+  --tone-light:     #303b4b;
+  --tone-mid:       #0d1118;
+  --tone-deep:      #090c11;
 
-  --accent:         #69aee4;
-  --accent-rgb:     105, 174, 228;
-  --accent-hover:   #83bdea;
-  --accent-glow:    rgba(105, 174, 228, 0.32);
-  --accent-soft:    rgba(105, 174, 228, 0.14);
-  --success:        #62e6ad;
-  --success-soft:   rgba(98, 230, 173, 0.14);
-  --danger:         #ff6675;
-  --danger-rgb:     255, 102, 117;
-  --danger-soft:    rgba(255, 102, 117, 0.14);
-  --warning:        #f4ca75;
-  --info:           #82c4f4;
-  --text-primary:   #edf2f7;
-  --text-secondary: #bcc6cf;
-  --text-muted:     #8f9ca7;
+  --border:         rgba(255, 255, 255, 0.06);
+  --border-strong:  rgba(255, 255, 255, 0.13);
+
+  /* ---- Primary — brightened for dark surfaces ---- */
+  --accent:         #8095f5;
+  --accent-rgb:     128, 149, 245;
+  --accent-strong:  #a5b3f8;
+  --accent-light:   #a5b3f8;
+  --accent-soft:    rgba(128, 149, 245, 0.14);
+  --accent-glow:    rgba(128, 149, 245, 0.26);
+
+  --violet:         #a78bfa;
+  --violet-rgb:     167, 139, 250;
+  --violet-strong:  #c4b5fd;
+  --violet-soft:    rgba(167, 139, 250, 0.16);
+
+  --success:        #34d399;
+  --success-rgb:    52, 211, 153;
+  --success-strong: #6ee7b7;
+  --success-soft:   rgba(52, 211, 153, 0.14);
+
+  --warning:        #fbbf24;
+  --warning-rgb:    251, 191, 36;
+  --warning-strong: #fcd34d;
+  --warning-soft:   rgba(251, 191, 36, 0.14);
+
+  --danger:         #f87171;
+  --danger-rgb:     248, 113, 113;
+  --danger-strong:  #fca5a5;
+  --danger-soft:    rgba(248, 113, 113, 0.13);
+
+  --info:           #22d3ee;
+  --info-rgb:       34, 211, 238;
+  --info-strong:    #67e8f9;
+  --info-soft:      rgba(34, 211, 238, 0.13);
+
+  --text-primary:   #e9eef8;
+  --text-secondary: #aab6cb;
+  --text-muted:     #76839b;
   --text-inverse:   #14202b;
 
   /* Dark clay elevation: deeper drops, faint top light */
   --clay-sm:
-    0 1px 2px rgba(0, 0, 0, 0.40),
-    0 4px 10px -2px rgba(0, 0, 0, 0.38),
+    0 1px 2px rgba(0, 0, 0, 0.38),
+    0 4px 14px -2px rgba(0, 0, 0, 0.36),
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
     inset 0 -2px 4px rgba(0, 0, 0, 0.18);
   --clay-md:
-    0 2px 3px rgba(0, 0, 0, 0.35),
-    0 14px 28px -10px rgba(0, 0, 0, 0.45),
-    inset 0 2px 0 rgba(255, 255, 255, 0.05),
-    inset 0 -4px 8px rgba(0, 0, 0, 0.22);
+    0 2px 3px rgba(0, 0, 0, 0.32),
+    0 16px 36px -12px rgba(0, 0, 0, 0.42),
+    inset 0 2px 0 rgba(255, 255, 255, 0.04),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.20);
   --clay-lg:
-    0 3px 4px rgba(0, 0, 0, 0.32),
-    0 26px 48px -16px rgba(0, 0, 0, 0.55),
-    inset 0 2px 0 rgba(255, 255, 255, 0.06),
-    inset 0 -6px 14px rgba(0, 0, 0, 0.26);
+    0 3px 4px rgba(0, 0, 0, 0.30),
+    0 28px 56px -18px rgba(0, 0, 0, 0.52),
+    inset 0 2px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -6px 14px rgba(0, 0, 0, 0.24);
   --clay-floating:
-    0 6px 10px -4px rgba(0, 0, 0, 0.45),
-    0 36px 72px -20px rgba(0, 0, 0, 0.62),
-    inset 0 2px 0 rgba(255, 255, 255, 0.07);
+    0 6px 10px -4px rgba(0, 0, 0, 0.42),
+    0 40px 80px -24px rgba(0, 0, 0, 0.60),
+    inset 0 2px 0 rgba(255, 255, 255, 0.06);
   --clay-pressed:
-    inset 0 2px 6px rgba(0, 0, 0, 0.50),
+    inset 0 2px 6px rgba(0, 0, 0, 0.48),
     inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+  --clay-inset:
+    inset 2px 3px 8px rgba(0, 0, 0, 0.45),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.03);
+
+  /* Dark tinted surfaces (color retained over deep slate) */
+  --clay-blue-surface:   linear-gradient(150deg, #232c4d 0%, #1c2340 100%);
+  --clay-violet-surface: linear-gradient(150deg, #292347 0%, #211d39 100%);
+  --clay-green-surface:  linear-gradient(150deg, #17342a 0%, #132b21 100%);
+  --clay-amber-surface:  linear-gradient(150deg, #332a12 0%, #2b2210 100%);
+  --clay-cyan-surface:   linear-gradient(150deg, #12333c 0%, #0f2a32 100%);
+  --clay-danger-surface: linear-gradient(150deg, #3a2029 0%, #321b23 100%);
+
+  /* Hero Card */
+  --hero-gradient:   linear-gradient(150deg, #4358e6 0%, #2e41cc 55%, #2533ad 100%);
+  --hero-inner-bg:     rgba(8, 12, 64, 0.30);
+  --hero-inner-border: rgba(255, 255, 255, 0.09);
 
   --clay-highlight: rgba(255, 255, 255, 0.07);
-  --clay-blob:      rgba(105, 174, 228, 0.09);
-  --overlay-bg:     rgba(10, 12, 15, 0.68);
-  --shadow-nav:     -28px 0 56px -30px rgba(0, 0, 0, 0.55);
+  --clay-blob:      rgba(128, 149, 245, 0.09);
+  --overlay-bg:     rgba(5, 8, 14, 0.68);
+  --shadow-nav:     -32px 0 64px -36px rgba(0, 0, 0, 0.55);
   --shadow-nav-mobile: 0 -18px 40px -18px rgba(0, 0, 0, 0.55);
-  --glass-bg:       rgba(43, 51, 61, 0.86);
+  --glass-bg:       rgba(27, 36, 54, 0.86);
   --glass-border:   1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -198,7 +281,7 @@ body {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
   color: var(--text-primary);
-  background: var(--bg);
+  background: var(--bg-alt);
   line-height: 1.6;
   min-height: 100vh;
   /* Prevent pull-to-refresh on mobile if it feels like an app */

@@ -48,7 +48,7 @@ interface SettingsSection {
   id: 'appearance' | 'categories' | 'recurring' | 'emergency' | 'backup' | 'recycle-bin' | 'security';
   name: string;
   icon: string;
-  tone?: 'danger';
+  accent: 'violet' | 'blue' | 'cyan' | 'green' | 'amber' | 'danger';
   description: string;
 }
 
@@ -67,6 +67,7 @@ const SETTINGS_GROUPS: SettingsGroup[] = [
         id: 'appearance',
         name: 'Appearance',
         icon: 'palette',
+        accent: 'violet',
         description: 'Switch between light and dark themes across FinTracker.',
       },
     ],
@@ -79,18 +80,21 @@ const SETTINGS_GROUPS: SettingsGroup[] = [
         id: 'categories',
         name: 'Expense Categories',
         icon: 'sliders-horizontal',
+        accent: 'blue',
         description: 'Add, rename, reorder, and automate expense categories.',
       },
       {
         id: 'recurring',
         name: 'Recurring Payments',
         icon: 'refresh',
+        accent: 'cyan',
         description: 'Review, pause, edit, or cancel automated recurring expenses.',
       },
       {
         id: 'emergency',
         name: 'Emergency Fund',
         icon: 'piggy-bank',
+        accent: 'green',
         description: 'Configure savings, reserved funds, targets, and essential categories.',
       },
     ],
@@ -103,19 +107,21 @@ const SETTINGS_GROUPS: SettingsGroup[] = [
         id: 'backup',
         name: 'Backup & Export',
         icon: 'database',
+        accent: 'violet',
         description: 'Set backup reminders and track your most recent export.',
       },
       {
         id: 'recycle-bin',
         name: 'Recycle Bin',
         icon: 'trash',
+        accent: 'amber',
         description: 'Restore or permanently remove deleted expenses and receipts within 7 days.',
       },
       {
         id: 'security',
         name: 'Security & Reset',
         icon: 'shield-check',
-        tone: 'danger',
+        accent: 'danger',
         description: 'Permanently erase all app data behind PIN confirmation.',
       },
     ],
@@ -237,12 +243,10 @@ const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>
               <button
                 key={section.id}
                 type="button"
-                className="settings-category"
+                className={`settings-category settings-category--${section.accent}`}
                 onClick={() => openSection(section.id)}
               >
-                <span
-                  className={`settings-category__icon ${section.tone ? `settings-category__icon--${section.tone}` : ''}`}
-                >
+                <span className="settings-category__icon">
                   <AppIcon name={section.icon} size={20} />
                 </span>
                 <span className="settings-category__content">
@@ -273,7 +277,7 @@ const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>
     switch (section.id) {
       case 'appearance':
         return (
-          <section className="theme-settings clay-card" aria-labelledby="appearance-settings-title">
+          <section className="theme-settings clay-card clay-card--violet" aria-labelledby="appearance-settings-title">
             <div className="settings-section-heading">
               <div>
                 <h3 id="appearance-settings-title">Theme</h3>
