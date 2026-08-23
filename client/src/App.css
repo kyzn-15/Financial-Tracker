@@ -49,21 +49,21 @@
 }
 
 .login-brand {
-  width: 64px;
-  height: 64px;
+  width: clamp(52px, 14vw, 64px);
+  height: clamp(52px, 14vw, 64px);
   display: grid;
   place-items: center;
   margin-bottom: var(--space-xl);
   border-radius: var(--radius-lg);
-  background: var(--accent);
+  background: var(--bg);
   box-shadow: var(--neo-out-sm);
-  color: var(--text-inverse);
 }
 
-.login-brand__mark {
-  font-size: var(--font-size-lg);
-  font-weight: 800;
-  letter-spacing: 0;
+.brand-logo {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+  display: block;
 }
 
 .login-copy {
@@ -899,15 +899,14 @@
 }
 
 .sidebar__icon {
-  width: 48px;
-  height: 48px;
+  width: clamp(40px, 11vw, 48px);
+  height: clamp(40px, 11vw, 48px);
   border-radius: var(--radius);
-  background: var(--accent);
+  background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: var(--neo-out-sm);
-  font-size: 1.5rem;
 }
 
 .sidebar__title {

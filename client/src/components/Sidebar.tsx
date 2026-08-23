@@ -1,4 +1,5 @@
 import AppIcon from './AppIcon';
+import appLogo from '../assets/logo.svg';
 import type { AppTab } from '../types';
 
 interface SidebarProps {
@@ -10,7 +11,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   return (
     <aside className="sidebar">
       <div className="sidebar__brand">
-        <div className="sidebar__icon"><AppIcon name="wallet" size={24} /></div>
+        <div className="sidebar__icon"><img src={appLogo} alt="" className="brand-logo" /></div>
         <div>
           <h1 className="sidebar__title">FinTracker</h1>
           <p className="sidebar__subtitle">Personal Manager</p>
