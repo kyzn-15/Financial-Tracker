@@ -61,7 +61,7 @@ export function CategoryGrowthCard({ growth, formatCurrency }: { growth: Categor
   }
 
   return (
-    <div className="analytics-card">
+    <div className="analytics-card analytics-card--growth">
       <div className="analytics-card__header">
         <h3>Category Growth</h3>
         <span className="analytics-card__eyebrow">{growth.isNew ? 'New' : 'Highest increase'}</span>
@@ -95,7 +95,7 @@ export function LargestPurchaseCard({ purchase, formatCurrency }: { purchase: La
   }
 
   return (
-    <div className="analytics-card">
+    <div className="analytics-card analytics-card--purchase">
       <div className="analytics-card__header">
         <h3>Largest Purchase</h3>
         <span className="analytics-card__eyebrow">All time</span>

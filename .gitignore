@@ -4,3 +4,4 @@ server/db/*.test.db-shm
 server/db/*.test.db-wal
 /node_modules
 *.log
+design/

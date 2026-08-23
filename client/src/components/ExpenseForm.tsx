@@ -130,7 +130,7 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
   return (
     <form className="expense-form" onSubmit={handleSubmit}>
       {validationError && (
-        <div style={{ color: 'var(--danger)', fontSize: 'var(--font-size-sm)', fontWeight: 'bold' }}>
+        <div className="expense-form__error">
           <AppIcon name="alert" size={17} /> {validationError}
         </div>
       )}

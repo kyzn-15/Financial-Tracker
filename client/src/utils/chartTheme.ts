@@ -3,6 +3,9 @@ export interface ChartTheme {
   success: string;
   danger: string;
   info: string;
+  warning: string;
+  purple: string;
+  ink: string;
   surface: string;
   text: string;
   grid: string;
@@ -15,13 +18,16 @@ export function getChartTheme(): ChartTheme {
   const isDark = document.documentElement.dataset.theme === 'dark';
 
   return {
-    accent: value('--accent', '#4a8bc2'),
-    success: value('--success', '#4fe2a1'),
-    danger: value('--danger', '#d3182d'),
-    info: value('--info', '#74b9ff'),
-    surface: value('--bg', '#ecf0f3'),
-    text: value('--text-secondary', '#636e72'),
-    grid: isDark ? 'rgba(188, 198, 207, 0.16)' : 'rgba(163, 177, 198, 0.2)',
-    accentFill: isDark ? 'rgba(105, 174, 228, 0.16)' : 'rgba(74, 139, 194, 0.1)',
+    accent: value('--accent', '#FFAA5C'),
+    success: value('--success', '#7BE495'),
+    danger: value('--danger', '#FF7A7A'),
+    info: value('--info', '#72B7FF'),
+    warning: value('--warning', '#FFD95A'),
+    purple: value('--purple-accent', '#B69CFF'),
+    ink: value('--ink', '#171717'),
+    surface: isDark ? '#23211A' : '#FFFFFF',
+    text: value('--text-secondary', '#555043'),
+    grid: isDark ? 'rgba(245, 239, 220, 0.18)' : 'rgba(23, 23, 23, 0.16)',
+    accentFill: isDark ? 'rgba(255, 170, 92, 0.22)' : 'rgba(255, 170, 92, 0.18)',
   };
 }

@@ -50,16 +50,16 @@ export default function TrendChart({ trend, currency = 'MYR', myrToIdr = 4500 }:
         fill: true,
         tension: 0.3,
         pointBackgroundColor: chartTheme.accent,
-        pointBorderColor: chartTheme.surface,
+        pointBorderColor: chartTheme.ink,
         pointBorderWidth: 2,
-        pointRadius: 3,
-        pointHoverRadius: 6,
+        pointRadius: 4,
+        pointHoverRadius: 7,
       },
       {
         label: 'Average daily spending',
         data: points.map(() => convertMyrAmount(average, currency, myrToIdr)),
-        borderColor: chartTheme.success,
-        borderDash: [6, 6],
+        borderColor: '#1d7a44',
+        borderDash: [7, 5],
         borderWidth: 2,
         pointRadius: 0,
       },
@@ -69,10 +69,10 @@ export default function TrendChart({ trend, currency = 'MYR', myrToIdr = 4500 }:
         borderColor: 'transparent',
         backgroundColor: chartTheme.danger,
         pointBackgroundColor: chartTheme.danger,
-        pointBorderColor: chartTheme.surface,
-        pointBorderWidth: 2,
-        pointRadius: 7,
-        pointHoverRadius: 8,
+        pointBorderColor: chartTheme.ink,
+        pointBorderWidth: 2.5,
+        pointRadius: 8,
+        pointHoverRadius: 9,
         showLine: false,
       },
       {
@@ -81,10 +81,10 @@ export default function TrendChart({ trend, currency = 'MYR', myrToIdr = 4500 }:
         borderColor: 'transparent',
         backgroundColor: chartTheme.info,
         pointBackgroundColor: chartTheme.info,
-        pointBorderColor: chartTheme.surface,
-        pointBorderWidth: 2,
-        pointRadius: 7,
-        pointHoverRadius: 8,
+        pointBorderColor: chartTheme.ink,
+        pointBorderWidth: 2.5,
+        pointRadius: 8,
+        pointHoverRadius: 9,
         showLine: false,
       },
     ],
@@ -96,9 +96,13 @@ export default function TrendChart({ trend, currency = 'MYR', myrToIdr = 4500 }:
     interaction: { mode: 'index', intersect: false },
     plugins: {
       legend: {
-        labels: { color: chartTheme.text, font: { family: 'Inter', size: 10 }, usePointStyle: true },
+        labels: { color: chartTheme.text, font: { family: 'Space Grotesk', size: 10, weight: 600 }, usePointStyle: true },
       },
       tooltip: {
+        backgroundColor: '#171717',
+        titleFont: { family: 'Space Grotesk', weight: 700 },
+        bodyFont: { family: 'Inter', weight: 600 },
+        cornerRadius: 4,
         filter: (context) => context.datasetIndex === 0,
         callbacks: {
           title: (contexts) => formatDate(`${points[contexts[0].dataIndex].date}T00:00:00+08:00`),
@@ -110,17 +114,18 @@ export default function TrendChart({ trend, currency = 'MYR', myrToIdr = 4500 }:
       },
     },
     scales: {
-      x: { grid: { display: false }, ticks: { color: chartTheme.text, font: { family: 'Inter', size: 10 }, maxTicksLimit: 8 } },
+      x: { grid: { display: false }, border: { color: chartTheme.ink, width: 2 }, ticks: { color: chartTheme.text, font: { family: 'Space Grotesk', size: 10, weight: 600 }, maxTicksLimit: 8 } },
       y: {
         grid: { color: chartTheme.grid },
+        border: { color: chartTheme.ink, width: 2 },
         ticks: {
           color: chartTheme.text,
-          font: { family: 'Inter', size: 10 },
+          font: { family: 'Space Grotesk', size: 10, weight: 600 },
           callback: (value) => isMYR ? `RM${value}` : `Rp${Number(value).toLocaleString('id-ID')}`,
         },
       },
     },
-  }), [chartTheme.grid, chartTheme.text, formatDisplayed, isMYR, points]);
+  }), [chartTheme.grid, chartTheme.ink, chartTheme.text, formatDisplayed, isMYR, points]);
 
   const hasTransactions = points.some((point) => point.transactions > 0);
 

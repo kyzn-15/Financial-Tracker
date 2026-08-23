@@ -579,8 +579,8 @@ function Analytics({ summary, planMonths, currency, myrToIdr, formatAmount }: An
     datasets: [{
       data: [convertMyrAmount(essentialVsNon.essential_myr, currency, myrToIdr), convertMyrAmount(essentialVsNon.non_essential_myr, currency, myrToIdr)],
       backgroundColor: [chartTheme.success, chartTheme.danger],
-      borderColor: chartTheme.surface,
-      borderWidth: 2,
+      borderColor: chartTheme.ink,
+      borderWidth: 3,
     }],
   };
 
@@ -589,30 +589,34 @@ function Analytics({ summary, planMonths, currency, myrToIdr, formatAmount }: An
     datasets: [{
       label: 'Coverage Months',
       data: trendValues,
-      borderColor: chartTheme.accent,
+      borderColor: chartTheme.purple,
       backgroundColor: chartTheme.accentFill,
       borderWidth: 3,
       fill: true,
       tension: 0.3,
-      pointBackgroundColor: chartTheme.accent,
+      pointBackgroundColor: chartTheme.purple,
+      pointBorderColor: chartTheme.ink,
+      pointBorderWidth: 2,
+      pointRadius: 4,
     }],
   };
 
   const pieOptions: ChartOptions<'doughnut'> = {
     responsive: true,
     maintainAspectRatio: false,
+    cutout: '52%',
     plugins: {
-      legend: { position: 'bottom', labels: { color: chartTheme.text } },
-      tooltip: { callbacks: { label: (context) => `${context.label}: ${formatAmount(context.parsed)}` } },
+      legend: { position: 'bottom', labels: { color: chartTheme.text, font: { family: 'Space Grotesk', weight: 600 }, boxWidth: 14, boxHeight: 14 } },
+      tooltip: { backgroundColor: '#171717', titleFont: { family: 'Space Grotesk', weight: 700 }, bodyFont: { family: 'Inter', weight: 600 }, cornerRadius: 4, callbacks: { label: (context) => `${context.label}: ${formatAmount(context.parsed)}` } },
     },
   };
   const lineOptions: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { position: 'bottom', labels: { color: chartTheme.text } } },
+    plugins: { legend: { position: 'bottom', labels: { color: chartTheme.text, font: { family: 'Space Grotesk', weight: 600 } } } },
     scales: {
-      x: { grid: { color: chartTheme.grid }, ticks: { color: chartTheme.text } },
-      y: { grid: { color: chartTheme.grid }, ticks: { color: chartTheme.text } },
+      x: { grid: { color: chartTheme.grid }, border: { color: chartTheme.ink, width: 2 }, ticks: { color: chartTheme.text } },
+      y: { grid: { color: chartTheme.grid }, border: { color: chartTheme.ink, width: 2 }, ticks: { color: chartTheme.text } },
     },
   };
 

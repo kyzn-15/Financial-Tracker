@@ -32,27 +32,30 @@ export default function CategoryChart({ data = [], currency = 'MYR', myrToIdr = 
     datasets: [{
       data: displayCategories.map((item) => item.displayTotal),
       backgroundColor: CHART_COLORS.slice(0, Math.max(displayCategories.length, 1)),
-      borderWidth: 2,
-      borderColor: chartTheme.surface,
-      hoverOffset: 4,
+      borderWidth: 3,
+      borderColor: chartTheme.ink,
+      hoverOffset: 10,
     }],
-  }), [chartTheme.surface, displayCategories]);
+  }), [chartTheme.ink, displayCategories]);
 
   const options = useMemo<ChartOptions<'doughnut'>>(() => ({
     responsive: true,
     maintainAspectRatio: false,
+    cutout: '52%',
     plugins: {
       legend: {
         position: 'bottom',
         labels: {
           color: chartTheme.text,
-          font: { family: 'Inter', size: 11, weight: 500 },
+          font: { family: 'Space Grotesk', size: 11, weight: 600 },
           padding: 12,
+          boxWidth: 14,
+          boxHeight: 14,
           generateLabels: () => displayCategories.map((item, index) => {
             return {
               text: `${item.category} · ${formatCurrency(item.total)} · ${item.percentage.toFixed(1)}%`,
               fillStyle: CHART_COLORS[index % CHART_COLORS.length],
-              strokeStyle: chartTheme.surface,
+              strokeStyle: chartTheme.ink,
               fontColor: chartTheme.text,
               lineWidth: 2,
               index,
@@ -61,6 +64,10 @@ export default function CategoryChart({ data = [], currency = 'MYR', myrToIdr = 
         },
       },
       tooltip: {
+        backgroundColor: '#171717',
+        titleFont: { family: 'Space Grotesk', weight: 700 },
+        bodyFont: { family: 'Inter', weight: 600 },
+        cornerRadius: 4,
         callbacks: {
           label: (context) => {
             const item = displayCategories[context.dataIndex];
@@ -69,7 +76,7 @@ export default function CategoryChart({ data = [], currency = 'MYR', myrToIdr = 
         },
       },
     },
-  }), [chartTheme.surface, chartTheme.text, displayCategories, formatCurrency]);
+  }), [chartTheme.ink, chartTheme.text, displayCategories, formatCurrency]);
 
   return (
     <div className="chart-card">

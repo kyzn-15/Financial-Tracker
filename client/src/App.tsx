@@ -529,13 +529,13 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
 
         {/* API Error Toast */}
         {error && (
-          <div style={{ color: 'var(--danger)', padding: '16px', background: 'var(--danger-soft)', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 'bold' }}>
+          <div className="app-error-banner">
             <AppIcon name="alert" size={18} /> Error fetching data: {error}
           </div>
         )}
 
         {activeTab === 'receipts' && receiptsError && (
-          <div style={{ color: 'var(--danger)', padding: '16px', background: 'var(--danger-soft)', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 'bold' }}>
+          <div className="app-error-banner">
             <AppIcon name="alert" size={18} /> Error fetching receipts: {receiptsError}
           </div>
         )}

@@ -71,12 +71,12 @@ export function formatDate(isoString: string | null | undefined): string {
 }
 
 /**
- * Chart color palette
+ * Chart color palette — flat Neo-Brutalist accents
  */
 export const CHART_COLORS = [
-  '#4a8bc2', '#4fe2a1', '#d3182d', '#74b9ff',
-  '#fdcb6e', '#587aa3', '#8abbb2', '#d8a8a1',
-  '#8dbec4', '#d9c88f', '#b9c5d1', '#687786',
-  '#b96f75',
+  '#72B7FF', '#7BE495', '#FF7A7A', '#B69CFF',
+  '#FFD95A', '#FFAA5C', '#57C4B4', '#F49BC8',
+  '#8FA6E8', '#C2D36B', '#E89B6E', '#9ADBC5',
+  '#D8A25A',
 ];
 import type { Currency, NumericValue } from '../types';

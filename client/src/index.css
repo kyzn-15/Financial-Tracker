@@ -1,45 +1,77 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* ========================================
-   MODERN NEOMORPHISM DESIGN SYSTEM
+   MODERN NEO-BRUTALISM DESIGN SYSTEM
+   bold + colorful + tactile + structured
    ======================================== */
 
 :root {
-  /* ---- Base Palette (Softer, cleaner off-white) ---- */
-  --bg:             #ecf0f3;
-  --bg-alt:         #e2e8ec;
-  --surface:        #ecf0f3;
+  color-scheme: light;
 
-  /* ---- Neomorphic Shadows (Refined for smoothness) ---- */
-  --shadow-light:   #ffffff;
-  --shadow-dark:    #d1d9e6;
-  --shadow-darker:  #b8c5d6;
+  /* ---- Base Palette (warm paper + ink) ---- */
+  --bg:             #FFFDF5;
+  --bg-alt:         #F7F2E2;
+  --surface:        #FFFFFF;
+  --surface-tint:   #FBF7EA;
 
-  /* ---- Accent Colors (Soft navy and complementary tones) ---- */
-  --accent:         rgb(74, 139, 194);
-  --accent-hover:   #3f7eb4;
-  --accent-glow:    rgba(74, 139, 194, 0.28);
-  --accent-soft:    rgba(74, 139, 194, 0.08);
-  --success:        rgb(79, 226, 161);
-  --success-soft:   rgba(79, 226, 161, 0.16);
-  --danger:         rgb(211, 24, 45);
-  --danger-soft:    rgba(211, 24, 45, 0.14);
-  --warning:        #fdcb6e;
-  --info:           #74b9ff;
+  /* ---- Ink (borders, shadows, text) ---- */
+  --ink:            #171717;
+  --ink-soft:       #444036;
+
+  /* ---- Financial Accent Palette ---- */
+  --green:          #7BE495;
+  --coral:          #FF7A7A;
+  --blue:           #72B7FF;
+  --purple:         #B69CFF;
+  --yellow:         #FFD95A;
+  --orange:         #FFAA5C;
+
+  /* ---- Semantic Aliases ---- */
+  --accent:         var(--orange);
+  --accent-hover:   #FF9A3D;
+  --success:        var(--green);
+  --danger:         var(--coral);
+  --warning:        var(--yellow);
+  --info:           var(--blue);
+  --purple-accent:  var(--purple);
+
+  /* Tinted surfaces for semantic blocks (kept readable on paper) */
+  --green-soft:     #E4F8E8;
+  --coral-soft:     #FFE8E3;
+  --blue-soft:      #E5F1FF;
+  --purple-soft:    #EFE8FF;
+  --yellow-soft:    #FFF4CE;
+  --orange-soft:    #FFEEDC;
 
   /* ---- Text ---- */
-  --text-primary:   #2d3436;
-  --text-secondary: #636e72;
-  --text-muted:     #95a0a8;
-  --text-inverse:   #ffffff;
+  --text-primary:   var(--ink);
+  --text-secondary: #555043;
+  --text-muted:     #8A8471;
+  --text-inverse:   #171717;
+  --text-on-dark:   #FFFDF5;
 
-  /* ---- Border Radius ---- */
-  --radius-xs:      8px;
-  --radius-sm:      12px;
-  --radius:         16px;
-  --radius-lg:      20px;
-  --radius-xl:      24px;
-  --radius-full:    9999px;
+  /* ---- Borders ---- */
+  --border-w:       2px;
+  --border-w-lg:    3px;
+  --border-color:   var(--ink);
+  --border:         var(--border-w) solid var(--border-color);
+  --border-lg:      var(--border-w-lg) solid var(--border-color);
+
+  /* ---- Hard Offset Shadow Presets ---- */
+  --shadow-xs:      2px 2px 0 var(--ink);
+  --shadow-sm:      3px 3px 0 var(--ink);
+  --shadow-md:      5px 5px 0 var(--ink);
+  --shadow-lg:      7px 7px 0 var(--ink);
+  --shadow-xl:      10px 10px 0 var(--ink);
+
+  /* ---- Border Radius (crisp edges) ---- */
+  --radius-xs:      3px;
+  --radius-sm:      5px;
+  --radius-md:      8px;
+  --radius:         8px;
+  --radius-lg:      12px;
+  --radius-xl:      16px;
+  --radius-full:    999px;
 
   /* ---- Spacing Scale ---- */
   --space-xs:       4px;
@@ -49,65 +81,53 @@
   --space-xl:       32px;
   --space-2xl:      48px;
 
-  /* ---- Neomorphic Shadow Presets ---- */
-  /* Softer, larger spread for a more modern, premium feel */
-  --neo-out:        8px 8px 16px var(--shadow-dark),
-                    -8px -8px 16px var(--shadow-light);
-  --neo-out-sm:     4px 4px 8px var(--shadow-dark),
-                    -4px -4px 8px var(--shadow-light);
-  --neo-out-lg:     12px 12px 24px var(--shadow-dark),
-                    -12px -12px 24px var(--shadow-light);
-  
-  --neo-in:         inset 4px 4px 8px var(--shadow-dark),
-                    inset -4px -4px 8px var(--shadow-light);
-  --neo-in-lg:      inset 6px 6px 12px var(--shadow-dark),
-                    inset -6px -6px 12px var(--shadow-light);
-                    
-  /* Glassmorphism accents */
-  --glass-bg:       rgba(236, 240, 243, 0.7);
-  --glass-border:   1px solid rgba(255, 255, 255, 0.4);
-
   /* ---- Typography ---- */
   --font-family:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display:   'Space Grotesk', 'Inter', -apple-system, sans-serif;
   --font-size-xs:   0.75rem;
   --font-size-sm:   0.8125rem;
   --font-size-base: 0.9375rem;
   --font-size-md:   1.0625rem;
   --font-size-lg:   1.25rem;
   --font-size-xl:   1.5rem;
-  --font-size-2xl:  2rem;
-  --font-size-3xl:  2.5rem;
+  --font-size-2xl:  2.125rem;
+  --font-size-3xl:  2.75rem;
 
   /* ---- Transitions ---- */
-  --transition-fast:   150ms ease;
-  --transition-normal: 250ms ease;
-  --transition-slow:   400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast:   120ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow:   320ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 [data-theme='dark'] {
   color-scheme: dark;
-  --bg:             #20252b;
-  --bg-alt:         #181c21;
-  --surface:        #20252b;
-  --shadow-light:   #2c333b;
-  --shadow-dark:    #15191e;
-  --shadow-darker:  #0f1216;
-  --accent:         #69aee4;
-  --accent-hover:   #83bdea;
-  --accent-glow:    rgba(105, 174, 228, 0.32);
-  --accent-soft:    rgba(105, 174, 228, 0.14);
-  --success:        #62e6ad;
-  --success-soft:   rgba(98, 230, 173, 0.14);
-  --danger:         #ff6675;
-  --danger-soft:    rgba(255, 102, 117, 0.14);
-  --warning:        #f4ca75;
-  --info:           #82c4f4;
-  --text-primary:   #edf2f7;
-  --text-secondary: #bcc6cf;
-  --text-muted:     #8f9ca7;
-  --text-inverse:   #ffffff;
-  --glass-bg:       rgba(32, 37, 43, 0.82);
-  --glass-border:   1px solid rgba(255, 255, 255, 0.08);
+
+  --bg:             #191813;
+  --bg-alt:         #211F18;
+  --surface:        #23211A;
+  --surface-tint:   #2B2921;
+
+  --ink:            #F5EFDC;
+  --ink-soft:       #CFC9B2;
+  --border-color:   var(--ink);
+
+  --shadow-xs:      2px 2px 0 var(--ink);
+  --shadow-sm:      3px 3px 0 var(--ink);
+  --shadow-md:      5px 5px 0 var(--ink);
+  --shadow-lg:      7px 7px 0 var(--ink);
+  --shadow-xl:      10px 10px 0 var(--ink);
+
+  --text-primary:   #F5EFDC;
+  --text-secondary: #CBC5AE;
+  --text-muted:     #948F79;
+  --text-inverse:   #171717;
+
+  --green-soft:     #23402C;
+  --coral-soft:     #46241F;
+  --blue-soft:      #1F3346;
+  --purple-soft:    #302A48;
+  --yellow-soft:    #453A14;
+  --orange-soft:    #46331A;
 }
 
 /* ---- Reset ---- */
@@ -126,18 +146,23 @@ html {
 body {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
+  font-weight: 500;
   color: var(--text-primary);
-  background: var(--bg);
-  line-height: 1.6;
+  background:
+    radial-gradient(circle at 8% 4%, rgba(255, 217, 90, 0.13), transparent 26%),
+    radial-gradient(circle at 96% 92%, rgba(114, 183, 255, 0.12), transparent 30%),
+    var(--bg);
+  line-height: 1.55;
   min-height: 100vh;
-  /* Prevent pull-to-refresh on mobile if it feels like an app */
-  overscroll-behavior-y: none; 
+  overscroll-behavior-y: none;
   transition: color var(--transition-normal), background var(--transition-normal);
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 600;
-  line-height: 1.3;
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
 }
 
@@ -147,12 +172,13 @@ h3 { font-size: var(--font-size-xl); }
 h4 { font-size: var(--font-size-lg); }
 
 a {
-  color: var(--accent);
-  text-decoration: none;
+  color: var(--text-primary);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 
 button {
-  font-family: var(--font-family);
+  font-family: var(--font-display);
   cursor: pointer;
   border: none;
   outline: none;
@@ -161,34 +187,36 @@ button {
 
 input, select, textarea {
   font-family: var(--font-family);
+  font-weight: 600;
   font-size: var(--font-size-base);
   outline: none;
   border: none;
-  -webkit-appearance: none; /* Better mobile rendering */
+  -webkit-appearance: none;
 }
 
 /* ---- Scrollbar Styling ---- */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg);
+  background: var(--bg-alt);
+  border-left: var(--border);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--shadow-darker);
-  border-radius: var(--radius-full);
+  background: var(--ink);
+  border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+  background: var(--accent);
 }
 
 /* ---- App Root ---- */
 #root {
   min-height: 100vh;
-  display: flex; /* Setup for sidebar layout */
+  display: flex;
   flex-direction: column;
 }
