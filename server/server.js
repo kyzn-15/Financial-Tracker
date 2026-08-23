@@ -92,7 +92,7 @@ app.listen(PORT, () => {
   scheduleReceiptCleanup();
   scheduleRecycleBinCleanup();
   scheduleRecurringExpenses();
-  console.log(`🚀 Financial Tracker API running on port ${PORT} (${process.env.NODE_ENV})`);
+  console.log(`Financial Tracker API running on port ${PORT} (${process.env.NODE_ENV})`);
   console.log(`   Endpoints:`);
   console.log(`   - GET    /api/expenses`);
   console.log(`   - POST   /api/expenses`);

@@ -56,7 +56,7 @@ async function ensureSoftDeleteColumns() {
     const columnExists = info.rows.some((row) => row.name === column);
     if (tableExists && !columnExists) {
       await db.execute({ sql: `ALTER TABLE ${table} ADD COLUMN ${column} TEXT`, args: [] });
-      console.log(`✅ Added ${table}.${column} for Recycle Bin support`);
+      console.log(`Added ${table}.${column} for Recycle Bin support`);
     }
   }
 }
@@ -69,7 +69,7 @@ export async function initSchema() {
   const schemaPath = path.join(__dirname, 'schema.sql');
   const schema = fs.readFileSync(schemaPath, 'utf-8');
   await db.executeMultiple(schema);
-  console.log('✅ Database schema initialized');
+  console.log('Database schema initialized');
 }
 
 /**
@@ -92,9 +92,9 @@ export async function seedIfEmpty() {
     const seedPath = path.join(__dirname, 'seed.sql');
     const seed = fs.readFileSync(seedPath, 'utf-8');
     await db.executeMultiple(seed);
-    console.log('🌱 Database seeded with sample data');
+    console.log('Database seeded with sample data');
   } else {
-    console.log(`ℹ️  Database already has ${count} expense(s), skipping seed`);
+    console.log(`Database already has ${count} expense(s), skipping seed`);
   }
 
   await db.execute({
