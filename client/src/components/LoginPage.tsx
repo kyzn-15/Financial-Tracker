@@ -3,6 +3,7 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { getSystemStatus } from '../services/api';
 import type { LoginCredentials } from '../types';
 import { getErrorMessage } from '../utils/errors';
+import appLogo from '../assets/logo.svg';
 
 interface LoginPageProps {
   onLogin: (credentials: LoginCredentials) => Promise<void>;
@@ -99,7 +100,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     <main className="login-shell">
       <section className="login-panel" aria-labelledby="login-title">
         <div className="login-brand" aria-hidden="true">
-          <span className="login-brand__mark">FT</span>
+          <img src={appLogo} alt="" className="brand-logo" />
         </div>
 
         <div className="login-copy">
