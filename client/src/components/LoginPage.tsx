@@ -104,7 +104,6 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         </div>
 
         <div className="login-copy">
-          <p className="login-kicker">Secure access</p>
           <h1 id="login-title" className="login-title">
             Financial Tracker
           </h1>
@@ -115,15 +114,12 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           </p>
         </div>
 
-        <div className={`system-status system-status--${systemStatus}`} role="status" aria-live="polite">
-          <span className="system-status__icon" aria-hidden="true" />
-          <span>
-            {systemStatus === 'operational' && 'All systems operational'}
-            {systemStatus === 'checking' && 'Checking system status'}
-            {systemStatus === 'issues' && 'System issues detected'}
-          </span>
-        </div>
-
+        {systemStatus === 'issues' && (
+          <div className="system-status system-status--issues" role="status" aria-live="polite">
+            <span className="system-status__icon" aria-hidden="true" />
+            <span>System issues detected</span>
+          </div>
+        )}
         {step === 'username' ? (
           <form className="login-form" onSubmit={handleUsernameSubmit}>
             <label className="neo-label" htmlFor="login-username">

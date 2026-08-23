@@ -49,8 +49,8 @@
 }
 
 .login-brand {
-  width: clamp(52px, 14vw, 64px);
-  height: clamp(52px, 14vw, 64px);
+  width: clamp(76px, 22vw, 104px);
+  height: clamp(76px, 22vw, 104px);
   display: grid;
   place-items: center;
   margin-bottom: var(--space-xl);
