@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { formatCurrencyAmount, formatDate } from '../utils/formatters';
 import { getCategoryIconName } from '../utils/categoryIcons';
+import { getReceiptImageUrl } from '../services/api';
 import AppIcon from './AppIcon';
 import Modal from './Modal';
 import type { Currency, ExchangeRate, RecycleBinStore } from '../types';
@@ -134,7 +135,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
       <article key={`receipt-${receipt.id}`} className="recycle-item neo-card">
         <span className="recycle-item__icon">
           {receipt.image_available ? (
-            <img src={receipt.image_url} alt="" className="recycle-item__thumb" loading="lazy" />
+            <img src={getReceiptImageUrl(receipt.id)} alt="" className="recycle-item__thumb" loading="lazy" />
           ) : (
             <AppIcon name="receipt" size={18} />
           )}

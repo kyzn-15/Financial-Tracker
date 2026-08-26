@@ -1,18 +1,44 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const logoPath = join(dirname(fileURLToPath(import.meta.url)), '../assets/financial_app_logo.png');
+const logoDataUri = `data:image/png;base64,${readFileSync(logoPath).toString('base64')}`;
+
 const PAGE_STYLES = `
+  :root {
+    --bg: #ecf0f3;
+    --shadow-light: #ffffff;
+    --shadow-dark: #d1d9e6;
+    --accent: rgb(74, 139, 194);
+    --success: rgb(79, 226, 161);
+    --text-primary: #2d3436;
+    --text-secondary: #636e72;
+    --glass-border: 1px solid rgba(255, 255, 255, 0.4);
+    --radius-lg: 20px;
+    --radius-xl: 24px;
+    --radius-full: 9999px;
+    --neo-out: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light);
+    --neo-out-sm: 4px 4px 8px var(--shadow-dark), -4px -4px 8px var(--shadow-light);
+    --neo-out-lg: 12px 12px 24px var(--shadow-dark), -12px -12px 24px var(--shadow-light);
+    --neo-in: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     min-height: 100vh;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #ecf0f3;
-    color: #2d3436;
+    font-family: var(--font-family);
+    background: var(--bg);
+    color: var(--text-primary);
   }
 
   .nf-shell {
     min-height: 100vh;
     display: grid;
     place-items: center;
-    padding: var(--space-lg, 24px);
+    padding: 24px;
   }
 
   .nf-panel {
@@ -23,29 +49,33 @@ const PAGE_STYLES = `
     text-align: center;
     gap: 16px;
     padding: 48px 32px;
-    border-radius: 24px;
-    background: #ecf0f3;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 12px 12px 24px #d1d9e6, -12px -12px 24px #ffffff;
+    border-radius: var(--radius-xl);
+    background: var(--bg);
+    border: var(--glass-border);
+    box-shadow: var(--neo-out-lg);
   }
 
   .nf-brand {
-    width: 56px;
-    height: 56px;
+    width: 112px;
+    height: 112px;
     display: grid;
     place-items: center;
-    border-radius: 16px;
-    background: rgb(74, 139, 194);
-    color: #ffffff;
-    font-size: 1.05rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    box-shadow: 4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff;
+    overflow: hidden;
+    border-radius: 28px;
+    background: var(--accent);
+    box-shadow: var(--neo-out-sm);
+  }
+
+  .nf-brand img {
+    width: 112%;
+    height: 112%;
+    object-fit: cover;
+    display: block;
   }
 
   .nf-kicker {
     margin-top: 8px;
-    color: rgb(79, 226, 161);
+    color: var(--success);
     font-size: 0.75rem;
     font-weight: 800;
     letter-spacing: 0.08em;
@@ -53,23 +83,24 @@ const PAGE_STYLES = `
   }
 
   .nf-code {
-    font-size: 4rem;
+    font-size: 5.5rem;
     line-height: 1;
     font-weight: 800;
     letter-spacing: 0.06em;
-    color: #ecf0f3;
-    text-shadow: 3px 3px 6px #ffffff, -3px -3px 6px #d1d9e6;
+    color: var(--text-primary);
+    text-shadow: 6px 6px 12px var(--shadow-dark), -6px -6px 12px var(--shadow-light);
     user-select: none;
   }
 
   .nf-title {
     font-size: 1.5rem;
     font-weight: 800;
+    color: var(--text-primary);
   }
 
   .nf-text {
     max-width: 32ch;
-    color: #636e72;
+    color: var(--text-secondary);
     font-size: 0.85rem;
     line-height: 1.55;
   }
@@ -80,13 +111,13 @@ const PAGE_STYLES = `
     justify-content: center;
     margin-top: 8px;
     padding: 14px 28px;
-    border-radius: 9999px;
-    background: rgb(74, 139, 194);
+    border-radius: var(--radius-full);
+    background: var(--accent);
     color: #ffffff;
     font-size: 0.85rem;
     font-weight: 700;
     text-decoration: none;
-    box-shadow: 4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff;
+    box-shadow: var(--neo-out-sm);
     transition: filter 150ms ease, transform 150ms ease, box-shadow 150ms ease;
   }
 
@@ -96,39 +127,18 @@ const PAGE_STYLES = `
 
   .nf-btn:active {
     transform: scale(0.97);
-    box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.18), inset -4px -4px 8px rgba(255, 255, 255, 0.35);
+    box-shadow: var(--neo-in);
   }
 
   .nf-btn:focus-visible {
-    outline: 2px solid rgb(74, 139, 194);
+    outline: 2px solid var(--accent);
     outline-offset: 3px;
   }
 
   @media (max-width: 480px) {
     .nf-panel { padding: 40px 24px; }
-    .nf-code { font-size: 3.25rem; }
-  }
-
-  @media (prefers-color-scheme: dark) {
-    body { background: #20252b; color: #edf2f7; }
-
-    .nf-panel {
-      background: #20252b;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 12px 12px 24px #15191e, -12px -12px 24px #2c333b;
-    }
-
-    .nf-brand { background: #69aee4; box-shadow: 4px 4px 8px #15191e, -4px -4px 8px #2c333b; }
-    .nf-kicker { color: #62e6ad; }
-
-    .nf-code {
-      color: #20252b;
-      text-shadow: 3px 3px 6px #2c333b, -3px -3px 6px #15191e;
-    }
-
-    .nf-text { color: #bcc6cf; }
-    .nf-btn { background: #69aee4; box-shadow: 4px 4px 8px #15191e, -4px -4px 8px #2c333b; }
-    .nf-btn:focus-visible { outline-color: #69aee4; }
+    .nf-brand { width: 96px; height: 96px; }
+    .nf-code { font-size: 4.25rem; }
   }
 `;
 
@@ -154,7 +164,9 @@ function renderNotFoundPage() {
 <body>
 <main class="nf-shell">
   <section class="nf-panel" aria-labelledby="nf-title">
-    <div class="nf-brand" aria-hidden="true">FT</div>
+    <div class="nf-brand" aria-hidden="true">
+      <img src="${logoDataUri}" alt="" width="112" height="112">
+    </div>
     <p class="nf-kicker">Financial Tracker</p>
     <p class="nf-code" aria-hidden="true">404</p>
     <h1 id="nf-title" class="nf-title">Page not found</h1>
@@ -176,7 +188,7 @@ export function notFoundHandler(req, res) {
     .status(404)
     .set(
       'Content-Security-Policy',
-      "default-src 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src 'none'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+      "default-src 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
     )
     .type('html')
     .send(renderNotFoundPage());
