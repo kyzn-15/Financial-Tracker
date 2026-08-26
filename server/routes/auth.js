@@ -5,8 +5,10 @@ import {
   createSessionCookie,
   createSessionToken,
   getCookie,
+  getConfiguredUsername,
   revokeSessionToken,
   SESSION_COOKIE_NAME,
+  verifyReceiptToken,
   verifySessionToken,
 } from '../utils/auth.js';
 import { loginLimiter } from '../middleware/security.js';
@@ -94,6 +96,15 @@ export async function requireAuth(req, res, next) {
     const session = await verifySessionToken(token);
 
     if (!session) {
+      // Allow receipt image GET requests if authenticated via a valid session-bound receipt token
+      if (req.method === 'GET' && req.path.endsWith('/image') && req.query?.token) {
+        const match = req.path.match(/^\/(\d+)\/image$/);
+        if (match && await verifyReceiptToken(Number(match[1]), req.query.token)) {
+          req.auth = { username: getConfiguredUsername(), sessionId: null };
+          return next();
+        }
+      }
+
       res.setHeader('Set-Cookie', createClearSessionCookie());
       return res.status(401).json({ error: 'Authentication required.' });
     }

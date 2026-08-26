@@ -18,7 +18,7 @@ function getSessionSecret() {
   return secret;
 }
 
-function getConfiguredUsername() {
+export function getConfiguredUsername() {
   return process.env.ADMIN_USERNAME?.trim() || '';
 }
 
@@ -181,3 +181,49 @@ export async function revokeSessionToken(token) {
   await rotateActiveSessionId();
   return true;
 }
+
+export function createReceiptToken(receiptId, sessionId) {
+  if (!receiptId || !sessionId) return '';
+  const expiresAt = Date.now() + SESSION_DURATION_MS;
+  const payload = `${receiptId}:${sessionId}:${expiresAt}`;
+  const signature = createHmac('sha256', getSessionSecret()).update(`receipt:${payload}`).digest('base64url');
+  return `${Buffer.from(payload).toString('base64url')}.${signature}`;
+}
+
+export async function verifyReceiptToken(receiptId, token) {
+  if (!token || typeof token !== 'string' || !receiptId) return false;
+  const parts = token.split('.');
+  if (parts.length !== 2) return false;
+
+  const [encodedPayload, signature] = parts;
+  if (!encodedPayload || !signature) return false;
+
+  let rawPayload;
+  try {
+    rawPayload = Buffer.from(encodedPayload, 'base64url').toString('utf8');
+  } catch {
+    return false;
+  }
+
+  const expectedSignature = createHmac('sha256', getSessionSecret()).update(`receipt:${rawPayload}`).digest('base64url');
+  if (!safeEqual(signature, expectedSignature)) return false;
+
+  const [tokenReceiptId, tokenSessionId, tokenExpiresAtStr] = rawPayload.split(':');
+  const tokenExpiresAt = Number(tokenExpiresAtStr);
+
+  if (
+    Number(tokenReceiptId) !== Number(receiptId) ||
+    !Number.isFinite(tokenExpiresAt) ||
+    tokenExpiresAt <= Date.now()
+  ) {
+    return false;
+  }
+
+  const activeSessionId = await getActiveSessionId();
+  if (!activeSessionId || tokenSessionId !== activeSessionId) {
+    return false;
+  }
+
+  return true;
+}
+

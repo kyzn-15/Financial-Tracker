@@ -102,7 +102,7 @@ The API allowlists `CLIENT_ORIGIN`, accepts credentialed CORS only for it, and r
 - `expenses`: canonical transaction records, including MYR and IDR values, original currency, rate used, and UTC+8 timestamp. `deleted_at IS NULL` marks an active expense; a set `deleted_at` moves the row into the Recycle Bin.
 - `categories` and `category_automation_settings`: ordered categories and recurrence defaults.
 - `recurring_expense_rules` and `recurring_expense_occurrences`: recurring-payment definitions and their idempotent generated expenses.
-- `receipts`: image metadata, seven-day viewing expiry, and Recycle Bin soft-delete marker (`deleted_at`); image bytes stay under `server/uploads/receipts/` rather than in the database.
+- `receipts`: image metadata, seven-day viewing expiry, and Recycle Bin soft-delete marker (`deleted_at`); image bytes are stored in the database as the `image_data` BLOB (so images survive ephemeral filesystems), with legacy rows still served from `server/uploads/receipts/` as a dev/fallback path. Image responses are authorized either by the session cookie or a short-lived HMAC receipt token bound to the active session.
 - `emergency_settings`: savings, reserved funds, target months, and essential categories.
 - `backup_preferences`: reminder interval and most recent export time, keyed by administrator username.
 - `app_metadata`: internal seed/migration markers and the active session ID.

@@ -208,8 +208,18 @@ export async function deleteReceipt(id: number): Promise<void> {
   }, true);
 }
 
-export function getReceiptImageUrl(id: number): string {
-  return `${BASE_URL}/receipts/${id}/image`;
+export function getReceiptImageUrl(target: number | string): string {
+  if (typeof target === 'string') {
+    if (target.startsWith('http://') || target.startsWith('https://')) {
+      return target;
+    }
+    const normalized = target.startsWith('/') ? target : `/${target}`;
+    if (normalized.startsWith('/api/')) {
+      return `${BASE_URL}${normalized.slice(4)}`;
+    }
+    return `${BASE_URL}${normalized}`;
+  }
+  return `${BASE_URL}/receipts/${target}/image`;
 }
 
 export async function getEmergencySettings(): Promise<EmergencySettingsPayload> {
