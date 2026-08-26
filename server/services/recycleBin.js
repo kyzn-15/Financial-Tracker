@@ -2,6 +2,7 @@
 import fs from 'fs';
 import db from '../db/database.js';
 import { addDaysUTC8, nowUTC8 } from '../utils/datetime.js';
+import { createReceiptToken } from '../utils/auth.js';
 import { resolveReceiptFilePath } from '../utils/receiptFiles.js';
 
 export const RETENTION_DAYS = 7;
@@ -52,7 +53,7 @@ export async function softDeleteExpense(id) {
 }
 
 /**
- * Soft-delete an active receipt. The image file is kept on disk while the
+ * Soft-delete an active receipt. The image data is kept while the
  * record stays recoverable, so normal expiry purges must ignore it.
  */
 export async function softDeleteReceipt(id) {
@@ -63,7 +64,7 @@ export async function softDeleteReceipt(id) {
   return result.rowsAffected > 0;
 }
 
-export async function listRecycleBin() {
+export async function listRecycleBin(sessionId) {
   const [expensesResult, receiptsResult] = await Promise.all([
     db.execute({
       sql: `SELECT id, name, category, price_myr, price_idr, original_currency, timestamp, deleted_at
@@ -73,7 +74,7 @@ export async function listRecycleBin() {
       args: [],
     }),
     db.execute({
-      sql: `SELECT id, filename, mime_type, uploaded_at, deleted_at
+      sql: `SELECT id, filename, mime_type, uploaded_at, deleted_at, (image_data IS NOT NULL) AS has_blob
             FROM receipts
             WHERE deleted_at IS NOT NULL
             ORDER BY deleted_at DESC`,
@@ -92,14 +93,18 @@ export async function listRecycleBin() {
       timestamp: row.timestamp,
       deleted_at: row.deleted_at,
     })),
-    receipts: receiptsResult.rows.map((row) => withExpiry({
-      id: Number(row.id),
-      mime_type: row.mime_type,
-      uploaded_at: row.uploaded_at,
-      image_url: `/api/receipts/${Number(row.id)}/image`,
-      image_available: receiptHasFile(row.filename),
-      deleted_at: row.deleted_at,
-    })),
+    receipts: receiptsResult.rows.map((row) => {
+      const id = Number(row.id);
+      const token = sessionId ? createReceiptToken(id, sessionId) : '';
+      return withExpiry({
+        id,
+        mime_type: row.mime_type,
+        uploaded_at: row.uploaded_at,
+        image_url: token ? `/api/receipts/${id}/image?token=${token}` : `/api/receipts/${id}/image`,
+        image_available: Boolean(row.has_blob || receiptHasFile(row.filename)),
+        deleted_at: row.deleted_at,
+      });
+    }),
   };
 }
 

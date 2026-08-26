@@ -18,6 +18,7 @@ process.env.EXCHANGE_RATE_API_URL = 'http://localhost.invalid/exchange-rate';
 
 const { default: db, initSchema } = await import('../db/database.js');
 const express = (await import('express')).default;
+const { securityHeaders } = await import('../middleware/security.js');
 const expensesRouter = (await import('../routes/expenses.js')).default;
 const receiptsRouter = (await import('../routes/receipts.js')).default;
 const summaryRouter = (await import('../routes/summary.js')).default;
@@ -89,6 +90,7 @@ function writeReceiptFile(filename) {
 // ─── HTTP harness ────────────────────────────────────────────────────────────
 
 const app = express();
+app.use(securityHeaders);
 app.use(express.json());
 app.use('/api/expenses', expensesRouter);
 app.use('/api/receipts', receiptsRouter);
@@ -316,7 +318,10 @@ test('uploading then deleting a receipt keeps the image recoverable in the Recyc
   const filePath = resolveReceiptFilePath(filename);
 
   // Active receipt appears in the receipts tab and serves its image.
-  let receipts = await getJson('/api/receipts');
+  const listResponse = await fetch(`${base}/api/receipts`);
+  assert.equal(listResponse.status, 200);
+  assert.equal(listResponse.headers.get('cross-origin-resource-policy'), 'same-site');
+  let receipts = await listResponse.json();
   assert.equal(receipts.some((item) => item.id === receipt.id), true);
   assert.equal(existsSync(filePath), true, 'uploaded file exists');
 
@@ -330,6 +335,8 @@ test('uploading then deleting a receipt keeps the image recoverable in the Recyc
   assert.equal(existsSync(filePath), true);
   const imageResponse = await fetch(`${base}/api/receipts/${receipt.id}/image`);
   assert.equal(imageResponse.status, 200);
+  assert.equal(imageResponse.headers.get('cross-origin-resource-policy'), 'cross-origin');
+  assert.match(imageResponse.headers.get('content-type') || '', /^image\/png\b/);
 
   const bin = await getJson('/api/recycle-bin');
   const binned = bin.receipts.find((item) => item.id === receipt.id);

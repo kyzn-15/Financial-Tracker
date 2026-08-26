@@ -94,7 +94,8 @@ CREATE TABLE IF NOT EXISTS receipts (
   mime_type    TEXT NOT NULL,
   uploaded_at  TEXT NOT NULL,
   expires_at   TEXT NOT NULL,
-  deleted_at   TEXT
+  deleted_at   TEXT,
+  image_data   BLOB
 );
 CREATE INDEX IF NOT EXISTS idx_receipts_expires_at ON receipts(expires_at);
 CREATE INDEX IF NOT EXISTS idx_receipts_deleted_at ON receipts(deleted_at);

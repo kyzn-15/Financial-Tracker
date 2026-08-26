@@ -166,13 +166,13 @@ export default function ReceiptSaver({
               return (
                 <article key={receipt.id} className="neo-card receipt-card">
                   <a
-                    href={getReceiptImageUrl(receipt.id)}
+                    href={getReceiptImageUrl(receipt.image_url || receipt.id)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="receipt-card__image-link"
                   >
                     <img
-                      src={getReceiptImageUrl(receipt.id)}
+                      src={getReceiptImageUrl(receipt.image_url || receipt.id)}
                       alt={`Receipt uploaded ${formatDateTime(receipt.uploaded_at)}`}
                       className="receipt-card__image"
                       loading="lazy"

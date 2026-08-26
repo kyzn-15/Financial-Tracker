@@ -28,11 +28,11 @@ function itemNotFound(res, label, state) {
 }
 
 // ─── GET /api/recycle-bin — List soft-deleted expenses and receipts ────────
-router.get('/', async (_req, res) => {
+router.get('/', async (req, res) => {
   try {
     res.json({
       retention_days: RETENTION_DAYS,
-      ...await listRecycleBin(),
+      ...await listRecycleBin(req.auth?.sessionId),
     });
   } catch (err) {
     console.error('GET /api/recycle-bin error:', err);
