@@ -3091,6 +3091,11 @@ button.heatmap-day:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  .emergency-actions .emergency-settings__message {
+    position: static;
+    align-self: flex-start;
+  }
+
   .emergency-status-wrap {
     justify-content: space-between;
   }
