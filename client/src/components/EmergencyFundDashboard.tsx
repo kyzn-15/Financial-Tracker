@@ -29,6 +29,9 @@ import type {
   SimulationAdjustmentInput,
 } from '../types';
 import { getErrorMessage } from '../utils/errors';
+import angryStatusLogo from '../assets/financial_tracker_icon_angry_red.svg';
+import neutralStatusLogo from '../assets/financial_tracker_icon_neutral_yellow.svg';
+import defaultStatusLogo from '../assets/logo.svg';
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
@@ -73,9 +76,8 @@ interface EmergencySettingsPanelProps {
   myrToIdr: number;
 }
 
-export function EmergencySettingsPanel({ settingsPayload, onSave, saving, currency, myrToIdr }: EmergencySettingsPanelProps) {
+export function EmergencySavingsSettingsPanel({ settingsPayload, onSave, saving, currency, myrToIdr }: EmergencySettingsPanelProps) {
   const settings = settingsPayload?.settings;
-  const categories = settingsPayload?.categories || [];
   const [form, setForm] = useState<EmergencySettingsInput>({
     current_savings_myr: 0,
     reserved_funds_myr: 0,
@@ -90,7 +92,7 @@ export function EmergencySettingsPanel({ settingsPayload, onSave, saving, curren
       current_savings_myr: settings.current_savings_myr ?? 0,
       reserved_funds_myr: settings.reserved_funds_myr ?? 0,
       target_months: settings.target_months ?? 6,
-      essential_categories: settings.essential_categories || [],
+      essential_categories: settings.essential_categories,
     });
   }, [settings]);
 
@@ -101,26 +103,6 @@ export function EmergencySettingsPanel({ settingsPayload, onSave, saving, curren
 
   const updateMoneyField = (field: 'current_savings_myr' | 'reserved_funds_myr', value: NumericValue) => updateField(field, convertToMyrAmount(value, currency, myrToIdr));
   const displayAmount = (value: number) => convertMyrAmount(value, currency, myrToIdr);
-
-  const toggleCategory = (category: string) => {
-    setMessage('');
-    setForm((prev) => {
-      const selected = new Set(prev.essential_categories);
-      if (selected.has(category)) selected.delete(category);
-      else selected.add(category);
-      return { ...prev, essential_categories: [...selected] };
-    });
-  };
-
-  const setEssentialCategories = (nextCategories: string[]) => {
-    setMessage('');
-    setForm((prev) => ({ ...prev, essential_categories: nextCategories }));
-  };
-
-  const useRecommendedCategories = () => {
-    const recommended = categories.filter((category) => DEFAULT_ESSENTIAL_CATEGORIES.includes(category));
-    setEssentialCategories(recommended);
-  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -136,16 +118,16 @@ export function EmergencySettingsPanel({ settingsPayload, onSave, saving, curren
       current_savings_myr: currentSavings,
       reserved_funds_myr: reservedFunds,
       target_months: Number(form.target_months),
-      essential_categories: form.essential_categories,
+      essential_categories: settings.essential_categories,
     });
-    setMessage('Emergency settings saved.');
+    setMessage('Fund details saved.');
   };
 
   return (
     <form className="emergency-settings neo-card" onSubmit={handleSubmit}>
       <div className="emergency-section-heading">
-        <h3>Emergency Fund Settings</h3>
-        <p>Only unrestricted savings and selected essentials count toward coverage.</p>
+        <h3>Fund Details</h3>
+        <p>Set the savings available for emergencies and your coverage goal.</p>
       </div>
 
       <div className="emergency-form-grid">
@@ -196,13 +178,67 @@ export function EmergencySettingsPanel({ settingsPayload, onSave, saving, curren
         </div>
       </div>
 
+      <div className="emergency-actions">
+        {message && <p className="emergency-settings__message">{message}</p>}
+        <button className="neo-btn neo-btn--primary" type="submit" disabled={saving}>
+          {saving ? 'Saving...' : 'Save Fund Details'}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function EmergencyEssentialCategoriesPanel({ settingsPayload, onSave, saving }: Pick<EmergencySettingsPanelProps, 'settingsPayload' | 'onSave' | 'saving'>) {
+  const settings = settingsPayload?.settings;
+  const categories = settingsPayload?.categories || [];
+  const [essentialCategories, setEssentialCategories] = useState<string[]>([]);
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if (settings) setEssentialCategories(settings.essential_categories || []);
+  }, [settings]);
+
+  const toggleCategory = (category: string) => {
+    setMessage('');
+    setEssentialCategories((previous) => {
+      const selected = new Set(previous);
+      if (selected.has(category)) selected.delete(category);
+      else selected.add(category);
+      return [...selected];
+    });
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!settings) return;
+    await onSave({
+      current_savings_myr: settings.current_savings_myr,
+      reserved_funds_myr: settings.reserved_funds_myr,
+      target_months: settings.target_months,
+      essential_categories: essentialCategories,
+    });
+    setMessage('Essential categories saved.');
+  };
+
+  const useRecommendedCategories = () => {
+    setMessage('');
+    setEssentialCategories(categories.filter((category) => DEFAULT_ESSENTIAL_CATEGORIES.includes(category)));
+  };
+
+  return (
+    <form className="emergency-settings neo-card" onSubmit={handleSubmit}>
+      <div className="emergency-section-heading">
+        <h3>Essential Categories</h3>
+        <p>Choose which spending categories count toward emergency coverage.</p>
+      </div>
+
       <div className="emergency-category-picker">
         <div className="emergency-category-picker__header">
           <div>
-            <span className="neo-label">Essential Categories</span>
-            <p>Choose which spending categories count toward emergency coverage.</p>
+            <span className="neo-label">Included categories</span>
+            <p>Only the selected categories are included in the coverage estimate.</p>
           </div>
-          <strong>{form.essential_categories.length} selected</strong>
+          <strong>{essentialCategories.length} selected</strong>
         </div>
 
         {categories.length === 0 ? (
@@ -226,7 +262,7 @@ export function EmergencySettingsPanel({ settingsPayload, onSave, saving, curren
                 <label key={category} className="emergency-checkbox">
                   <input
                     type="checkbox"
-                    checked={form.essential_categories.includes(category)}
+                    checked={essentialCategories.includes(category)}
                     onChange={() => toggleCategory(category)}
                   />
                   <span>{category}</span>
@@ -240,25 +276,35 @@ export function EmergencySettingsPanel({ settingsPayload, onSave, saving, curren
       <div className="emergency-actions">
         {message && <p className="emergency-settings__message">{message}</p>}
         <button className="neo-btn neo-btn--primary" type="submit" disabled={saving}>
-          {saving ? 'Saving...' : 'Save Settings'}
+          {saving ? 'Saving...' : 'Save Essential Categories'}
         </button>
       </div>
     </form>
   );
 }
 
+function getStatusLogo(status: EmergencySummary['status']) {
+  if (status.tone === 'red') return angryStatusLogo;
+  if (status.tone === 'orange') return neutralStatusLogo;
+  return defaultStatusLogo;
+}
+
 function CoverageOverview({ summary }: { summary: EmergencySummary }) {
   const statusClass = `emergency-status emergency-status--${summary.status.tone}`;
+  const progressClass = `emergency-progress__bar emergency-progress__bar--${summary.status.tone}`;
 
   return (
     <section className="emergency-overview neo-card">
       <div className="emergency-overview__top">
-        <div>
+        <div className="emergency-overview__coverage">
           <span className="emergency-kicker">Emergency Fund</span>
           <h2>{formatMonths(summary.coverageMonths)}</h2>
           <p>{summary.coverageDays} Days of essential coverage</p>
         </div>
-        <div className={statusClass}>{summary.status.label}</div>
+        <div className="emergency-status-wrap">
+          <img className="emergency-status-logo" src={getStatusLogo(summary.status)} alt="" />
+          <div className={statusClass}>{summary.status.label}</div>
+        </div>
       </div>
 
       <div className="emergency-progress">
@@ -267,7 +313,7 @@ function CoverageOverview({ summary }: { summary: EmergencySummary }) {
           <strong>{summary.progressPercent}%</strong>
         </div>
         <div className="emergency-progress__track">
-          <div className="emergency-progress__bar" style={{ width: `${summary.progressPercent}%` }}></div>
+          <div className={progressClass} style={{ width: `${summary.progressPercent}%` }}></div>
         </div>
         <div className="emergency-progress__meta emergency-progress__meta--muted">
           <span>Current {formatMonths(summary.coverageMonths)}</span>
@@ -678,7 +724,7 @@ interface EmergencyFundDashboardProps {
 }
 
 export default function EmergencyFundDashboard({ emergency, currency = 'MYR', exchangeRate }: EmergencyFundDashboardProps) {
-  const { summary, simulation, loading, error, runSimulation } = emergency;
+  const { summary, settingsPayload, simulation, loading, saving, error, runSimulation, saveSettings } = emergency;
   const [planMonths, setPlanMonths] = useState(6);
   const myrToIdr = exchangeRate?.myrToIdr || 4500;
   const formatAmount = useCallback(
@@ -728,6 +774,16 @@ export default function EmergencyFundDashboard({ emergency, currency = 'MYR', ex
           <EmergencyMetric key={label} label={label} value={value} sub={sub} />
         ))}
       </div>
+
+      {settingsPayload && (
+        <EmergencySavingsSettingsPanel
+          settingsPayload={settingsPayload}
+          onSave={saveSettings}
+          saving={saving}
+          currency={currency}
+          myrToIdr={myrToIdr}
+        />
+      )}
 
       <Insights insights={summary.insights} />
 

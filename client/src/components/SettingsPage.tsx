@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import BackupSettings from './BackupSettings';
 import CategoryManager from './CategoryManager';
-import { EmergencySettingsPanel } from './EmergencyFundDashboard';
+import { EmergencyEssentialCategoriesPanel } from './EmergencyFundDashboard';
 import AppIcon from './AppIcon';
 import RecycleBinManager from './RecycleBinManager';
 import RecurringPaymentsManager from './RecurringPaymentsManager';
@@ -91,7 +91,7 @@ const SETTINGS_GROUPS: SettingsGroup[] = [
         id: 'emergency',
         name: 'Emergency Fund',
         icon: 'piggy-bank',
-        description: 'Configure savings, reserved funds, targets, and essential categories.',
+        description: 'Choose the spending categories included in emergency coverage.',
       },
     ],
   },
@@ -147,7 +147,6 @@ export default function SettingsPage({
   onNotify,
 }: SettingsPageProps) {
   const isDark = theme === 'dark';
-  const myrToIdr = exchangeRate?.myrToIdr || 4500;
   type SettingsSectionId = SettingsSection['id'];
 const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>(null);
   const [isResetOpen, setIsResetOpen] = useState(false);
@@ -339,12 +338,10 @@ const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>
               : 'Loading emergency fund settings...'}
           </div>
         ) : (
-          <EmergencySettingsPanel
+          <EmergencyEssentialCategoriesPanel
             settingsPayload={emergency.settingsPayload}
             onSave={emergency.saveSettings}
             saving={emergency.saving}
-            currency={currency}
-            myrToIdr={myrToIdr}
           />
         );
       case 'security':
