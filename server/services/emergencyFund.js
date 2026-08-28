@@ -175,7 +175,7 @@ function getStatus(coverageMonths, monthlyExpense) {
   if (coverageMonths < 3) return { label: 'Low', tone: 'orange' };
   if (coverageMonths < 6) return { label: 'Healthy', tone: 'green' };
   if (coverageMonths < 12) return { label: 'Excellent', tone: 'blue' };
-  return { label: 'Outstanding', tone: 'gold' };
+  return { label: 'Outstanding', tone: 'blue' };
 }
 
 function calculateCore(settings, monthlyExpense) {
