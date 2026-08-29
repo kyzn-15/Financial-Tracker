@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { formatCurrencyAmount, formatDate } from '../utils/formatters';
+import { formatDate } from '../utils/formatters';
 import AppIcon from './AppIcon';
 import type { Currency, HeatmapDay } from '../types';
+import { usePrivacyMode } from '../hooks/usePrivacyMode';
 
 interface HeatmapTooltipProps {
   day: HeatmapDay | null;
@@ -35,9 +36,10 @@ interface SpendingHeatmapProps {
 }
 
 export default function SpendingHeatmap({ days = [], currency = 'MYR', myrToIdr = 4500, streak = 0, onViewExpenses }: SpendingHeatmapProps) {
+  const { formatCurrency: formatMaskedCurrency } = usePrivacyMode();
   const [hoveredDay, setHoveredDay] = useState<HeatmapDay | null>(null);
   const hasSpending = days.some((day) => day.total > 0);
-  const formatCurrency = (amount: number) => formatCurrencyAmount(amount, currency, myrToIdr);
+  const formatCurrency = (amount: number) => formatMaskedCurrency(amount, currency, myrToIdr);
 
   return (
     <div className="chart-card heatmap-card">

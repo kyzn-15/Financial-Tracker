@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { formatCurrencyAmount, formatDateTime } from '../utils/formatters';
+import { formatDateTime } from '../utils/formatters';
+import { usePrivacyMode } from '../hooks/usePrivacyMode';
 import { getCategoryIconName } from '../utils/categoryIcons';
 import AppIcon from './AppIcon';
 import type { Currency, ExchangeRate, Expense, ExpenseFilters, ExpenseSortColumn } from '../types';
@@ -15,6 +16,7 @@ interface ExpenseListProps {
 }
 
 export default function ExpenseList({ expenses, filters, currency = 'MYR', exchangeRate, onSort, onEdit, onDelete }: ExpenseListProps) {
+  const { formatCurrency, isPrivacyMode } = usePrivacyMode();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const totalItems = expenses.length;
@@ -22,7 +24,6 @@ export default function ExpenseList({ expenses, filters, currency = 'MYR', excha
   const isMYR = currency === 'MYR';
   const myrToIdr = exchangeRate?.myrToIdr || 4500;
   const priceColumn: ExpenseSortColumn = isMYR ? 'price_myr' : 'price_idr';
-  const formatCurrency = (amount: number) => formatCurrencyAmount(amount, currency, myrToIdr);
   const paginatedExpenses = expenses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   useEffect(() => setCurrentPage(1), [expenses]);
@@ -59,8 +60,8 @@ export default function ExpenseList({ expenses, filters, currency = 'MYR', excha
                   )}
                 </td>
                 <td data-label="Category"><span className="category-badge"><AppIcon name={getCategoryIconName(expense.category)} size={15} /><span>{expense.category}</span></span></td>
-                <td data-label={`Price (${currency})`}><div className={isOriginalCurrency ? 'price-original' : 'price-converted'}>{formatCurrency(amount)}{isOriginalCurrency && <span className="price-original__marker" title="Original currency"><AppIcon name="badge-check" size={13} /></span>}</div></td>
-                <td data-label="Exchange Rate" className="expense-table__rate">{expense.exchange_rate_used ? `1 MYR = ${rate} IDR` : 'Pending'}</td>
+                <td data-label={`Price (${currency})`}><div className={isOriginalCurrency ? 'price-original' : 'price-converted'}>{formatCurrency(amount, currency, myrToIdr)}{isOriginalCurrency && <span className="price-original__marker" title="Original currency"><AppIcon name="badge-check" size={13} /></span>}</div></td>
+                <td data-label="Exchange Rate" className="expense-table__rate">{expense.exchange_rate_used ? (isPrivacyMode ? '1 MYR = *** IDR' : `1 MYR = ${rate} IDR`) : 'Pending'}</td>
                 <td data-label="Actions"><div className="actions-cell"><button className="neo-btn neo-btn--secondary neo-btn--icon" onClick={() => onEdit(expense)} title="Edit expense" aria-label="Edit expense"><AppIcon name="pencil" size={16} /></button><button className="neo-btn neo-btn--danger neo-btn--icon" onClick={() => onDelete(expense)} title="Delete expense" aria-label="Delete expense"><AppIcon name="trash" size={16} /></button></div></td>
               </tr>;
             })}</tbody>

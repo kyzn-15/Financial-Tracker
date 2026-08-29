@@ -11,9 +11,10 @@ import {
 } from 'chart.js';
 import type { ChartData, ChartOptions } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { convertMyrAmount, formatDate, formatIDR, formatMYR } from '../utils/formatters';
+import { convertMyrAmount, formatDate } from '../utils/formatters';
 import { getChartTheme } from '../utils/chartTheme';
 import type { Currency, TrendData, TrendPoint } from '../types';
+import { usePrivacyMode } from '../hooks/usePrivacyMode';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
@@ -30,9 +31,9 @@ interface TrendChartProps {
 }
 
 export default function TrendChart({ trend, currency = 'MYR', myrToIdr = 4500 }: TrendChartProps) {
+  const { formatCurrency, isPrivacyMode } = usePrivacyMode();
   const chartTheme = getChartTheme();
-  const isMYR = currency === 'MYR';
-  const formatDisplayed = isMYR ? formatMYR : formatIDR;
+  const formatDisplayed = (amount: number) => formatCurrency(amount, currency, myrToIdr);
   const points = trend?.points || EMPTY_POINTS;
   const average = trend?.average || 0;
   const highestDate = trend?.highest?.date;
@@ -116,11 +117,11 @@ export default function TrendChart({ trend, currency = 'MYR', myrToIdr = 4500 }:
         ticks: {
           color: chartTheme.text,
           font: { family: 'Inter', size: 10 },
-          callback: (value) => isMYR ? `RM${value}` : `Rp${Number(value).toLocaleString('id-ID')}`,
+          callback: (value) => isPrivacyMode ? `${currency} ***` : formatCurrency(Number(value), currency, myrToIdr),
         },
       },
     },
-  }), [chartTheme.grid, chartTheme.text, formatDisplayed, isMYR, points]);
+  }), [chartTheme.grid, chartTheme.text, currency, formatCurrency, formatDisplayed, isPrivacyMode, myrToIdr, points]);
 
   const hasTransactions = points.some((point) => point.transactions > 0);
 

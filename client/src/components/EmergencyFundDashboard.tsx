@@ -13,7 +13,7 @@ import {
 } from 'chart.js';
 import type { ChartData, ChartOptions } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
-import { convertMyrAmount, convertToMyrAmount, formatCurrencyAmount } from '../utils/formatters';
+import { convertMyrAmount, convertToMyrAmount } from '../utils/formatters';
 import { getChartTheme } from '../utils/chartTheme';
 import AppIcon from './AppIcon';
 import type {
@@ -29,6 +29,7 @@ import type {
   SimulationAdjustmentInput,
 } from '../types';
 import { getErrorMessage } from '../utils/errors';
+import { usePrivacyMode } from '../hooks/usePrivacyMode';
 import angryStatusLogo from '../assets/financial_tracker_icon_angry_red.svg';
 import neutralStatusLogo from '../assets/financial_tracker_icon_neutral_yellow.svg';
 import defaultStatusLogo from '../assets/logo.svg';
@@ -44,7 +45,8 @@ function numberValue(value: NumericValue | null | undefined): number {
   return Number.isFinite(number) ? number : 0;
 }
 
-function formatMonths(value: NumericValue | null | undefined): string {
+function formatMonths(value: NumericValue | null | undefined, isPrivacyMode = false): string {
+  if (isPrivacyMode) return '*** Months';
   return `${Number(value || 0).toFixed(1)} Months`;
 }
 
@@ -77,6 +79,7 @@ interface EmergencySettingsPanelProps {
 }
 
 export function EmergencySavingsSettingsPanel({ settingsPayload, onSave, saving, currency, myrToIdr }: EmergencySettingsPanelProps) {
+  const { isPrivacyMode } = usePrivacyMode();
   const settings = settingsPayload?.settings;
   const [form, setForm] = useState<EmergencySettingsInput>({
     current_savings_myr: 0,
@@ -138,7 +141,8 @@ export function EmergencySavingsSettingsPanel({ settingsPayload, onSave, saving,
             <input
               id="emergency-current-savings"
               className="neo-input"
-              type="number"
+              type={isPrivacyMode ? 'password' : 'number'}
+              inputMode="decimal"
               min="0"
               step="0.01"
               value={displayAmount(form.current_savings_myr)}
@@ -154,7 +158,8 @@ export function EmergencySavingsSettingsPanel({ settingsPayload, onSave, saving,
             <input
               id="emergency-reserved-funds"
               className="neo-input"
-              type="number"
+              type={isPrivacyMode ? 'password' : 'number'}
+              inputMode="decimal"
               min="0"
               step="0.01"
               value={displayAmount(form.reserved_funds_myr)}
@@ -290,6 +295,7 @@ function getStatusLogo(status: EmergencySummary['status']) {
 }
 
 function CoverageOverview({ summary }: { summary: EmergencySummary }) {
+  const { isPrivacyMode } = usePrivacyMode();
   const statusClass = `emergency-status emergency-status--${summary.status.tone}`;
   const progressClass = `emergency-progress__bar emergency-progress__bar--${summary.status.tone}`;
 
@@ -298,8 +304,8 @@ function CoverageOverview({ summary }: { summary: EmergencySummary }) {
       <div className="emergency-overview__top">
         <div className="emergency-overview__coverage">
           <span className="emergency-kicker">Emergency Fund</span>
-          <h2>{formatMonths(summary.coverageMonths)}</h2>
-          <p>{summary.coverageDays} Days of essential coverage</p>
+          <h2>{formatMonths(summary.coverageMonths, isPrivacyMode)}</h2>
+          <p>{isPrivacyMode ? '*** Days of essential coverage' : `${summary.coverageDays} Days of essential coverage`}</p>
         </div>
         <div className="emergency-status-wrap">
           <img className="emergency-status-logo" src={getStatusLogo(summary.status)} alt="" />
@@ -310,13 +316,13 @@ function CoverageOverview({ summary }: { summary: EmergencySummary }) {
       <div className="emergency-progress">
         <div className="emergency-progress__meta">
           <span>Target {summary.targetMonths} Months</span>
-          <strong>{summary.progressPercent}%</strong>
+          <strong>{isPrivacyMode ? '***' : `${summary.progressPercent}%`}</strong>
         </div>
         <div className="emergency-progress__track">
           <div className={progressClass} style={{ width: `${summary.progressPercent}%` }}></div>
         </div>
         <div className="emergency-progress__meta emergency-progress__meta--muted">
-          <span>Current {formatMonths(summary.coverageMonths)}</span>
+          <span>Current {formatMonths(summary.coverageMonths, isPrivacyMode)}</span>
           <span>Visual progress capped at 100%</span>
         </div>
       </div>
@@ -369,6 +375,7 @@ function GoalCard({ summary, planMonths, setPlanMonths, formatAmount }: GoalCard
 }
 
 function Insights({ insights }: { insights: EmergencySummary['insights'] }) {
+  const { isPrivacyMode } = usePrivacyMode();
   return (
     <section className="emergency-insights neo-card">
       <div className="emergency-section-heading">
@@ -378,7 +385,7 @@ function Insights({ insights }: { insights: EmergencySummary['insights'] }) {
         {insights.map((insight) => (
           <article className="emergency-insight" key={`${insight.title}-${insight.body}`}>
             <strong>{insight.title}</strong>
-            <p>{insight.body}</p>
+            <p>{isPrivacyMode ? 'Financial details are hidden while Privacy Mode is on.' : insight.body}</p>
           </article>
         ))}
       </div>
@@ -448,6 +455,7 @@ interface SimulatorProps {
 }
 
 function Simulator({ simulation, runSimulation, categoryAverages, currency, myrToIdr, formatAmount }: SimulatorProps) {
+  const { isPrivacyMode } = usePrivacyMode();
   const [adjustments, setAdjustments] = useState(() => [createAdjustment(categoryAverages)]);
   const [message, setMessage] = useState('');
 
@@ -562,7 +570,8 @@ function Simulator({ simulation, runSimulation, categoryAverages, currency, myrT
                   <span>Monthly {currency}</span>
                   <input
                     className="neo-input"
-                    type="number"
+                    type={isPrivacyMode ? 'password' : 'number'}
+                    inputMode="decimal"
                     step="0.01"
                     value={convertMyrAmount(item.amountMyr, currency, myrToIdr)}
                     onChange={(event) => updateAmountAdjustment(item.id, event.target.value)}
@@ -594,7 +603,7 @@ function Simulator({ simulation, runSimulation, categoryAverages, currency, myrT
         <div className="simulation-result">
           <EmergencyMetric label="Monthly Change" value={formatAmount(simulation.totalDeltaMyr || 0)} sub="Net custom adjustment" />
           <EmergencyMetric label="Monthly Expenses" value={formatAmount(simulation.simulated.monthlyExpenseMyr)} sub={`Base ${formatAmount(simulation.base.monthlyExpenseMyr)}`} />
-          <EmergencyMetric label="Coverage" value={formatMonths(simulation.simulated.coverageMonths)} sub={`${simulation.simulated.coverageDays} days`} />
+          <EmergencyMetric label="Coverage" value={formatMonths(simulation.simulated.coverageMonths, isPrivacyMode)} sub={isPrivacyMode ? '*** days' : `${simulation.simulated.coverageDays} days`} />
           <EmergencyMetric label="Status" value={simulation.simulated.status.label} sub="Temporary scenario" />
         </div>
       )}
@@ -610,6 +619,7 @@ interface AnalyticsProps {
 }
 
 function Analytics({ summary, planMonths, currency, myrToIdr, formatAmount }: AnalyticsProps) {
+  const { isPrivacyMode } = usePrivacyMode();
   const chartTheme = getChartTheme();
   const essentialVsNon = summary.analytics.essentialVsNonEssential;
   const hasPieData = essentialVsNon.essential_myr > 0 || essentialVsNon.non_essential_myr > 0;
@@ -655,10 +665,13 @@ function Analytics({ summary, planMonths, currency, myrToIdr, formatAmount }: An
   const lineOptions: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { position: 'bottom', labels: { color: chartTheme.text } } },
+    plugins: {
+      legend: { position: 'bottom', labels: { color: chartTheme.text } },
+      tooltip: { callbacks: { label: (context) => `Coverage Months: ${isPrivacyMode ? '***' : context.parsed.y}` } },
+    },
     scales: {
       x: { grid: { color: chartTheme.grid }, ticks: { color: chartTheme.text } },
-      y: { grid: { color: chartTheme.grid }, ticks: { color: chartTheme.text } },
+      y: { grid: { color: chartTheme.grid }, ticks: { color: chartTheme.text, callback: () => isPrivacyMode ? '***' : undefined } },
     },
   };
 
@@ -724,12 +737,13 @@ interface EmergencyFundDashboardProps {
 }
 
 export default function EmergencyFundDashboard({ emergency, currency = 'MYR', exchangeRate }: EmergencyFundDashboardProps) {
+  const { formatCurrency, isPrivacyMode } = usePrivacyMode();
   const { summary, settingsPayload, simulation, loading, saving, error, runSimulation, saveSettings } = emergency;
   const [planMonths, setPlanMonths] = useState(6);
   const myrToIdr = exchangeRate?.myrToIdr || 4500;
   const formatAmount = useCallback(
-    (amount: number) => formatCurrencyAmount(amount, currency, myrToIdr),
-    [currency, myrToIdr]
+    (amount: number) => formatCurrency(amount, currency, myrToIdr),
+    [currency, formatCurrency, myrToIdr]
   );
 
   const metrics = useMemo(() => {
@@ -739,11 +753,11 @@ export default function EmergencyFundDashboard({ emergency, currency = 'MYR', ex
       ['Reserved Funds', formatAmount(summary.reservedFundsMyr)],
       ['Available Emergency Savings', formatAmount(summary.availableSavingsMyr)],
       ['Average Monthly Essential Expenses', formatAmount(summary.averageMonthlyEssentialExpenseMyr)],
-      ['Coverage', formatMonths(summary.coverageMonths), `${summary.coverageDays} Days`],
+      ['Coverage', formatMonths(summary.coverageMonths, isPrivacyMode), isPrivacyMode ? '*** Days' : `${summary.coverageDays} Days`],
       ['Status', summary.status.label],
     ];
     return items;
-  }, [formatAmount, summary]);
+  }, [formatAmount, isPrivacyMode, summary]);
 
   if (loading && !summary) {
     return (

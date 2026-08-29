@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { formatCurrencyAmount, formatDate } from '../utils/formatters';
+import { formatDate } from '../utils/formatters';
+import { usePrivacyMode } from '../hooks/usePrivacyMode';
 import { getCategoryIconName } from '../utils/categoryIcons';
 import { getReceiptImageUrl } from '../services/api';
 import AppIcon from './AppIcon';
@@ -35,6 +36,7 @@ interface RecycleBinManagerProps {
 }
 
 export default function RecycleBinManager({ store, currency, exchangeRate, onNotify }: RecycleBinManagerProps) {
+  const { formatCurrency } = usePrivacyMode();
   const [purgeTarget, setPurgeTarget] = useState<PurgeTarget | null>(null);
   const [isEmptyOpen, setIsEmptyOpen] = useState(false);
   const [isPurging, setIsPurging] = useState(false);
@@ -46,6 +48,7 @@ export default function RecycleBinManager({ store, currency, exchangeRate, onNot
   }, [load]);
 
   const myrToIdr = exchangeRate?.myrToIdr || 4500;
+  const formatCurrencyAmount = (amount: number, displayedCurrency: Currency, rate: number) => formatCurrency(amount, displayedCurrency, rate);
   const expenses = store.contents?.expenses ?? [];
   const receipts = store.contents?.receipts ?? [];
   const retentionDays = store.contents?.retention_days ?? 7;

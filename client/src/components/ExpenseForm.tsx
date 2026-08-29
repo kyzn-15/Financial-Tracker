@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import AppIcon from './AppIcon';
 import type { Category, Currency, Expense, ExpenseInput, RecurrenceFrequency } from '../types';
 import { getErrorMessage } from '../utils/errors';
+import { usePrivacyMode } from '../hooks/usePrivacyMode';
 
 interface ExpenseFormProps {
   categories?: Category[];
@@ -14,6 +15,7 @@ interface ExpenseFormProps {
 }
 
 export default function ExpenseForm({ categories = [], onSubmit, initialData, submitText = 'Save Expense', isCancelable, onCancel }: ExpenseFormProps) {
+  const { isPrivacyMode } = usePrivacyMode();
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [price, setPrice] = useState('');
@@ -232,7 +234,8 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
         <label className="neo-label" htmlFor="expense-price">Price ({currency})</label>
         <input
           id="expense-price"
-          type="number"
+          type={isPrivacyMode ? 'password' : 'number'}
+          inputMode="decimal"
           step="0.01"
           className="neo-input"
           placeholder="0.00"

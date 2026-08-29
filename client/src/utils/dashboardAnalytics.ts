@@ -199,16 +199,17 @@ interface FinancialInsightInput {
   largestPurchase: LargestPurchase | null;
   heatmapInsight: HeatmapInsight | null;
   formatCurrency: (amount: number) => string;
+  formatPercentage: (percentage: number) => string;
   formatDate: (value: string) => string;
 }
 
-export function getFinancialInsights({ comparison, categoryGrowth, weekdaySpending, largestPurchase, heatmapInsight, formatCurrency, formatDate }: FinancialInsightInput): FinancialInsight[] {
+export function getFinancialInsights({ comparison, categoryGrowth, weekdaySpending, largestPurchase, heatmapInsight, formatCurrency, formatPercentage, formatDate }: FinancialInsightInput): FinancialInsight[] {
   const insights: FinancialInsight[] = [];
 
   if (comparison.current > 0 && comparison.direction === 'increase' && comparison.percentage != null) {
-    insights.push({ tone: 'danger', text: `Your spending increased by ${comparison.percentage.toFixed(1)}% compared to last month.` });
+    insights.push({ tone: 'danger', text: `Your spending increased by ${formatPercentage(comparison.percentage)} compared to last month.` });
   } else if (comparison.current > 0 && comparison.direction === 'decrease' && comparison.percentage != null) {
-    insights.push({ tone: 'success', text: `Great job! You spent ${Math.abs(comparison.percentage).toFixed(1)}% less than last month.` });
+    insights.push({ tone: 'success', text: `Great job! You spent ${formatPercentage(Math.abs(comparison.percentage))} less than last month.` });
   } else if (comparison.isNewMonth) {
     insights.push({ tone: 'info', text: `You logged ${formatCurrency(comparison.current)} in spending this month after no spending last month.` });
   }
@@ -228,7 +229,7 @@ export function getFinancialInsights({ comparison, categoryGrowth, weekdaySpendi
   if (largestPurchase?.shareOfCurrentMonth != null) {
     insights.push({
       tone: 'info',
-      text: `Your ${largestPurchase.name} purchase represents ${largestPurchase.shareOfCurrentMonth.toFixed(1)}% of this month's spending.`,
+      text: `Your ${largestPurchase.name} purchase represents ${formatPercentage(largestPurchase.shareOfCurrentMonth)} of this month's spending.`,
     });
   }
 

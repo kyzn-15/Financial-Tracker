@@ -1537,6 +1537,10 @@
   font-size: var(--font-size-xl);
 }
 
+.dashboard-privacy-toggle {
+  align-self: center;
+}
+
 .dashboard-section__description,
 .chart-card__subtitle {
   margin-top: var(--space-xs);
@@ -2240,6 +2244,10 @@ button.heatmap-day:focus-visible {
 
   .dashboard-section__heading {
     align-items: flex-start;
+  }
+
+  .dashboard-privacy-toggle {
+    align-self: flex-start;
   }
 
   .dashboard-section__heading h2 {
