@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import AppIcon from './AppIcon';
 import type { AppTab, Currency, ExchangeRate } from '../types';
+import { usePrivacyMode } from '../hooks/usePrivacyMode';
 
 const FALLBACK_MYR_TO_IDR = 4500;
 
@@ -14,6 +15,7 @@ interface HeaderProps {
 }
 
 export default function Header({ exchangeRate, activeTab, currency, onCurrencyChange, onLogout, isLoggingOut }: HeaderProps) {
+  const { isPrivacyMode } = usePrivacyMode();
   const [time, setTime] = useState('');
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
@@ -64,7 +66,7 @@ export default function Header({ exchangeRate, activeTab, currency, onCurrencyCh
           <div className={rateBadgeClass} title={rateTitle}>
             <span className="header__rate-text">
               <span>1 MYR =</span>
-              <span className="rate-value">{rateDisplay}</span>
+              <span className="rate-value">{isPrivacyMode ? '***' : rateDisplay}</span>
               <span>IDR</span>
             </span>
           </div>

@@ -2,10 +2,11 @@ import { useCallback, useMemo } from 'react';
 import { Chart as ChartJS, ArcElement, Legend, Tooltip } from 'chart.js';
 import type { ChartData, ChartOptions } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
-import { CHART_COLORS, convertMyrAmount, formatCurrencyAmount } from '../utils/formatters';
+import { CHART_COLORS, convertMyrAmount } from '../utils/formatters';
 import { getCategoryBreakdown } from '../utils/dashboardAnalytics';
 import { getChartTheme } from '../utils/chartTheme';
 import type { CategoryTotal, Currency } from '../types';
+import { usePrivacyMode } from '../hooks/usePrivacyMode';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -16,6 +17,7 @@ interface CategoryChartProps {
 }
 
 export default function CategoryChart({ data = [], currency = 'MYR', myrToIdr = 4500 }: CategoryChartProps) {
+  const privacy = usePrivacyMode();
   const chartTheme = getChartTheme();
   const categories = useMemo(() => getCategoryBreakdown(data), [data]);
   const displayCategories = useMemo(() => categories.map((item) => ({
@@ -23,8 +25,8 @@ export default function CategoryChart({ data = [], currency = 'MYR', myrToIdr = 
     displayTotal: convertMyrAmount(item.total, currency, myrToIdr),
   })), [categories, currency, myrToIdr]);
   const formatCurrency = useCallback(
-    (amount: number) => formatCurrencyAmount(amount, currency, myrToIdr),
-    [currency, myrToIdr]
+    (amount: number) => privacy.formatCurrency(amount, currency, myrToIdr),
+    [currency, myrToIdr, privacy]
   );
 
   const chartData = useMemo<ChartData<'doughnut', number[], string>>(() => ({
@@ -50,7 +52,7 @@ export default function CategoryChart({ data = [], currency = 'MYR', myrToIdr = 
           padding: 12,
           generateLabels: () => displayCategories.map((item, index) => {
             return {
-              text: `${item.category} · ${formatCurrency(item.total)} · ${item.percentage.toFixed(1)}%`,
+              text: `${item.category} · ${formatCurrency(item.total)} · ${privacy.isPrivacyMode ? '***' : item.percentage.toFixed(1)}%`,
               fillStyle: CHART_COLORS[index % CHART_COLORS.length],
               strokeStyle: chartTheme.surface,
               fontColor: chartTheme.text,
@@ -64,12 +66,12 @@ export default function CategoryChart({ data = [], currency = 'MYR', myrToIdr = 
         callbacks: {
           label: (context) => {
             const item = displayCategories[context.dataIndex];
-            return `${formatCurrency(item.total)} · ${item.percentage.toFixed(1)}% of total`;
+            return `${formatCurrency(item.total)} · ${privacy.isPrivacyMode ? '***' : item.percentage.toFixed(1)}% of total`;
           },
         },
       },
     },
-  }), [chartTheme.surface, chartTheme.text, displayCategories, formatCurrency]);
+  }), [chartTheme.surface, chartTheme.text, displayCategories, formatCurrency, privacy.isPrivacyMode]);
 
   return (
     <div className="chart-card">

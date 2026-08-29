@@ -19,6 +19,7 @@ import { useReceipts } from './hooks/useReceipts';
 import { useEmergencyFund } from './hooks/useEmergencyFund';
 import { useCategories } from './hooks/useCategories';
 import { useRecycleBin } from './hooks/useRecycleBin';
+import { PrivacyModeProvider } from './hooks/usePrivacyMode';
 import * as api from './services/api';
 import AppIcon from './components/AppIcon';
 import type {
@@ -134,14 +135,7 @@ export default function App() {
     return <LoginPage onLogin={handleLogin} />;
   }
 
-  return (
-    <AuthenticatedApp
-      onLogout={handleLogout}
-      sessionExpiresAt={sessionExpiresAt}
-      theme={theme}
-      onThemeChange={setTheme}
-    />
-  );
+  return <PrivacyModeProvider><AuthenticatedApp onLogout={handleLogout} sessionExpiresAt={sessionExpiresAt} theme={theme} onThemeChange={setTheme} /></PrivacyModeProvider>;
 }
 
 function SkeletonLine({ className = '' }: { className?: string }) {

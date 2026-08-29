@@ -4,6 +4,7 @@ import AppIcon from './AppIcon';
 import { formatDateTime } from '../utils/formatters';
 import type { Category, Currency, RecurrenceFrequency, RecurringExpense, RecurringExpenseStore } from '../types';
 import { getErrorMessage } from '../utils/errors';
+import { usePrivacyMode } from '../hooks/usePrivacyMode';
 
 function getFutureNextRun(frequency: RecurrenceFrequency): string {
   const shiftedNow = new Date(Date.now() + 8 * 60 * 60 * 1000);
@@ -56,6 +57,7 @@ interface RecurringPaymentsManagerProps {
 }
 
 export default function RecurringPaymentsManager({ store, categories }: RecurringPaymentsManagerProps) {
+  const { isPrivacyMode, maskValue } = usePrivacyMode();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<RecurringForm | null>(null);
   const [savingId, setSavingId] = useState<number | null>(null);
@@ -166,7 +168,7 @@ export default function RecurringPaymentsManager({ store, categories }: Recurrin
               <div className="recurring-manager__edit-grid">
                 <label className="neo-input-group"><span className="neo-label">Payment</span><input className="neo-input" value={form.name} maxLength={160} onChange={(event) => updateForm({ name: event.target.value })} /></label>
                 <label className="neo-input-group"><span className="neo-label">Category</span><select className="neo-select" value={form.category} onChange={(event) => updateForm({ category: event.target.value })}>{categories.map((category) => <option key={category.id} value={category.name}>{category.name}</option>)}</select></label>
-                <label className="neo-input-group"><span className="neo-label">Amount</span><input className="neo-input" type="number" min="0.01" step="0.01" value={form.price} onChange={(event) => updateForm({ price: event.target.value })} /></label>
+                <label className="neo-input-group"><span className="neo-label">Amount</span><input className="neo-input" type={isPrivacyMode ? 'password' : 'number'} inputMode="decimal" min="0.01" step="0.01" value={form.price} onChange={(event) => updateForm({ price: event.target.value })} /></label>
                 <label className="neo-input-group"><span className="neo-label">Currency</span><select className="neo-select" value={form.currency} onChange={(event) => updateForm({ currency: event.target.value === 'IDR' ? 'IDR' : 'MYR' })}><option value="MYR">MYR</option><option value="IDR">IDR</option></select></label>
                 <label className="neo-input-group"><span className="neo-label">Repeat</span><select className="neo-select" value={form.frequency} onChange={(event) => updateForm({ frequency: event.target.value === 'daily' || event.target.value === 'weekly' ? event.target.value : 'monthly' })}><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label>
                 <label className="neo-input-group"><span className="neo-label">Next payment (UTC+8)</span><input className="neo-input" type="datetime-local" value={form.next_run_at} onChange={(event) => updateForm({ next_run_at: event.target.value })} /></label>
@@ -178,7 +180,7 @@ export default function RecurringPaymentsManager({ store, categories }: Recurrin
               <div className="recurring-manager__icon"><AppIcon name="refresh" size={18} /></div>
               <div className="recurring-manager__details">
                 <div className="recurring-manager__title"><strong>{rule.name}</strong><span className={`recurring-status recurring-status--${rule.status}`}>{rule.status}</span></div>
-                <p>{rule.currency} {Number(rule.price).toLocaleString('en', { maximumFractionDigits: 2 })} · {rule.category} · {rule.frequency}</p>
+                <p>{rule.currency} {maskValue(Number(rule.price).toLocaleString('en', { maximumFractionDigits: 2 }))} · {rule.category} · {rule.frequency}</p>
                 <span>Next: {formatDateTime(rule.next_run_at)}</span>
               </div>
               <div className="category-manager__actions">

@@ -1,5 +1,6 @@
 import { formatDate } from '../utils/formatters';
 import type { CategoryGrowth, Currency, LargestPurchase, MonthlyComparison } from '../types';
+import { usePrivacyMode } from '../hooks/usePrivacyMode';
 
 type FormatCurrency = (amount: number) => string;
 
@@ -32,6 +33,7 @@ export function AllTimeSpendingCard({ total, currency, formatCurrency }: AllTime
 }
 
 export function MonthlyComparisonCard({ comparison, currency, formatCurrency }: MonthlyComparisonCardProps) {
+  const { formatPercentage, isPrivacyMode } = usePrivacyMode();
   if (comparison.current === 0 && comparison.previous === 0) {
     return (
       <div className="analytics-card">
@@ -44,11 +46,11 @@ export function MonthlyComparisonCard({ comparison, currency, formatCurrency }: 
   const changePrefix = comparison.difference > 0 ? '+' : '';
   const percentage = comparison.percentage == null
     ? 'New'
-    : `${comparison.percentage > 0 ? '+' : ''}${comparison.percentage.toFixed(1)}%`;
+    : formatPercentage(comparison.percentage, { includeSign: true });
   const insight = comparison.direction === 'increase'
-    ? `Your spending increased by ${comparison.percentage?.toFixed(1) ?? 0}% compared to last month.`
+    ? (isPrivacyMode ? 'Your spending increased compared to last month.' : `Your spending increased by ${comparison.percentage?.toFixed(1) ?? 0}% compared to last month.`)
     : comparison.direction === 'decrease'
-      ? `Great job! You spent ${Math.abs(comparison.percentage ?? 0).toFixed(1)}% less than last month.`
+      ? (isPrivacyMode ? 'Great job! You spent less than last month.' : `Great job! You spent ${Math.abs(comparison.percentage ?? 0).toFixed(1)}% less than last month.`)
       : comparison.isNewMonth
         ? 'This is your first month with recorded spending.'
         : 'Your spending is unchanged from last month.';
@@ -73,6 +75,7 @@ export function MonthlyComparisonCard({ comparison, currency, formatCurrency }: 
   );
 }
 export function CategoryGrowthCard({ growth, formatCurrency }: { growth: CategoryGrowth | null; formatCurrency: FormatCurrency }) {
+  const { formatPercentage } = usePrivacyMode();
   if (!growth) {
     return (
       <div className="analytics-card">
@@ -96,7 +99,7 @@ export function CategoryGrowthCard({ growth, formatCurrency }: { growth: Categor
       <div className="dashboard-change dashboard-change--increase">
         <span>Increase</span>
         <strong>+{formatCurrency(growth.difference)}</strong>
-        <em>{growth.isNew || growth.percentage == null ? 'New' : `+${growth.percentage.toFixed(1)}%`}</em>
+        <em>{growth.isNew || growth.percentage == null ? 'New' : formatPercentage(growth.percentage, { includeSign: true })}</em>
       </div>
       <p className="analytics-card__insight">
         {growth.isNew
@@ -107,6 +110,7 @@ export function CategoryGrowthCard({ growth, formatCurrency }: { growth: Categor
   );
 }
 export function LargestPurchaseCard({ purchase, formatCurrency }: { purchase: LargestPurchase | null; formatCurrency: FormatCurrency }) {
+  const { isPrivacyMode } = usePrivacyMode();
   if (!purchase) {
     return (
       <div className="analytics-card">
@@ -131,7 +135,9 @@ export function LargestPurchaseCard({ purchase, formatCurrency }: { purchase: La
       <p className="analytics-card__insight">
         {purchase.shareOfCurrentMonth == null
           ? 'There is no current-month spending to compare this purchase against.'
-          : `This purchase accounted for ${purchase.shareOfCurrentMonth.toFixed(1)}% of this month's spending${purchase.isCurrentMonth ? '.' : ', even though it was made outside the current month.'}`}
+          : isPrivacyMode
+            ? `This purchase's share of this month's spending is hidden.${purchase.isCurrentMonth ? '' : ' It was made outside the current month.'}`
+            : `This purchase accounted for ${purchase.shareOfCurrentMonth.toFixed(1)}% of this month's spending${purchase.isCurrentMonth ? '.' : ', even though it was made outside the current month.'}`}
       </p>
     </div>
   );

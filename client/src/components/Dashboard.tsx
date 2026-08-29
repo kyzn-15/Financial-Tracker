@@ -7,7 +7,8 @@ import SpendingHeatmap from './SpendingHeatmap';
 import FinancialInsights from './FinancialInsights';
 import AppIcon from './AppIcon';
 import { AllTimeSpendingCard, CategoryGrowthCard, LargestPurchaseCard, MonthlyComparisonCard } from './AnalyticsCards';
-import { formatCurrencyAmount, formatDate } from '../utils/formatters';
+import { formatDate } from '../utils/formatters';
+import { usePrivacyMode } from '../hooks/usePrivacyMode';
 import {
   getCategoryGrowth,
   getFinancialInsights,
@@ -48,10 +49,11 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ summary, currency = 'MYR', exchangeRate, onViewHeatmapExpenses, onNavigate }: DashboardProps) {
+  const { formatCurrency, formatPercentage, isPrivacyMode, setIsPrivacyMode } = usePrivacyMode();
   const myrToIdr = exchangeRate?.myrToIdr || 4500;
-  const formatCurrency = useCallback(
-    (amount: number) => formatCurrencyAmount(amount, currency, myrToIdr),
-    [currency, myrToIdr]
+  const formatAmount = useCallback(
+    (amount: number) => formatCurrency(amount, currency, myrToIdr),
+    [currency, formatCurrency, myrToIdr]
   );
   const comparison = useMemo(() => getMonthlyComparison(summary?.monthlyComparison), [summary]);
   const categoryGrowth = useMemo(() => getCategoryGrowth(summary?.categoryComparison), [summary]);
@@ -70,14 +72,33 @@ export default function Dashboard({ summary, currency = 'MYR', exchangeRate, onV
     weekdaySpending,
     largestPurchase,
     heatmapInsight,
-    formatCurrency,
+    formatCurrency: formatAmount,
+    formatPercentage,
     formatDate,
-  }), [comparison, categoryGrowth, weekdaySpending, largestPurchase, heatmapInsight, formatCurrency]);
+  }), [comparison, categoryGrowth, weekdaySpending, largestPurchase, heatmapInsight, formatAmount, formatPercentage]);
 
   return (
     <div className="dashboard">
       <section className="dashboard-section">
-        <SectionHeading eyebrow="Overview" title="Monthly Total" description="A snapshot of your current month." />
+        <div className="dashboard-section__heading">
+          <div>
+            <p className="dashboard-section__eyebrow">Overview</p>
+            <h2>Monthly Total</h2>
+            <p className="dashboard-section__description">A snapshot of your current month.</p>
+          </div>
+          <button
+            className={`theme-toggle dashboard-privacy-toggle ${isPrivacyMode ? 'theme-toggle--active' : ''}`}
+            type="button"
+            role="switch"
+            aria-checked={isPrivacyMode}
+            aria-label={isPrivacyMode ? 'Show financial amounts' : 'Hide financial amounts'}
+            onClick={() => setIsPrivacyMode(!isPrivacyMode)}
+          >
+            <span className="theme-toggle__icon"><AppIcon name={isPrivacyMode ? 'eye-off' : 'eye'} size={16} /></span>
+            <span className="theme-toggle__track" aria-hidden="true"><span className="theme-toggle__thumb" /></span>
+            <span className="theme-toggle__label">{isPrivacyMode ? 'Balances hidden' : 'Balances visible'}</span>
+          </button>
+        </div>
         <SummaryCards summary={summary} currency={currency} myrToIdr={myrToIdr} />
       </section>
 
@@ -116,8 +137,8 @@ export default function Dashboard({ summary, currency = 'MYR', exchangeRate, onV
       <section className="dashboard-section">
         <SectionHeading eyebrow="Overview" title="Spending Overview" description="See your lifetime total and how this month's spending changed." />
         <div className="analytics-card-grid analytics-card-grid--overview">
-          <MonthlyComparisonCard comparison={comparison} currency={currency} formatCurrency={formatCurrency} />
-          <AllTimeSpendingCard total={Number(summary?.allTimeTotal?.myr ?? 0)} currency={currency} formatCurrency={formatCurrency} />
+          <MonthlyComparisonCard comparison={comparison} currency={currency} formatCurrency={formatAmount} />
+          <AllTimeSpendingCard total={Number(summary?.allTimeTotal?.myr ?? 0)} currency={currency} formatCurrency={formatAmount} />
         </div>
       </section>
 
@@ -125,8 +146,8 @@ export default function Dashboard({ summary, currency = 'MYR', exchangeRate, onV
         <SectionHeading eyebrow="Spending Analysis" title="Categories and purchases" description="Understand what is driving your spending." />
         <div className="dashboard-analysis-grid">
           <CategoryChart data={summary?.byCategory || []} currency={currency} myrToIdr={myrToIdr} />
-          <CategoryGrowthCard growth={categoryGrowth} formatCurrency={formatCurrency} />
-          <LargestPurchaseCard purchase={largestPurchase} formatCurrency={formatCurrency} />
+          <CategoryGrowthCard growth={categoryGrowth} formatCurrency={formatAmount} />
+          <LargestPurchaseCard purchase={largestPurchase} formatCurrency={formatAmount} />
         </div>
       </section>
 
