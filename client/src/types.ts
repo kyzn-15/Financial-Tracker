@@ -176,6 +176,7 @@ export interface DailySpendingRow {
 
 export interface Summary {
   monthlyTotal: MoneyPair;
+  allTimeTotal: MoneyPair;
   byCategory: CategoryTotal[];
   dailyTrend: DailySpendingRow[];
   count: number;

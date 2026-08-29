@@ -9,6 +9,28 @@ interface MonthlyComparisonCardProps {
   formatCurrency: FormatCurrency;
 }
 
+interface AllTimeSpendingCardProps {
+  total: number;
+  currency: Currency;
+  formatCurrency: FormatCurrency;
+}
+
+export function AllTimeSpendingCard({ total, currency, formatCurrency }: AllTimeSpendingCardProps) {
+  return (
+    <div className="analytics-card analytics-card--all-time">
+      <div className="analytics-card__header">
+        <h3>All Time Spending</h3>
+        <span className="analytics-card__eyebrow">{currency}</span>
+      </div>
+      <span className="analytics-card__label">Total recorded spending</span>
+      <strong className="analytics-card__amount">{formatCurrency(total)}</strong>
+      <p className="analytics-card__insight">
+        {total > 0 ? 'Includes every active expense you have recorded.' : 'No spending has been recorded yet.'}
+      </p>
+    </div>
+  );
+}
+
 export function MonthlyComparisonCard({ comparison, currency, formatCurrency }: MonthlyComparisonCardProps) {
   if (comparison.current === 0 && comparison.previous === 0) {
     return (

@@ -17,6 +17,7 @@ router.get('/summary', async (req, res) => {
 
     const [
       monthlyTotalResult,
+      allTimeTotalResult,
       countResult,
       byCategoryResult,
       previousMonthTotalResult,
@@ -31,6 +32,12 @@ router.get('/summary', async (req, res) => {
               FROM expenses
               WHERE deleted_at IS NULL AND timestamp >= ? AND timestamp < ?`,
         args: [currentMonth.start, currentMonth.end],
+      }),
+      db.execute({
+        sql: `SELECT COALESCE(SUM(price_myr), 0) AS myr, COALESCE(SUM(price_idr), 0) AS idr
+              FROM expenses
+              WHERE deleted_at IS NULL`,
+        args: [],
       }),
       db.execute({
         sql: `SELECT COUNT(*) AS count
@@ -129,6 +136,7 @@ router.get('/summary', async (req, res) => {
     ]);
 
     const monthlyTotal = monthlyTotalResult.rows[0];
+    const allTimeTotal = allTimeTotalResult.rows[0];
     const countRow = countResult.rows[0];
     const byCategory = byCategoryResult.rows;
     const previousMonthTotal = previousMonthTotalResult.rows[0];
@@ -140,6 +148,7 @@ router.get('/summary', async (req, res) => {
 
     res.json({
       monthlyTotal,
+      allTimeTotal,
       byCategory,
       dailyTrend,
       count: Number(countRow.count),
