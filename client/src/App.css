@@ -1539,6 +1539,16 @@
 
 .dashboard-privacy-toggle {
   align-self: center;
+  max-width: 100%;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.dashboard-privacy-toggle .theme-toggle__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dashboard-section__description,
@@ -3056,6 +3066,11 @@ button.heatmap-day:focus-visible {
     width: 100%;
   }
 
+  .dashboard-privacy-toggle {
+    width: auto;
+    padding: var(--space-sm);
+  }
+
   .category-manager__add-row {
     grid-template-columns: 1fr;
   }
@@ -3154,6 +3169,12 @@ button.heatmap-day:focus-visible {
   .emergency-overview h2,
   .readiness-card__score {
     font-size: var(--font-size-xl);
+  }
+}
+
+@media (max-width: 520px) {
+  .dashboard-privacy-toggle .theme-toggle__label {
+    display: none;
   }
 }
 
