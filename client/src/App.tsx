@@ -154,11 +154,9 @@ function LoginSkeleton() {
       <section className="login-panel login-skeleton">
         <span className="login-skeleton__brand skeleton-block" aria-hidden="true" />
         <div className="login-skeleton__copy">
-          <SkeletonLine className="skeleton-line--kicker" />
-          <SkeletonLine className="skeleton-line--title" />
+          <SkeletonLine className="skeleton-line--title login-skeleton__title" />
           <SkeletonLine className="skeleton-line--subtitle" />
         </div>
-        <SkeletonLine className="login-skeleton__status" />
         <SkeletonLine className="login-skeleton__label" />
         <span className="login-skeleton__input skeleton-block" aria-hidden="true" />
         <span className="login-skeleton__button skeleton-block" aria-hidden="true" />

@@ -205,17 +205,17 @@
 }
 
 .login-skeleton__brand {
-  width: 64px;
-  height: 64px;
+  width: clamp(76px, 22vw, 104px);
+  height: clamp(76px, 22vw, 104px);
   border-radius: var(--radius-lg);
   margin-bottom: var(--space-xl);
 }
 
 .login-skeleton__copy { margin-bottom: var(--space-xl); }
-.login-skeleton__status { width: 48%; margin-bottom: var(--space-xl); }
+.login-skeleton__title { margin-top: 0; }
 .login-skeleton__label { width: 24%; height: 0.7rem; margin-bottom: var(--space-sm); }
 .login-skeleton__input { height: 52px; margin-bottom: var(--space-md); }
-.login-skeleton__button { height: 46px; border-radius: var(--radius-md); }
+.login-skeleton__button { width: 100%; height: 46px; border-radius: var(--radius); }
 
 .app-skeleton__sidebar { pointer-events: none; }
 .app-skeleton__logo { width: 44px; height: 44px; border-radius: var(--radius-md); }
