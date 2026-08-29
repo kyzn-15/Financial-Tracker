@@ -6,7 +6,7 @@ import WeekdayChart from './WeekdayChart';
 import SpendingHeatmap from './SpendingHeatmap';
 import FinancialInsights from './FinancialInsights';
 import AppIcon from './AppIcon';
-import { CategoryGrowthCard, LargestPurchaseCard, MonthlyComparisonCard } from './AnalyticsCards';
+import { AllTimeSpendingCard, CategoryGrowthCard, LargestPurchaseCard, MonthlyComparisonCard } from './AnalyticsCards';
 import { formatCurrencyAmount, formatDate } from '../utils/formatters';
 import {
   getCategoryGrowth,
@@ -114,9 +114,10 @@ export default function Dashboard({ summary, currency = 'MYR', exchangeRate, onV
       </section>
 
       <section className="dashboard-section">
-        <SectionHeading eyebrow="Overview" title="Monthly Comparison" description="See how this month's spending changed." />
-        <div className="analytics-card-grid analytics-card-grid--single">
+        <SectionHeading eyebrow="Overview" title="Spending Overview" description="See your lifetime total and how this month's spending changed." />
+        <div className="analytics-card-grid analytics-card-grid--overview">
           <MonthlyComparisonCard comparison={comparison} currency={currency} formatCurrency={formatCurrency} />
+          <AllTimeSpendingCard total={Number(summary?.allTimeTotal?.myr ?? 0)} currency={currency} formatCurrency={formatCurrency} />
         </div>
       </section>
 
