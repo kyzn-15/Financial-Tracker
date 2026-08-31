@@ -1,4 +1,8 @@
-# Neomorphic Personal Financial Tracker
+<p align="center">
+  <img src="./client/src/assets/logo.svg" alt="Financial Tracker" width="180">
+</p>
+
+<h1 align="center">Personal Financial Tracker</h1>
 
 A beautiful, modern full-stack web application designed using the **Neomorphism (Soft UI)** aesthetic. It allows a single user to log their daily expenses, automatically converting and storing values in both **MYR (Malaysian Ringgit)** and **IDR (Indonesian Rupiah)** via the Frankfurter exchange rate API.
 
