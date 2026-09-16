@@ -9,6 +9,7 @@ import type {
   ExchangeRate,
   Expense,
   ExpenseFilters,
+  ExpenseFolder,
   ExpenseInput,
   ImportResult,
   Receipt,
@@ -93,6 +94,7 @@ export async function getExpenses(filters: Partial<ExpenseFilters> = {}): Promis
   const params = new URLSearchParams();
   if (filters.name) params.set('name', filters.name);
   if (filters.category) params.set('category', filters.category);
+  if (filters.folderId) params.set('folderId', filters.folderId);
   if (filters.startDate) params.set('startDate', filters.startDate);
   if (filters.endDate) params.set('endDate', filters.endDate);
   if (filters.sort) params.set('sort', filters.sort);
@@ -120,6 +122,17 @@ export async function deleteExpense(id: number): Promise<void> {
   return request(`/expenses/${id}`, {
     method: 'DELETE',
   }, true);
+}
+
+export async function getFolders(): Promise<ExpenseFolder[]> {
+  return request<ExpenseFolder[]>('/folders');
+}
+
+export async function createFolder(name: string): Promise<ExpenseFolder> {
+  return request<ExpenseFolder>('/folders', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
 }
 
 export async function getCategories(): Promise<Category[]> {

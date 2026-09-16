@@ -47,6 +47,7 @@ const db = createClient({
 async function ensureDatabaseColumns() {
   const targets = [
     { table: 'expenses', column: 'deleted_at', type: 'TEXT' },
+    { table: 'expenses', column: 'folder_id', type: 'INTEGER' },
     { table: 'receipts', column: 'deleted_at', type: 'TEXT' },
     { table: 'receipts', column: 'image_data', type: 'BLOB' },
   ];

@@ -12,6 +12,7 @@ export function useExpenses() {
   const [filters, setFilters] = useState<ExpenseFilters>({
     name: '',
     category: '',
+    folderId: '',
     startDate: '',
     endDate: '',
     sort: 'timestamp',
@@ -107,6 +108,7 @@ export function useExpenses() {
     setFilters({
       name: '',
       category: '',
+      folderId: '',
       startDate: '',
       endDate: '',
       sort: 'timestamp',

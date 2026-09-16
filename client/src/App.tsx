@@ -18,6 +18,7 @@ import { useExpenses } from './hooks/useExpenses';
 import { useReceipts } from './hooks/useReceipts';
 import { useEmergencyFund } from './hooks/useEmergencyFund';
 import { useCategories } from './hooks/useCategories';
+import { useFolders } from './hooks/useFolders';
 import { useRecycleBin } from './hooks/useRecycleBin';
 import { PrivacyModeProvider } from './hooks/usePrivacyMode';
 import * as api from './services/api';
@@ -232,6 +233,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
   } = useExpenses();
 
   const categoryStore = useCategories();
+  const folderStore = useFolders();
   const categoryNames = categoryStore.categories.map((category) => category.name);
   const recurringStore = useRecurringExpenses();
 
@@ -536,7 +538,14 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
         <div className="tab-content">
           {activeTab === 'add' && (
             <div className="neo-card" style={{ maxWidth: '640px', margin: '0 auto', marginTop: 'var(--space-md)' }}>
-              <ExpenseForm categories={categoryStore.categories} onSubmit={handleAddSubmit} submitText="Add Expense" />
+              <ExpenseForm
+                categories={categoryStore.categories}
+                folders={folderStore.folders}
+                exchangeRate={exchangeRate}
+                onCreateFolder={folderStore.createFolder}
+                onSubmit={handleAddSubmit}
+                submitText="Add Expense"
+              />
             </div>
           )}
 
@@ -574,6 +583,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
               </div>
               <FilterBar
                 categories={categoryNames}
+                folders={folderStore.folders}
                 filters={filters}
                 onChange={updateFilters}
                 onClear={clearFilters}
@@ -587,7 +597,6 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
                   expenses={expenses}
                   filters={filters}
                   currency={currency}
-                  exchangeRate={exchangeRate}
                   onSort={updateSort}
                   onEdit={setEditingExpense}
                   onDelete={setDeletingExpense}
@@ -650,6 +659,9 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
         {editingExpense && (
           <ExpenseForm
             categories={categoryStore.categories}
+            folders={folderStore.folders}
+            exchangeRate={exchangeRate}
+            onCreateFolder={folderStore.createFolder}
             onSubmit={handleEditSubmit}
             initialData={editingExpense}
             submitText="Save Changes"

@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import AppIcon from './AppIcon';
-import type { Category, Currency, Expense, ExpenseInput, RecurrenceFrequency } from '../types';
+import type { Category, Currency, ExchangeRate, Expense, ExpenseFolder, ExpenseInput, KursQuote, RecurrenceFrequency } from '../types';
+import { formatKursInput, invertKursQuote } from '../utils/currency';
 import { getErrorMessage } from '../utils/errors';
 import { usePrivacyMode } from '../hooks/usePrivacyMode';
 
 interface ExpenseFormProps {
   categories?: Category[];
+  folders?: ExpenseFolder[];
+  exchangeRate?: ExchangeRate | null;
+  onCreateFolder?: (name: string) => Promise<ExpenseFolder>;
   onSubmit: (data: ExpenseInput) => Promise<unknown>;
   initialData?: Expense;
   submitText?: string;
@@ -14,7 +18,17 @@ interface ExpenseFormProps {
   onCancel?: () => void;
 }
 
-export default function ExpenseForm({ categories = [], onSubmit, initialData, submitText = 'Save Expense', isCancelable, onCancel }: ExpenseFormProps) {
+export default function ExpenseForm({
+  categories = [],
+  folders = [],
+  exchangeRate = null,
+  onCreateFolder,
+  onSubmit,
+  initialData,
+  submitText = 'Save Expense',
+  isCancelable,
+  onCancel,
+}: ExpenseFormProps) {
   const { isPrivacyMode } = usePrivacyMode();
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
@@ -26,27 +40,47 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
   const [validationError, setValidationError] = useState('');
   const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency>('monthly');
+  const [showCustomKurs, setShowCustomKurs] = useState(false);
+  const [customKurs, setCustomKurs] = useState('');
+  const [kursQuote, setKursQuote] = useState<KursQuote>('MYR_IDR');
+  const [folderId, setFolderId] = useState('');
+  const [showFolder, setShowFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [creatingFolder, setCreatingFolder] = useState(false);
+
+  const liveKurs = exchangeRate?.myrToIdr;
 
   useEffect(() => {
     if (initialData) {
       setName(initialData.name || '');
       setCategory(initialData.category || '');
-      // When editing, if price is set, use original currency value
       const origCur = initialData.original_currency || 'MYR';
       setCurrency(origCur);
       setPrice(String(origCur === 'MYR' ? initialData.price_myr : initialData.price_idr));
-      
+
       if (initialData.timestamp) {
-        // Strip timezone offset (+08:00) so it fits in datetime-local value
-        // e.g. "2026-06-27T18:03:00+08:00" -> "2026-06-27T18:03:00"
         const formattedTs = initialData.timestamp.slice(0, 16);
         setCustomDateTime(formattedTs);
         setUseCurrentTime(false);
       } else {
         setUseCurrentTime(true);
       }
+
+      const assignedFolder = initialData.folder_id != null ? String(initialData.folder_id) : '';
+      setFolderId(assignedFolder);
+      setShowFolder(false);
+      setShowCustomKurs(false);
+      const storedKurs = Number(initialData.exchange_rate_used);
+      if (Number.isFinite(storedKurs) && storedKurs > 0) {
+        setCustomKurs(formatKursInput(storedKurs));
+        setKursQuote('MYR_IDR');
+      } else {
+        setCustomKurs('');
+        setKursQuote('MYR_IDR');
+      }
+      setRecurrenceEnabled(false);
+      setRecurrenceFrequency('monthly');
     } else {
-      // Defaults
       setName('');
       setCategory('');
       setPrice('');
@@ -55,6 +89,12 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
       setUseCurrentTime(true);
       setRecurrenceEnabled(false);
       setRecurrenceFrequency('monthly');
+      setShowCustomKurs(false);
+      setCustomKurs('');
+      setKursQuote('MYR_IDR');
+      setFolderId('');
+      setShowFolder(false);
+      setNewFolderName('');
     }
     setValidationError('');
   }, [initialData]);
@@ -76,6 +116,57 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
     setRecurrenceFrequency(categorySettings?.automation_frequency || 'monthly');
   };
 
+  const handleToggleCustomKurs = () => {
+    setShowCustomKurs((open) => {
+      const next = !open;
+      if (next && customKurs.trim() === '') {
+        const stored = initialData?.exchange_rate_used;
+        const seed = stored && Number.isFinite(Number(stored)) && Number(stored) > 0
+          ? Number(stored)
+          : liveKurs;
+        if (seed) {
+          setKursQuote('MYR_IDR');
+          setCustomKurs(formatKursInput(seed));
+        }
+      }
+      return next;
+    });
+  };
+
+  const handleSwapKursQuote = () => {
+    const nextQuote: KursQuote = kursQuote === 'MYR_IDR' ? 'IDR_MYR' : 'MYR_IDR';
+    if (customKurs.trim() !== '') {
+      const value = Number(customKurs);
+      if (!Number.isFinite(value) || value <= 0) {
+        setValidationError('Enter a valid custom kurs before swapping the quote.');
+        return;
+      }
+      setCustomKurs(formatKursInput(invertKursQuote(value)));
+    }
+    setKursQuote(nextQuote);
+    setValidationError('');
+  };
+
+  const handleCreateFolder = async () => {
+    const nameValue = newFolderName.trim().replace(/\s+/g, ' ');
+    if (!nameValue || nameValue.length > 60) {
+      setValidationError('Folder name must be between 1 and 60 characters.');
+      return;
+    }
+    if (!onCreateFolder) return;
+    setCreatingFolder(true);
+    try {
+      const created = await onCreateFolder(nameValue);
+      setFolderId(String(created.id));
+      setNewFolderName('');
+      setValidationError('');
+    } catch (err) {
+      setValidationError(getErrorMessage(err, 'Failed to create folder.'));
+    } finally {
+      setCreatingFolder(false);
+    }
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setValidationError('');
@@ -92,12 +183,22 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
       setValidationError('Price must be a positive number.');
       return;
     }
+    let resolvedCustomKurs: number | undefined;
+    let resolvedQuote: KursQuote | undefined;
+    if (customKurs.trim() !== '') {
+      const kurs = Number(customKurs);
+      if (!Number.isFinite(kurs) || kurs <= 0) {
+        setValidationError('Custom kurs must be a positive number.');
+        return;
+      }
+      resolvedCustomKurs = kurs;
+      resolvedQuote = kursQuote;
+    }
 
     setSubmitting(true);
     try {
       let formattedTimestamp = '';
       if (!useCurrentTime && customDateTime) {
-        // Make sure it has +08:00
         formattedTimestamp = customDateTime + '+08:00';
       }
 
@@ -107,7 +208,12 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
         price: Number(price),
         currency,
         timestamp: formattedTimestamp,
+        folderId: folderId === '' ? null : Number(folderId),
       };
+      if (resolvedCustomKurs != null && resolvedQuote) {
+        data.customKurs = resolvedCustomKurs;
+        data.customKursQuote = resolvedQuote;
+      }
       if (!initialData) {
         data.recurrence = recurrenceEnabled
           ? { enabled: true, frequency: recurrenceFrequency }
@@ -115,12 +221,17 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
       }
       await onSubmit(data);
 
-      // Clear form if not editing
       if (!initialData) {
         setName('');
         setPrice('');
         setUseCurrentTime(true);
         setCustomDateTime('');
+        setShowCustomKurs(false);
+        setCustomKurs('');
+        setKursQuote('MYR_IDR');
+        setFolderId('');
+        setShowFolder(false);
+        setNewFolderName('');
       }
     } catch (err) {
       setValidationError(getErrorMessage(err, 'Failed to submit expense.'));
@@ -129,10 +240,13 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
     }
   };
 
+  const kursPrefix = kursQuote === 'IDR_MYR' ? '1 IDR =' : '1 MYR =';
+  const kursSuffix = kursQuote === 'IDR_MYR' ? 'MYR' : 'IDR';
+
   return (
     <form className="expense-form" onSubmit={handleSubmit}>
       {validationError && (
-        <div style={{ color: 'var(--danger)', fontSize: 'var(--font-size-sm)', fontWeight: 'bold' }}>
+        <div className="expense-form__error">
           <AppIcon name="alert" size={17} /> {validationError}
         </div>
       )}
@@ -170,7 +284,7 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
         </div>
 
         <div className="neo-input-group">
-          <label className="neo-label">Currency</label>
+          <span className="neo-label">Currency</span>
           <div className="currency-toggle">
             <button
               type="button"
@@ -195,7 +309,6 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
           <div className="expense-recurrence__heading">
             <div>
               <strong>Automated input</strong>
-              <p>Create this payment again on a schedule.</p>
             </div>
             <label className="automation-switch">
               <input
@@ -246,20 +359,20 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
       </div>
 
       <div className="neo-input-group">
-        <label className="neo-label">Date / Time</label>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: 'var(--font-size-sm)' }}>
+        <span className="neo-label">Date / Time</span>
+        <div className="expense-form__datetime">
+          <label className="expense-form__check">
             <input
               type="checkbox"
               checked={useCurrentTime}
               onChange={(e) => setUseCurrentTime(e.target.checked)}
-              style={{ accentColor: 'var(--accent)' }}
             />
             Use current time (UTC+8)
           </label>
 
           {!useCurrentTime && (
             <input
+              id="expense-datetime"
               type="datetime-local"
               className="neo-input"
               value={customDateTime}
@@ -268,6 +381,106 @@ export default function ExpenseForm({ categories = [], onSubmit, initialData, su
             />
           )}
         </div>
+      </div>
+
+      <div className="expense-disclose">
+        <button
+          type="button"
+          className="expense-disclose__toggle"
+          onClick={handleToggleCustomKurs}
+          aria-expanded={showCustomKurs}
+        >
+          <strong>Custom kurs</strong>
+          <span>{showCustomKurs ? 'Hide' : 'Add'}</span>
+        </button>
+        {showCustomKurs && (
+          <div className="expense-disclose__body">
+            <label className="neo-label" htmlFor="expense-custom-kurs">
+              {kursQuote === 'IDR_MYR' ? '1 IDR = Y MYR' : '1 MYR = X IDR'}
+            </label>
+            <div className="expense-form__kurs">
+              <span className="expense-form__kurs-prefix">{kursPrefix}</span>
+              <input
+                id="expense-custom-kurs"
+                type={isPrivacyMode ? 'password' : 'number'}
+                inputMode="decimal"
+                step="any"
+                min="0"
+                className="neo-input"
+                placeholder={kursQuote === 'IDR_MYR' ? 'e.g. 0.00023' : (liveKurs ? String(liveKurs) : 'e.g. 3750')}
+                value={customKurs}
+                onChange={(e) => setCustomKurs(e.target.value)}
+              />
+              <span className="expense-form__kurs-suffix">{kursSuffix}</span>
+              <button
+                type="button"
+                className="neo-btn neo-btn--secondary expense-form__swap"
+                onClick={handleSwapKursQuote}
+                title="Swap kurs quote between 1 MYR = X IDR and 1 IDR = Y MYR"
+                aria-label="Swap kurs quote direction"
+              >
+                <AppIcon name="swap" size={16} />
+                Swap
+              </button>
+            </div>
+            <p className="expense-form__hint">
+              {kursQuote === 'IDR_MYR'
+                ? 'Enter how many MYR one IDR is worth. Saved as 1 MYR = 1 / Y IDR.'
+                : 'Enter how many IDR one MYR is worth.'}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="expense-disclose">
+        <button
+          type="button"
+          className="expense-disclose__toggle"
+          onClick={() => setShowFolder((open) => !open)}
+          aria-expanded={showFolder}
+        >
+          <strong>Folder</strong>
+          <span>{showFolder ? 'Hide' : 'Add'}</span>
+        </button>
+        {showFolder && (
+          <div className="expense-disclose__body">
+            <label className="neo-label" htmlFor="expense-folder">Folder</label>
+            <select
+              id="expense-folder"
+              className="neo-select"
+              value={folderId}
+              onChange={(e) => setFolderId(e.target.value)}
+            >
+              <option value="">No folder</option>
+              {folders.map((folder) => (
+                <option key={folder.id} value={folder.id}>
+                  {folder.name}
+                </option>
+              ))}
+            </select>
+            {onCreateFolder && (
+              <div className="expense-form__folder-create">
+                <input
+                  type="text"
+                  className="neo-input"
+                  maxLength={60}
+                  placeholder="New folder, e.g. malaysian traveling trip"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  aria-label="New folder name"
+                />
+                <button
+                  type="button"
+                  className="neo-btn neo-btn--secondary expense-form__folder-add"
+                  onClick={handleCreateFolder}
+                  disabled={creatingFolder}
+                >
+                  <AppIcon name="plus" size={15} /> Add
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="expense-form__actions">

@@ -1262,6 +1262,91 @@
   gap: var(--space-md);
   margin-top: var(--space-sm);
 }
+.expense-form__error {
+  color: var(--danger);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.expense-form__datetime {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.expense-form__check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+.expense-form__check input {
+  accent-color: var(--accent);
+}
+.expense-disclose {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius);
+  box-shadow: var(--neo-in);
+}
+.expense-disclose__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  width: 100%;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  background: transparent;
+}
+.expense-disclose__toggle strong {
+  font-weight: 700;
+}
+.expense-disclose__toggle span {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+.expense-disclose__body {
+  display: grid;
+  gap: var(--space-sm);
+}
+.expense-form__hint {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  margin: 0;
+}
+.expense-form__kurs {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: var(--space-sm);
+  align-items: center;
+}
+.expense-form__kurs-prefix,
+.expense-form__kurs-suffix {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.expense-form__swap {
+  min-height: 42px;
+  padding-inline: var(--space-md);
+  white-space: nowrap;
+}
+.expense-form__folder-create {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: center;
+}
+.expense-form__folder-add {
+  padding-inline: var(--space-md);
+  white-space: nowrap;
+}
 
 /* ---- EXPENSE TABLE (Desktop) ---- */
 .expense-table-wrapper {
@@ -2317,6 +2402,18 @@ button.heatmap-day:focus-visible {
 
   .expense-form__row {
     grid-template-columns: 1fr;
+  }
+
+  .expense-form__kurs {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .expense-form__swap {
+    grid-column: 1 / -1;
+  }
+
+  .expense-form__folder-create {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .filter-bar {

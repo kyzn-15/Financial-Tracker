@@ -28,6 +28,7 @@ export async function resetAppData() {
       { sql: 'DELETE FROM recurring_expense_occurrences', args: [] },
       { sql: 'DELETE FROM recurring_expense_rules', args: [] },
       { sql: 'DELETE FROM expenses', args: [] },
+      { sql: 'DELETE FROM expense_folders', args: [] },
       { sql: 'DELETE FROM receipts', args: [] },
       { sql: 'DELETE FROM category_automation_settings', args: [] },
       { sql: 'DELETE FROM categories', args: [] },
@@ -36,7 +37,7 @@ export async function resetAppData() {
       { sql: 'DELETE FROM app_metadata', args: [] },
       {
         sql: `DELETE FROM sqlite_sequence
-              WHERE name IN ('expenses', 'categories', 'recurring_expense_rules', 'receipts')`,
+              WHERE name IN ('expenses', 'categories', 'recurring_expense_rules', 'receipts', 'expense_folders')`,
         args: [],
       },
       ...DEFAULT_CATEGORIES.map((name, index) => ({
