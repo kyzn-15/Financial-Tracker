@@ -193,6 +193,8 @@ export default function ExpenseForm({
       if (resolvedCustomKurs != null && resolvedQuote) {
         data.customKurs = resolvedCustomKurs;
         data.customKursQuote = resolvedQuote;
+      } else if (initialData) {
+        data.customKurs = null;
       }
       if (!initialData) {
         data.recurrence = recurrenceEnabled
@@ -409,7 +411,7 @@ export default function ExpenseForm({
               </div>
               <p className="expense-form__hint">
                 {kursQuote === 'IDR_MYR'
-                  ? 'Enter how many MYR one IDR is worth. Saved as 1 MYR = 1 / Y IDR.'
+                  ? 'Enter how many MYR one IDR is worth. Saved as 1 MYR = 1 / Y IDR. Clear the field to use the live rate.'
                   : 'Leave empty to use the live rate, or enter how many IDR one MYR is worth.'}
               </p>
             </div>

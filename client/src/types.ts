@@ -35,7 +35,7 @@ export interface ExpenseInput {
   currency: Currency;
   timestamp: string;
   recurrence?: RecurrenceInput;
-  customKurs?: number;
+  customKurs?: number | null;
   customKursQuote?: KursQuote;
   folderId?: number | null;
 }

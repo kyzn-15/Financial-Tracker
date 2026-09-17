@@ -44,10 +44,11 @@ function validateExpenseInput(input) {
 }
 
 function parseCustomKurs(value) {
-  if (value == null || value === '') return { omitted: true };
+  if (value === undefined) return { omitted: true };
+  if (value === null || value === '') return { clear: true };
   if (typeof value === 'string') {
     const trimmed = value.trim();
-    if (trimmed === '') return { omitted: true };
+    if (trimmed === '') return { clear: true };
     const kurs = Number(trimmed);
     if (!Number.isFinite(kurs) || kurs <= 0) return { invalid: true };
     return { kurs };
@@ -68,6 +69,7 @@ function resolveSubmittedCustomKurs(body) {
   const parsed = parseCustomKurs(body?.customKurs);
   if (parsed.invalid) return { invalid: true };
   if (parsed.omitted) return { omitted: true };
+  if (parsed.clear) return { clear: true };
   const quote = parseCustomKursQuote(body?.customKursQuote);
   if (!quote) return { invalid: true };
   const kurs = toMyrToIdrKurs(parsed.kurs, quote);
@@ -316,7 +318,11 @@ router.put('/:id', async (req, res) => {
     }
     const cur = currency;
     const ts = timestamp && timestamp.trim() !== '' ? timestamp : nowUTC8();
-    const kurs = customKurs.omitted ? storedExchangeRate(existing) : customKurs.kurs;
+    const kurs = customKurs.clear
+      ? undefined
+      : customKurs.omitted
+        ? storedExchangeRate(existing)
+        : customKurs.kurs;
 
     const { priceMyr, priceIdr, exchangeRateUsed } = await calculateExpenseAmounts(price, cur, kurs);
 

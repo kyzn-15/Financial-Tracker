@@ -172,6 +172,27 @@ test('PUT without customKurs keeps the saved custom kurs', async () => {
   assert.notEqual(Number(updated.body.exchange_rate_used), FALLBACK_MYR_TO_IDR);
 });
 
+test('PUT with customKurs null recalculates from the live or fallback rate', async () => {
+  const kurs = 3210;
+  const price = 12.5;
+  const created = await postExpense({ name: 'Clear custom kurs', price, currency: 'MYR', customKurs: kurs });
+  assert.equal(created.response.status, 201);
+  assert.equal(Number(created.body.exchange_rate_used), kurs);
+  assert.notEqual(Number(created.body.exchange_rate_used), FALLBACK_MYR_TO_IDR);
+
+  const updated = await putExpense(Number(created.body.id), {
+    name: 'Cleared custom kurs',
+    price,
+    currency: 'MYR',
+    customKurs: null,
+  });
+  assert.equal(updated.response.status, 200);
+  assert.equal(Number(updated.body.exchange_rate_used), FALLBACK_MYR_TO_IDR);
+  assert.equal(Number(updated.body.price_myr), price);
+  assert.equal(Number(updated.body.price_idr), price * FALLBACK_MYR_TO_IDR);
+  assert.notEqual(Number(updated.body.exchange_rate_used), kurs);
+});
+
 test('omitting custom kurs uses the live or fallback conversion', async () => {
   const price = 9;
   const created = await postExpense({ name: 'No custom kurs', price, currency: 'MYR' });
