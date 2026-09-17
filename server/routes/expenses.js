@@ -2,13 +2,16 @@
 import { Router } from 'express';
 import db from '../db/database.js';
 import { calculateExpenseAmounts, createExpenseRecord, getExpenseRecord, RECURRENCE_FREQUENCIES } from '../services/expenseRecords.js';
+import { folderExists } from '../services/folders.js';
 import { softDeleteExpense } from '../services/recycleBin.js';
+import { toMyrToIdrKurs } from '../utils/currency.js';
 import { nowUTC8 } from '../utils/datetime.js';
 
 const router = Router();
 
 const MAX_EXPENSE_TEXT_LENGTH = 160;
 const MAX_EXPENSE_AMOUNT = 1_000_000_000;
+const MAX_CUSTOM_KURS = 1_000_000;
 const UTC8_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?\+08:00$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const SORT_COLUMNS = new Set(['id', 'name', 'category', 'price_myr', 'price_idr', 'timestamp', 'created_at']);
@@ -38,6 +41,65 @@ function validateExpenseInput(input) {
     currency: normalizedCurrency,
     timestamp: timestamp || '',
   };
+}
+
+function parseCustomKurs(value) {
+  if (value === undefined) return { omitted: true };
+  if (value === null || value === '') return { clear: true };
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed === '') return { clear: true };
+    const kurs = Number(trimmed);
+    if (!Number.isFinite(kurs) || kurs <= 0) return { invalid: true };
+    return { kurs };
+  }
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    return { invalid: true };
+  }
+  return { kurs: value };
+}
+
+function parseCustomKursQuote(value) {
+  if (value == null || value === '' || value === 'MYR_IDR') return 'MYR_IDR';
+  if (value === 'IDR_MYR') return 'IDR_MYR';
+  return null;
+}
+
+function resolveSubmittedCustomKurs(body) {
+  const parsed = parseCustomKurs(body?.customKurs);
+  if (parsed.invalid) return { invalid: true };
+  if (parsed.omitted) return { omitted: true };
+  if (parsed.clear) return { clear: true };
+  const quote = parseCustomKursQuote(body?.customKursQuote);
+  if (!quote) return { invalid: true };
+  const kurs = toMyrToIdrKurs(parsed.kurs, quote);
+  if (!Number.isFinite(kurs) || kurs <= 0 || kurs > MAX_CUSTOM_KURS) return { invalid: true };
+  return { kurs };
+}
+
+function storedExchangeRate(existing) {
+  const kurs = Number(existing?.exchange_rate_used);
+  return Number.isFinite(kurs) && kurs > 0 ? kurs : undefined;
+}
+
+function parseFolderId(value) {
+  if (value == null || value === '') return { folderId: null };
+  const id = Number(value);
+  if (!Number.isSafeInteger(id) || id <= 0) return { invalid: true };
+  return { folderId: id };
+}
+
+function parseFolderFilter(value) {
+  if (value == null || value === '') return { folderId: '' };
+  if (value === 'ungrouped') return { folderId: 'ungrouped' };
+  const id = Number(value);
+  if (!Number.isSafeInteger(id) || id <= 0) return null;
+  return { folderId: id };
+}
+
+async function resolveFolderId(folderId) {
+  if (folderId == null) return null;
+  return (await folderExists(folderId)) ? folderId : undefined;
 }
 
 function parseExpenseId(value) {
@@ -73,15 +135,17 @@ function validateExpenseFilters(query) {
     ? 'DESC'
     : typeof query.order === 'string' ? query.order.toUpperCase() : null;
 
+  const folderFilter = parseFolderFilter(query.folderId);
   if (
     name == null || name.length > MAX_EXPENSE_TEXT_LENGTH ||
     category == null || category.length > MAX_EXPENSE_TEXT_LENGTH ||
     startDate == null || endDate == null ||
+    folderFilter == null ||
     !SORT_COLUMNS.has(sort) || !['ASC', 'DESC'].includes(order) ||
     (startDate && endDate && Date.parse(startDate) > Date.parse(endDate))
   ) return null;
 
-  return { name, category, startDate, endDate, sort, order };
+  return { name, category, startDate, endDate, sort, order, folderId: folderFilter.folderId };
 }
 
 async function resolveCategoryName(category) {
@@ -102,11 +166,28 @@ router.post('/', async (req, res) => {
     if (!recurrence) {
       return res.status(400).json({ error: 'Choose a valid recurring frequency.' });
     }
+    const customKurs = resolveSubmittedCustomKurs(req.body);
+    if (customKurs.invalid) {
+      return res.status(400).json({ error: 'Custom kurs must be a positive number.' });
+    }
+    const folderInput = parseFolderId(req.body?.folderId);
+    if (folderInput.invalid) {
+      return res.status(400).json({ error: 'Invalid folder.' });
+    }
     const category = await resolveCategoryName(input.category);
     if (!category) {
       return res.status(400).json({ error: 'Choose a category that is currently available.' });
     }
-    const created = await createExpenseRecord({ ...input, category }, recurrence);
+    const folderId = await resolveFolderId(folderInput.folderId);
+    if (folderId === undefined) {
+      return res.status(400).json({ error: 'Choose a folder that exists.' });
+    }
+    const created = await createExpenseRecord({
+      ...input,
+      category,
+      customKurs: customKurs.kurs,
+      folderId,
+    }, recurrence);
     res.status(201).json(created);
   } catch (err) {
     console.error('POST /api/expenses error:', err);
@@ -119,7 +200,7 @@ router.get('/', async (req, res) => {
   try {
     const filters = validateExpenseFilters(req.query);
     if (!filters) return res.status(400).json({ error: 'Invalid expense filters.' });
-    const { name, category, startDate, endDate, sort, order } = filters;
+    const { name, category, startDate, endDate, sort, order, folderId } = filters;
 
     const conditions = ['deleted_at IS NULL'];
     const params = [];
@@ -141,14 +222,22 @@ router.get('/', async (req, res) => {
       conditions.push('timestamp <= ?');
       params.push(endDate);
     }
+    if (folderId === 'ungrouped') {
+      conditions.push('folder_id IS NULL');
+    } else if (folderId) {
+      conditions.push('folder_id = ?');
+      params.push(folderId);
+    }
 
     const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
 
     const sql = `SELECT * FROM (
                    SELECT expenses.*,
+                          expense_folders.name AS folder_name,
                           recurring_expense_occurrences.rule_id AS recurring_rule_id,
                           recurring_expense_occurrences.scheduled_for AS recurrence_scheduled_for
                    FROM expenses
+                   LEFT JOIN expense_folders ON expense_folders.id = expenses.folder_id
                    LEFT JOIN recurring_expense_occurrences ON recurring_expense_occurrences.expense_id = expenses.id
                  ) AS expense_records ${whereClause} ORDER BY ${sort} ${order}`;
     const result = await db.execute({ sql, args: params });
@@ -157,6 +246,41 @@ router.get('/', async (req, res) => {
     res.json(rows);
   } catch (err) {
     console.error('GET /api/expenses error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ─── PUT /api/expenses/:id/folder — Assign or move an expense folder ───────
+router.put('/:id/folder', async (req, res) => {
+  try {
+    const id = parseExpenseId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid expense id' });
+
+    const existingResult = await db.execute({
+      sql: 'SELECT id FROM expenses WHERE id = ? AND deleted_at IS NULL',
+      args: [id],
+    });
+    if (!existingResult.rows[0]) {
+      return res.status(404).json({ error: 'Expense not found' });
+    }
+
+    const folderInput = parseFolderId(req.body?.folderId);
+    if (folderInput.invalid) {
+      return res.status(400).json({ error: 'Invalid folder.' });
+    }
+    const folderId = await resolveFolderId(folderInput.folderId);
+    if (folderId === undefined) {
+      return res.status(400).json({ error: 'Choose a folder that exists.' });
+    }
+
+    await db.execute({
+      sql: 'UPDATE expenses SET folder_id = ? WHERE id = ? AND deleted_at IS NULL',
+      args: [folderId, id],
+    });
+    const updated = await getExpenseRecord(id);
+    res.json(updated);
+  } catch (err) {
+    console.error('PUT /api/expenses/:id/folder error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -175,21 +299,38 @@ router.put('/:id', async (req, res) => {
 
     const input = validateExpenseInput(req.body);
     if (!input) return res.status(400).json({ error: 'Invalid expense details.' });
+    const customKurs = resolveSubmittedCustomKurs(req.body);
+    if (customKurs.invalid) {
+      return res.status(400).json({ error: 'Custom kurs must be a positive number.' });
+    }
+    const folderInput = parseFolderId(req.body?.folderId);
+    if (folderInput.invalid) {
+      return res.status(400).json({ error: 'Invalid folder.' });
+    }
     const { name, price, currency, timestamp } = input;
     const category = await resolveCategoryName(input.category);
     if (!category) {
       return res.status(400).json({ error: 'Choose a category that is currently available.' });
     }
+    const folderId = await resolveFolderId(folderInput.folderId);
+    if (folderId === undefined) {
+      return res.status(400).json({ error: 'Choose a folder that exists.' });
+    }
     const cur = currency;
     const ts = timestamp && timestamp.trim() !== '' ? timestamp : nowUTC8();
+    const kurs = customKurs.clear
+      ? undefined
+      : customKurs.omitted
+        ? storedExchangeRate(existing)
+        : customKurs.kurs;
 
-    const { priceMyr, priceIdr, exchangeRateUsed } = await calculateExpenseAmounts(price, cur);
+    const { priceMyr, priceIdr, exchangeRateUsed } = await calculateExpenseAmounts(price, cur, kurs);
 
     await db.execute({
       sql: `UPDATE expenses
-            SET name = ?, category = ?, price_myr = ?, price_idr = ?, original_currency = ?, exchange_rate_used = ?, timestamp = ?
+            SET name = ?, category = ?, price_myr = ?, price_idr = ?, original_currency = ?, exchange_rate_used = ?, timestamp = ?, folder_id = ?
             WHERE id = ?`,
-      args: [name, category, priceMyr, priceIdr, cur, exchangeRateUsed, ts, id],
+      args: [name, category, priceMyr, priceIdr, cur, exchangeRateUsed, ts, folderId, id],
     });
 
     const updated = await getExpenseRecord(id);

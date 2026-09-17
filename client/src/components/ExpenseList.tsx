@@ -1,28 +1,41 @@
 import { useEffect, useState } from 'react';
-import { formatDateTime } from '../utils/formatters';
-import { usePrivacyMode } from '../hooks/usePrivacyMode';
+import { formatDateTime, formatIDR, formatMYR } from '../utils/formatters';
+import { selectStoredExpenseAmount } from '../utils/historyAmount';
+import { maskFormattedCurrency, usePrivacyMode } from '../hooks/usePrivacyMode';
 import { getCategoryIconName } from '../utils/categoryIcons';
 import AppIcon from './AppIcon';
-import type { Currency, ExchangeRate, Expense, ExpenseFilters, ExpenseSortColumn } from '../types';
+import FolderSelect from './FolderSelect';
+import type { Currency, Expense, ExpenseFolder, ExpenseFilters, ExpenseSortColumn } from '../types';
 
 interface ExpenseListProps {
   expenses: Expense[];
+  folders: ExpenseFolder[];
   filters: ExpenseFilters;
   currency?: Currency;
-  exchangeRate: ExchangeRate | null;
   onSort: (column: ExpenseSortColumn) => void;
   onEdit: (expense: Expense) => void;
   onDelete: (expense: Expense) => void;
+  onAssignFolder: (expenseId: number, folderId: number | null) => Promise<unknown>;
+  onCreateAndAssignFolder: (expenseId: number, name: string) => Promise<unknown>;
 }
 
-export default function ExpenseList({ expenses, filters, currency = 'MYR', exchangeRate, onSort, onEdit, onDelete }: ExpenseListProps) {
-  const { formatCurrency, isPrivacyMode } = usePrivacyMode();
+export default function ExpenseList({
+  expenses,
+  folders,
+  filters,
+  currency = 'MYR',
+  onSort,
+  onEdit,
+  onDelete,
+  onAssignFolder,
+  onCreateAndAssignFolder,
+}: ExpenseListProps) {
+  const { isPrivacyMode } = usePrivacyMode();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const totalItems = expenses.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
   const isMYR = currency === 'MYR';
-  const myrToIdr = exchangeRate?.myrToIdr || 4500;
   const priceColumn: ExpenseSortColumn = isMYR ? 'price_myr' : 'price_idr';
   const paginatedExpenses = expenses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
@@ -42,13 +55,16 @@ export default function ExpenseList({ expenses, filters, currency = 'MYR', excha
               <th className={getHeaderClass('name')} onClick={() => onSort('name')}>Name <AppIcon name={getSortIcon('name')} size={13} /></th>
               <th>Type</th>
               <th className={getHeaderClass('category')} onClick={() => onSort('category')}>Category <AppIcon name={getSortIcon('category')} size={13} /></th>
+              <th>Folder</th>
               <th className={getHeaderClass(priceColumn)} onClick={() => onSort(priceColumn)}>Price ({currency}) <AppIcon name={getSortIcon(priceColumn)} size={13} /></th>
               <th>Exchange Rate</th><th>Actions</th>
             </tr></thead>
             <tbody>{paginatedExpenses.map((expense) => {
               const isOriginalCurrency = expense.original_currency === currency;
               const rate = expense.exchange_rate_used ? Number(expense.exchange_rate_used).toLocaleString('en', { maximumFractionDigits: 2 }) : 'Pending';
-              const amount = expense.price_myr;
+              const amount = selectStoredExpenseAmount(expense, currency);
+              const formattedAmount = currency === 'IDR' ? formatIDR(amount) : formatMYR(amount);
+              const displayAmount = isPrivacyMode ? maskFormattedCurrency(formattedAmount) : formattedAmount;
               return <tr key={expense.id}>
                 <td data-label="Date">{formatDateTime(expense.timestamp)}</td>
                 <td data-label="Name" className="expense-table__name">{expense.name}</td>
@@ -60,7 +76,16 @@ export default function ExpenseList({ expenses, filters, currency = 'MYR', excha
                   )}
                 </td>
                 <td data-label="Category"><span className="category-badge"><AppIcon name={getCategoryIconName(expense.category)} size={15} /><span>{expense.category}</span></span></td>
-                <td data-label={`Price (${currency})`}><div className={isOriginalCurrency ? 'price-original' : 'price-converted'}>{formatCurrency(amount, currency, myrToIdr)}{isOriginalCurrency && <span className="price-original__marker" title="Original currency"><AppIcon name="badge-check" size={13} /></span>}</div></td>
+                <td data-label="Folder">
+                  <FolderSelect
+                    folders={folders}
+                    value={expense.folder_id}
+                    ariaLabel={`Folder for ${expense.name}`}
+                    onAssign={(folderId) => onAssignFolder(expense.id, folderId)}
+                    onCreateAndAssign={(name) => onCreateAndAssignFolder(expense.id, name)}
+                  />
+                </td>
+                <td data-label={`Price (${currency})`}><div className={isOriginalCurrency ? 'price-original' : 'price-converted'}>{displayAmount}{isOriginalCurrency && <span className="price-original__marker" title="Original currency"><AppIcon name="badge-check" size={13} /></span>}</div></td>
                 <td data-label="Exchange Rate" className="expense-table__rate">{expense.exchange_rate_used ? (isPrivacyMode ? '1 MYR = *** IDR' : `1 MYR = ${rate} IDR`) : 'Pending'}</td>
                 <td data-label="Actions"><div className="actions-cell"><button className="neo-btn neo-btn--secondary neo-btn--icon" onClick={() => onEdit(expense)} title="Edit expense" aria-label="Edit expense"><AppIcon name="pencil" size={16} /></button><button className="neo-btn neo-btn--danger neo-btn--icon" onClick={() => onDelete(expense)} title="Delete expense" aria-label="Delete expense"><AppIcon name="trash" size={16} /></button></div></td>
               </tr>;

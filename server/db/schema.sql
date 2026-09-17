@@ -1,3 +1,10 @@
+CREATE TABLE IF NOT EXISTS expense_folders (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  name        TEXT NOT NULL COLLATE NOCASE UNIQUE,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now','+8 hours'))
+);
+CREATE INDEX IF NOT EXISTS idx_expense_folders_name ON expense_folders(name);
+
 CREATE TABLE IF NOT EXISTS expenses (
   id                  INTEGER PRIMARY KEY AUTOINCREMENT,
   name                TEXT NOT NULL,
@@ -8,11 +15,14 @@ CREATE TABLE IF NOT EXISTS expenses (
   exchange_rate_used  REAL,
   timestamp           TEXT NOT NULL,
   created_at          TEXT NOT NULL DEFAULT (datetime('now','+8 hours')),
-  deleted_at          TEXT
+  deleted_at          TEXT,
+  folder_id           INTEGER,
+  FOREIGN KEY (folder_id) REFERENCES expense_folders(id) ON DELETE SET NULL
 );
 CREATE INDEX IF NOT EXISTS idx_expenses_timestamp ON expenses(timestamp);
 CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
 CREATE INDEX IF NOT EXISTS idx_expenses_deleted_at ON expenses(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_expenses_folder_id ON expenses(folder_id);
 
 CREATE TABLE IF NOT EXISTS categories (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,

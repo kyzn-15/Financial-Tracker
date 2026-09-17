@@ -18,6 +18,7 @@ import { useExpenses } from './hooks/useExpenses';
 import { useReceipts } from './hooks/useReceipts';
 import { useEmergencyFund } from './hooks/useEmergencyFund';
 import { useCategories } from './hooks/useCategories';
+import { useFolders } from './hooks/useFolders';
 import { useRecycleBin } from './hooks/useRecycleBin';
 import { PrivacyModeProvider } from './hooks/usePrivacyMode';
 import * as api from './services/api';
@@ -217,6 +218,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
   const [isSavingBackupPreferences, setIsSavingBackupPreferences] = useState(false);
   const {
     expenses,
+    allExpenses,
     summary,
     exchangeRate,
     loading,
@@ -225,6 +227,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
     addExpense,
     editExpense,
     removeExpense,
+    assignFolder,
     updateFilters,
     updateSort,
     clearFilters,
@@ -232,6 +235,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
   } = useExpenses();
 
   const categoryStore = useCategories();
+  const folderStore = useFolders();
   const categoryNames = categoryStore.categories.map((category) => category.name);
   const recurringStore = useRecurringExpenses();
 
@@ -321,6 +325,28 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
   };
 
   // Form handlers
+  const handleAssignExpenseFolder = async (expenseId: number, folderId: number | null): Promise<void> => {
+    await assignFolder(expenseId, folderId);
+    await folderStore.refresh();
+  };
+
+  const handleCreateAndAssignFolder = async (expenseId: number, name: string): Promise<void> => {
+    const folder = await folderStore.createFolder(name);
+    await assignFolder(expenseId, folder.id);
+  };
+
+  const handleRenameFolder = async (id: number, name: string) => {
+    const folders = await folderStore.renameFolder(id, name);
+    await refreshExpenses();
+    return folders;
+  };
+
+  const handleRemoveFolder = async (id: number) => {
+    const folders = await folderStore.removeFolder(id);
+    await refreshExpenses();
+    return folders;
+  };
+
   const handleAddSubmit = async (data: ExpenseInput): Promise<void> => {
     try {
       const created = await addExpense(data);
@@ -535,8 +561,15 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
         {/* Main Content Area */}
         <div className="tab-content">
           {activeTab === 'add' && (
-            <div className="neo-card" style={{ maxWidth: '640px', margin: '0 auto', marginTop: 'var(--space-md)' }}>
-              <ExpenseForm categories={categoryStore.categories} onSubmit={handleAddSubmit} submitText="Add Expense" />
+            <div className="neo-card expense-form-shell">
+              <ExpenseForm
+                categories={categoryStore.categories}
+                folders={folderStore.folders}
+                exchangeRate={exchangeRate}
+                onCreateFolder={folderStore.createFolder}
+                onSubmit={handleAddSubmit}
+                submitText="Add Expense"
+              />
             </div>
           )}
 
@@ -574,6 +607,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
               </div>
               <FilterBar
                 categories={categoryNames}
+                folders={folderStore.folders}
                 filters={filters}
                 onChange={updateFilters}
                 onClear={clearFilters}
@@ -585,12 +619,14 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
               ) : (
                 <ExpenseList
                   expenses={expenses}
+                  folders={folderStore.folders}
                   filters={filters}
                   currency={currency}
-                  exchangeRate={exchangeRate}
                   onSort={updateSort}
                   onEdit={setEditingExpense}
                   onDelete={setDeletingExpense}
+                  onAssignFolder={handleAssignExpenseFolder}
+                  onCreateAndAssignFolder={handleCreateAndAssignFolder}
                 />
               )}
             </>
@@ -623,6 +659,13 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
               onRemoveCategory={(id) => syncCategoryChange(() => categoryStore.removeCategory(id))}
               onReorderCategories={(ids) => syncCategoryChange(() => categoryStore.reorderCategories(ids))}
               onUpdateCategoryAutomation={(id, enabled, frequency) => categoryStore.updateAutomation(id, enabled, frequency)}
+              folderStore={folderStore}
+              expenses={allExpenses}
+              onAddFolder={folderStore.createFolder}
+              onRenameFolder={handleRenameFolder}
+              onRemoveFolder={handleRemoveFolder}
+              onAssignExpenseFolder={handleAssignExpenseFolder}
+              onCreateAndAssignFolder={handleCreateAndAssignFolder}
               backupPreferences={backupPreferences}
               onSaveBackupInterval={handleSaveBackupInterval}
               onResetLastBackup={handleResetLastBackup}
@@ -650,6 +693,9 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
         {editingExpense && (
           <ExpenseForm
             categories={categoryStore.categories}
+            folders={folderStore.folders}
+            exchangeRate={exchangeRate}
+            onCreateFolder={folderStore.createFolder}
             onSubmit={handleEditSubmit}
             initialData={editingExpense}
             submitText="Save Changes"

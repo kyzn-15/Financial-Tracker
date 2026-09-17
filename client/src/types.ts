@@ -26,6 +26,8 @@ export type RecurrenceInput =
   | { enabled: false }
   | { enabled: true; frequency: RecurrenceFrequency };
 
+export type KursQuote = 'MYR_IDR' | 'IDR_MYR';
+
 export interface ExpenseInput {
   name: string;
   category: string;
@@ -33,6 +35,9 @@ export interface ExpenseInput {
   currency: Currency;
   timestamp: string;
   recurrence?: RecurrenceInput;
+  customKurs?: number | null;
+  customKursQuote?: KursQuote;
+  folderId?: number | null;
 }
 
 export interface Expense {
@@ -45,13 +50,23 @@ export interface Expense {
   exchange_rate_used: number | null;
   timestamp: string;
   created_at: string;
+  folder_id: number | null;
+  folder_name: string | null;
   recurring_rule_id: number | null;
   recurrence_scheduled_for: string | null;
+}
+
+export interface ExpenseFolder {
+  id: number;
+  name: string;
+  created_at: string;
+  expense_count: number;
 }
 
 export interface ExpenseFilters {
   name: string;
   category: string;
+  folderId: string;
   startDate: string;
   endDate: string;
   sort: ExpenseSortColumn;
@@ -382,6 +397,16 @@ export interface CategoryStore {
   removeCategory: (id: number) => Promise<Category[]>;
   reorderCategories: (ids: number[]) => Promise<Category[]>;
   updateAutomation: (id: number, enabled: boolean, frequency: RecurrenceFrequency) => Promise<Category[]>;
+}
+
+export interface FolderStore {
+  folders: ExpenseFolder[];
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<ExpenseFolder[]>;
+  createFolder: (name: string) => Promise<ExpenseFolder>;
+  renameFolder: (id: number, name: string) => Promise<ExpenseFolder[]>;
+  removeFolder: (id: number) => Promise<ExpenseFolder[]>;
 }
 
 export interface RecurringExpenseStore {

@@ -40,10 +40,11 @@ test('reset removes user data and restores only clean defaults', async () => {
 
   await db.batch([
     { sql: "INSERT INTO categories (name, sort_order) VALUES ('Custom', 99)", args: [] },
+    { sql: "INSERT INTO expense_folders (name) VALUES ('malaysian traveling trip')", args: [] },
     {
       sql: `INSERT INTO expenses
-            (name, category, price_myr, price_idr, original_currency, exchange_rate_used, timestamp)
-            VALUES ('Private expense', 'Custom', 10, 40000, 'MYR', 4000, '2026-01-01T00:00:00+08:00')`,
+            (name, category, price_myr, price_idr, original_currency, exchange_rate_used, timestamp, folder_id)
+            VALUES ('Private expense', 'Custom', 10, 40000, 'MYR', 4000, '2026-01-01T00:00:00+08:00', 1)`,
       args: [],
     },
     {
@@ -105,6 +106,7 @@ test('reset removes user data and restores only clean defaults', async () => {
 
   for (const table of [
     'expenses',
+    'expense_folders',
     'receipts',
     'recurring_expense_rules',
     'recurring_expense_occurrences',

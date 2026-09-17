@@ -1,15 +1,16 @@
 import type { ChangeEvent } from 'react';
 import AppIcon from './AppIcon';
-import type { ExpenseFilters } from '../types';
+import type { ExpenseFilters, ExpenseFolder } from '../types';
 
 interface FilterBarProps {
   categories?: string[];
+  folders?: ExpenseFolder[];
   filters: ExpenseFilters;
   onChange: (filters: Partial<ExpenseFilters>) => void;
   onClear: () => void;
 }
 
-export default function FilterBar({ categories = [], filters, onChange, onClear }: FilterBarProps) {
+export default function FilterBar({ categories = [], folders = [], filters, onChange, onClear }: FilterBarProps) {
   const handleCategoryChange = (e: ChangeEvent<HTMLSelectElement>) => {
     onChange({ category: e.target.value });
   };
@@ -26,7 +27,11 @@ export default function FilterBar({ categories = [], filters, onChange, onClear 
     onChange({ endDate: e.target.value });
   };
 
-  const hasActiveFilters = filters.name || filters.category || filters.startDate || filters.endDate;
+  const handleFolderChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    onChange({ folderId: e.target.value });
+  };
+
+  const hasActiveFilters = filters.name || filters.category || filters.folderId || filters.startDate || filters.endDate;
 
   return (
     <div className="filter-bar neo-card neo-card--sm">
@@ -54,6 +59,24 @@ export default function FilterBar({ categories = [], filters, onChange, onClear 
           {categories.map((cat) => (
             <option key={cat} value={cat}>
               {cat}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="filter-bar__group">
+        <label className="filter-bar__label" htmlFor="filter-folder">Folder</label>
+        <select
+          id="filter-folder"
+          className="neo-select"
+          value={filters.folderId}
+          onChange={handleFolderChange}
+        >
+          <option value="">All Folders</option>
+          <option value="ungrouped">Ungrouped</option>
+          {folders.map((folder) => (
+            <option key={folder.id} value={String(folder.id)}>
+              {folder.name}
             </option>
           ))}
         </select>

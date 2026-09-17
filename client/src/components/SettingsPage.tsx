@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import BackupSettings from './BackupSettings';
 import CategoryManager from './CategoryManager';
+import FolderManager from './FolderManager';
 import { EmergencyEssentialCategoriesPanel } from './EmergencyFundDashboard';
 import AppIcon from './AppIcon';
 import RecycleBinManager from './RecycleBinManager';
@@ -13,6 +14,9 @@ import type {
   Currency,
   EmergencyFundStore,
   ExchangeRate,
+  Expense,
+  ExpenseFolder,
+  FolderStore,
   RecurrenceFrequency,
   RecurringExpenseStore,
   RecycleBinStore,
@@ -39,13 +43,20 @@ interface SettingsPageProps {
   recurringStore: RecurringExpenseStore;
   recycleBin: RecycleBinStore;
   onUpdateCategoryAutomation: (id: number, enabled: boolean, frequency: RecurrenceFrequency) => Promise<Category[]>;
+  folderStore: FolderStore;
+  expenses: Expense[];
+  onAddFolder: (name: string) => Promise<ExpenseFolder>;
+  onRenameFolder: (id: number, name: string) => Promise<ExpenseFolder[]>;
+  onRemoveFolder: (id: number) => Promise<ExpenseFolder[]>;
+  onAssignExpenseFolder: (expenseId: number, folderId: number | null) => Promise<unknown>;
+  onCreateAndAssignFolder: (expenseId: number, name: string) => Promise<unknown>;
   onCreateResetIntent: () => Promise<ResetIntent>;
   onResetApp: (resetToken: string, pin: string) => Promise<void>;
   onNotify: (message: string, type?: 'info' | 'success' | 'error') => void;
 }
 
 interface SettingsSection {
-  id: 'appearance' | 'categories' | 'recurring' | 'emergency' | 'backup' | 'recycle-bin' | 'security';
+  id: 'appearance' | 'categories' | 'folders' | 'recurring' | 'emergency' | 'backup' | 'recycle-bin' | 'security';
   name: string;
   icon: string;
   tone?: 'danger';
@@ -80,6 +91,12 @@ const SETTINGS_GROUPS: SettingsGroup[] = [
         name: 'Expense Categories',
         icon: 'sliders-horizontal',
         description: 'Add, rename, reorder, and automate expense categories.',
+      },
+      {
+        id: 'folders',
+        name: 'Manage Folders',
+        icon: 'folder',
+        description: 'Rename folders, delete a folder and its expenses, and move expenses between folders.',
       },
       {
         id: 'recurring',
@@ -142,6 +159,13 @@ export default function SettingsPage({
   recurringStore,
   recycleBin,
   onUpdateCategoryAutomation,
+  folderStore,
+  expenses,
+  onAddFolder,
+  onRenameFolder,
+  onRemoveFolder,
+  onAssignExpenseFolder,
+  onCreateAndAssignFolder,
   onCreateResetIntent,
   onResetApp,
   onNotify,
@@ -293,6 +317,21 @@ const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>
             onRemove={onRemoveCategory}
             onReorder={onReorderCategories}
             onUpdateAutomation={onUpdateCategoryAutomation}
+          />
+        );
+      case 'folders':
+        return (
+          <FolderManager
+            folders={folderStore.folders}
+            expenses={expenses}
+            loading={folderStore.loading}
+            error={folderStore.error}
+            onRetry={folderStore.refresh}
+            onAdd={onAddFolder}
+            onRename={onRenameFolder}
+            onRemove={onRemoveFolder}
+            onAssign={onAssignExpenseFolder}
+            onCreateAndAssign={onCreateAndAssignFolder}
           />
         );
       case 'recurring':
