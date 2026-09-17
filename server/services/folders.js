@@ -1,4 +1,5 @@
 import db from '../db/database.js';
+import { nowUTC8 } from '../utils/datetime.js';
 
 export async function listFolders() {
   const result = await db.execute({
@@ -51,4 +52,45 @@ export async function folderExists(id) {
     args: [id],
   });
   return result.rows.length > 0;
+}
+
+export async function renameFolder(id, name) {
+  const existing = await db.execute({
+    sql: 'SELECT id FROM expense_folders WHERE id = ?',
+    args: [id],
+  });
+  if (existing.rows.length === 0) return false;
+
+  const duplicate = await db.execute({
+    sql: 'SELECT id FROM expense_folders WHERE name = ? COLLATE NOCASE AND id <> ?',
+    args: [name, id],
+  });
+  if (duplicate.rows.length > 0) {
+    const error = new Error('A folder with that name already exists.');
+    error.statusCode = 409;
+    throw error;
+  }
+
+  await db.execute({
+    sql: 'UPDATE expense_folders SET name = ? WHERE id = ?',
+    args: [name, id],
+  });
+  return true;
+}
+
+export async function deleteFolder(id) {
+  const exists = await folderExists(id);
+  if (!exists) return false;
+
+  await db.batch([
+    {
+      sql: 'UPDATE expenses SET deleted_at = ? WHERE folder_id = ? AND deleted_at IS NULL',
+      args: [nowUTC8(), id],
+    },
+    {
+      sql: 'DELETE FROM expense_folders WHERE id = ?',
+      args: [id],
+    },
+  ], 'write');
+  return true;
 }

@@ -405,6 +405,8 @@ export interface FolderStore {
   error: string | null;
   refresh: () => Promise<ExpenseFolder[]>;
   createFolder: (name: string) => Promise<ExpenseFolder>;
+  renameFolder: (id: number, name: string) => Promise<ExpenseFolder[]>;
+  removeFolder: (id: number) => Promise<ExpenseFolder[]>;
 }
 
 export interface RecurringExpenseStore {

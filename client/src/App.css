@@ -610,10 +610,131 @@
   transform: translateX(22px);
 }
 
+.folder-manager,
 .category-manager {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+}
+
+.folder-manager__add,
+.folder-manager__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.folder-manager__add-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-md);
+}
+
+.folder-manager__item {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius);
+  background: var(--bg);
+  box-shadow: var(--neo-in);
+}
+
+.folder-manager__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.folder-manager__name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.folder-manager__name span,
+.folder-manager__empty,
+.folder-manager__status {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.folder-manager__edit-input {
+  min-width: 0;
+  flex: 1;
+}
+
+.folder-manager__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.folder-manager__members {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.folder-manager__member {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 168px;
+  gap: var(--space-sm);
+  align-items: start;
+}
+
+.folder-manager__member-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.folder-manager__feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.expense-folder-select {
+  display: grid;
+  gap: var(--space-xs);
+  width: 168px;
+  max-width: 100%;
+  justify-self: end;
+}
+
+.expense-folder-select .neo-select {
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expense-folder-select:has(.expense-folder-select__create) {
+  width: 100%;
+  min-width: 0;
+}
+
+.expense-table td[data-label="Folder"] {
+  min-width: 0;
+}
+
+.expense-folder-select__create {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.expense-folder-select__error {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
 }
 
 .category-manager__add {
@@ -1251,7 +1372,48 @@
 .neo-btn--full { width: 100%; }
 
 /* ---- EXPENSE FORM ---- */
+.expense-form-shell {
+  max-width: 640px;
+  margin: var(--space-md) auto 0;
+}
+
 .expense-form { display: grid; gap: var(--space-md); }
+.expense-form .neo-input-group {
+  margin-bottom: 0;
+}
+.expense-form__details {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius);
+  box-shadow: var(--neo-in);
+}
+.expense-form__details-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  width: 100%;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  background: transparent;
+}
+.expense-form__details-toggle strong {
+  font-weight: 700;
+}
+.expense-form__details-caret {
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+  transition: transform var(--transition-fast);
+}
+.expense-form__details-caret--open {
+  transform: rotate(90deg);
+}
+.expense-form__details-body {
+  display: grid;
+  gap: var(--space-md);
+}
 .expense-form__row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1285,35 +1447,6 @@
 .expense-form__check input {
   accent-color: var(--accent);
 }
-.expense-disclose {
-  display: grid;
-  gap: var(--space-md);
-  padding: var(--space-md);
-  border-radius: var(--radius);
-  box-shadow: var(--neo-in);
-}
-.expense-disclose__toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-md);
-  width: 100%;
-  color: var(--text-primary);
-  font-size: var(--font-size-sm);
-  background: transparent;
-}
-.expense-disclose__toggle strong {
-  font-weight: 700;
-}
-.expense-disclose__toggle span {
-  color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-}
-.expense-disclose__body {
-  display: grid;
-  gap: var(--space-sm);
-}
 .expense-form__hint {
   color: var(--text-muted);
   font-size: var(--font-size-xs);
@@ -1321,7 +1454,7 @@
 }
 .expense-form__kurs {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: var(--space-sm);
   align-items: center;
 }
@@ -1333,6 +1466,7 @@
   white-space: nowrap;
 }
 .expense-form__swap {
+  grid-column: 1 / -1;
   min-height: 42px;
   padding-inline: var(--space-md);
   white-space: nowrap;
@@ -1342,6 +1476,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-sm);
   align-items: center;
+  margin-top: var(--space-sm);
 }
 .expense-form__folder-add {
   padding-inline: var(--space-md);
@@ -2095,6 +2230,10 @@ button.heatmap-day:focus-visible {
   border: var(--glass-border);
 }
 
+.modal-content--wide {
+  max-width: 960px;
+}
+
 .modal-content__header {
   position: relative;
   flex: 0 0 auto;
@@ -2408,10 +2547,6 @@ button.heatmap-day:focus-visible {
     grid-template-columns: auto minmax(0, 1fr) auto;
   }
 
-  .expense-form__swap {
-    grid-column: 1 / -1;
-  }
-
   .expense-form__folder-create {
     grid-template-columns: minmax(0, 1fr) auto;
   }
@@ -2460,6 +2595,13 @@ button.heatmap-day:focus-visible {
     background: transparent;
   }
   
+  .expense-table td[data-label="Folder"] .expense-folder-select {
+    width: 128px;
+    max-width: 42vw;
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
   /* Add pseudo-headers for mobile cards */
   .expense-table td::before {
     content: attr(data-label);
@@ -3168,8 +3310,38 @@ button.heatmap-day:focus-visible {
     padding: var(--space-sm);
   }
 
-  .category-manager__add-row {
+  .category-manager__add-row,
+  .folder-manager__add-row,
+  .folder-manager__member,
+  .folder-manager__header,
+  .expense-folder-select__create {
     grid-template-columns: 1fr;
+  }
+
+  .expense-folder-select,
+  .expense-folder-select .neo-select {
+    min-width: 0;
+    width: 128px;
+    max-width: 42vw;
+  }
+
+  .expense-folder-select:has(.expense-folder-select__create),
+  .expense-folder-select:has(.expense-folder-select__create) .neo-select {
+    width: 100%;
+    max-width: none;
+  }
+
+  .folder-manager__member .expense-folder-select {
+    justify-self: end;
+  }
+
+  .expense-table td[data-label="Folder"] {
+    width: 100%;
+  }
+
+  .expense-table td[data-label="Folder"] .expense-folder-select {
+    flex: 0 0 auto;
+    margin-left: auto;
   }
 
   .category-manager__item {

@@ -53,6 +53,14 @@ test('unauthenticated folder and expense writes are rejected', async () => {
   assert.equal(folder.response.status, 401);
   assert.equal(typeof (folder.body.error || folder.body.message), 'string');
 
+  const rename = await request('/api/folders/1', { method: 'PUT', body: { name: 'renamed' }, auth: false });
+  assert.equal(rename.response.status, 401);
+  assert.equal(typeof (rename.body.error || rename.body.message), 'string');
+
+  const remove = await request('/api/folders/1', { method: 'DELETE', auth: false });
+  assert.equal(remove.response.status, 401);
+  assert.equal(typeof (remove.body.error || remove.body.message), 'string');
+
   const expense = await request('/api/expenses', {
     method: 'POST',
     body: { name: 'Secret', category: 'Food', price: 1, currency: 'MYR', timestamp: '' },
@@ -60,6 +68,10 @@ test('unauthenticated folder and expense writes are rejected', async () => {
   });
   assert.equal(expense.response.status, 401);
   assert.equal(typeof (expense.body.error || expense.body.message), 'string');
+
+  const assign = await request('/api/expenses/1/folder', { method: 'PUT', body: { folderId: 1 }, auth: false });
+  assert.equal(assign.response.status, 401);
+  assert.equal(typeof (assign.body.error || assign.body.message), 'string');
 });
 
 test('folder create, expense assignment, and ungrouped rows are listed together', async () => {
@@ -162,4 +174,127 @@ test('creating an expense with custom kurs and folder persists both', async () =
   assert.equal(Number(repeated.body.price_idr), Number(created.body.price_idr));
   assert.equal(Number(repeated.body.folder_id), Number(created.body.folder_id));
   assert.equal(repeated.body.folder_name, created.body.folder_name);
+});
+
+test('rename updates folder_name on member expenses', async () => {
+  const folder = await request('/api/folders', { method: 'POST', body: { name: 'old trip name' } });
+  assert.equal(folder.response.status, 201);
+  const folderId = Number(folder.body.id);
+
+  const created = await request('/api/expenses', {
+    method: 'POST',
+    body: { name: 'Taxi', category: 'Transport', price: 15, currency: 'MYR', timestamp: '', folderId },
+  });
+  assert.equal(created.response.status, 201);
+
+  const renamed = await request(`/api/folders/${folderId}`, { method: 'PUT', body: { name: 'penang weekend' } });
+  assert.equal(renamed.response.status, 200);
+  assert.equal(renamed.body.some((row) => Number(row.id) === folderId && row.name === 'penang weekend'), true);
+
+  const listed = await request('/api/expenses');
+  const taxi = listed.body.find((row) => row.name === 'Taxi' && Number(row.folder_id) === folderId);
+  assert.equal(taxi.folder_name, 'penang weekend');
+});
+
+test('deleting a folder removes it and its members from active history', async () => {
+  const folder = await request('/api/folders', { method: 'POST', body: { name: 'delete trip' } });
+  assert.equal(folder.response.status, 201);
+  const folderId = Number(folder.body.id);
+
+  const first = await request('/api/expenses', {
+    method: 'POST',
+    body: { name: 'Delete-me flight', category: 'Transport', price: 90, currency: 'MYR', timestamp: '', folderId },
+  });
+  const second = await request('/api/expenses', {
+    method: 'POST',
+    body: { name: 'Delete-me hotel', category: 'Rent', price: 80, currency: 'MYR', timestamp: '', folderId },
+  });
+  assert.equal(first.response.status, 201);
+  assert.equal(second.response.status, 201);
+
+  const removed = await request(`/api/folders/${folderId}`, { method: 'DELETE' });
+  assert.equal(removed.response.status, 200);
+  assert.equal(removed.body.some((row) => Number(row.id) === folderId), false);
+
+  const folders = await request('/api/folders');
+  assert.equal(folders.body.some((row) => Number(row.id) === folderId), false);
+
+  const listed = await request('/api/expenses');
+  const names = listed.body.map((row) => row.name);
+  assert.equal(names.includes('Delete-me flight'), false);
+  assert.equal(names.includes('Delete-me hotel'), false);
+});
+
+test('assign, create-then-assign, and move update expense folder membership', async () => {
+  const folderA = await request('/api/folders', { method: 'POST', body: { name: 'folder a' } });
+  const folderB = await request('/api/folders', { method: 'POST', body: { name: 'folder b' } });
+  assert.equal(folderA.response.status, 201);
+  assert.equal(folderB.response.status, 201);
+  const folderAId = Number(folderA.body.id);
+  const folderBId = Number(folderB.body.id);
+
+  const ungrouped = await request('/api/expenses', {
+    method: 'POST',
+    body: { name: 'Ungrouped snack', category: 'Food', price: 6, currency: 'MYR', timestamp: '' },
+  });
+  assert.equal(ungrouped.response.status, 201);
+  assert.equal(ungrouped.body.folder_id, null);
+  const expenseId = Number(ungrouped.body.id);
+
+  const assigned = await request(`/api/expenses/${expenseId}/folder`, {
+    method: 'PUT',
+    body: { folderId: folderAId },
+  });
+  assert.equal(assigned.response.status, 200);
+  assert.equal(Number(assigned.body.folder_id), folderAId);
+  assert.equal(assigned.body.folder_name, 'folder a');
+
+  const created = await request('/api/folders', { method: 'POST', body: { name: 'brand new folder' } });
+  assert.equal(created.response.status, 201);
+  const newFolderId = Number(created.body.id);
+  const createAssigned = await request(`/api/expenses/${expenseId}/folder`, {
+    method: 'PUT',
+    body: { folderId: newFolderId },
+  });
+  assert.equal(createAssigned.response.status, 200);
+  assert.equal(Number(createAssigned.body.folder_id), newFolderId);
+  assert.equal(createAssigned.body.folder_name, 'brand new folder');
+
+  const moved = await request(`/api/expenses/${expenseId}/folder`, {
+    method: 'PUT',
+    body: { folderId: folderBId },
+  });
+  assert.equal(moved.response.status, 200);
+  assert.equal(Number(moved.body.folder_id), folderBId);
+  assert.equal(moved.body.folder_name, 'folder b');
+
+  const listed = await request('/api/expenses');
+  const row = listed.body.find((item) => Number(item.id) === expenseId);
+  assert.equal(Number(row.folder_id), folderBId);
+  assert.equal(row.folder_name, 'folder b');
+});
+
+test('empty or too-long rename and unknown assignment folder ids are rejected with 400', async () => {
+  const folder = await request('/api/folders', { method: 'POST', body: { name: 'valid folder' } });
+  assert.equal(folder.response.status, 201);
+  const folderId = Number(folder.body.id);
+
+  const empty = await request(`/api/folders/${folderId}`, { method: 'PUT', body: { name: '   ' } });
+  assert.equal(empty.response.status, 400);
+  assert.equal(typeof (empty.body.error || empty.body.message), 'string');
+
+  const tooLong = await request(`/api/folders/${folderId}`, { method: 'PUT', body: { name: 'y'.repeat(61) } });
+  assert.equal(tooLong.response.status, 400);
+  assert.equal(typeof (tooLong.body.error || tooLong.body.message), 'string');
+
+  const expense = await request('/api/expenses', {
+    method: 'POST',
+    body: { name: 'Needs folder', category: 'Food', price: 4, currency: 'MYR', timestamp: '' },
+  });
+  const unknown = await request(`/api/expenses/${Number(expense.body.id)}/folder`, {
+    method: 'PUT',
+    body: { folderId: 999999 },
+  });
+  assert.equal(unknown.response.status, 400);
+  assert.equal(typeof (unknown.body.error || unknown.body.message), 'string');
 });

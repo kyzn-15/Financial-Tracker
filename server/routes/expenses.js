@@ -248,6 +248,41 @@ router.get('/', async (req, res) => {
   }
 });
 
+// ─── PUT /api/expenses/:id/folder — Assign or move an expense folder ───────
+router.put('/:id/folder', async (req, res) => {
+  try {
+    const id = parseExpenseId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid expense id' });
+
+    const existingResult = await db.execute({
+      sql: 'SELECT id FROM expenses WHERE id = ? AND deleted_at IS NULL',
+      args: [id],
+    });
+    if (!existingResult.rows[0]) {
+      return res.status(404).json({ error: 'Expense not found' });
+    }
+
+    const folderInput = parseFolderId(req.body?.folderId);
+    if (folderInput.invalid) {
+      return res.status(400).json({ error: 'Invalid folder.' });
+    }
+    const folderId = await resolveFolderId(folderInput.folderId);
+    if (folderId === undefined) {
+      return res.status(400).json({ error: 'Choose a folder that exists.' });
+    }
+
+    await db.execute({
+      sql: 'UPDATE expenses SET folder_id = ? WHERE id = ? AND deleted_at IS NULL',
+      args: [folderId, id],
+    });
+    const updated = await getExpenseRecord(id);
+    res.json(updated);
+  } catch (err) {
+    console.error('PUT /api/expenses/:id/folder error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ─── PUT /api/expenses/:id — Update an expense ─────────────────────────────
 router.put('/:id', async (req, res) => {
   try {

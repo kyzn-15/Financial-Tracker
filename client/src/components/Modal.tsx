@@ -8,6 +8,7 @@ interface ModalProps {
   children: ReactNode;
   showClose?: boolean;
   dismissOnOverlayClick?: boolean;
+  contentClassName?: string;
 }
 
 export default function Modal({
@@ -17,12 +18,13 @@ export default function Modal({
   children,
   showClose = true,
   dismissOnOverlayClick = true,
+  contentClassName = '',
 }: ModalProps) {
   if (!isOpen) return null;
 
   return (
     <div className="modal-overlay" onClick={dismissOnOverlayClick ? onClose : undefined}>
-      <div className="modal-content" onClick={(event) => event.stopPropagation()}>
+      <div className={`modal-content ${contentClassName}`.trim()} onClick={(event) => event.stopPropagation()}>
         <div className="modal-content__header">
           <h2 className="modal-content__title">{title}</h2>
           {showClose && (

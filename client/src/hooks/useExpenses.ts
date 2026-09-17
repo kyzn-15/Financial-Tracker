@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import * as api from '../services/api';
 import type { ExchangeRate, Expense, ExpenseFilters, ExpenseInput, ExpenseSortColumn, Summary } from '../types';
 import { getErrorMessage } from '../utils/errors';
+import { unfilteredExpenseQuery } from '../utils/expenseQueries';
 
 export function useExpenses() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [exchangeRate, setExchangeRate] = useState<ExchangeRate | null>(null);
   const [loading, setLoading] = useState(false);
@@ -18,6 +20,15 @@ export function useExpenses() {
     sort: 'timestamp',
     order: 'desc',
   });
+
+  const fetchAllExpenses = useCallback(async () => {
+    try {
+      const data = await api.getExpenses(unfilteredExpenseQuery());
+      setAllExpenses(data);
+    } catch (err) {
+      console.error('Failed to fetch all expenses:', err);
+    }
+  }, []);
 
   const fetchExpenses = useCallback(async () => {
     setLoading(true);
@@ -55,6 +66,10 @@ export function useExpenses() {
   }, [fetchExpenses]);
 
   useEffect(() => {
+    fetchAllExpenses();
+  }, [fetchAllExpenses]);
+
+  useEffect(() => {
     fetchSummary();
     fetchExchangeRate();
   }, [fetchSummary, fetchExchangeRate]);
@@ -62,6 +77,7 @@ export function useExpenses() {
   useEffect(() => {
     const refreshCurrentData = () => {
       fetchExpenses();
+      fetchAllExpenses();
       fetchSummary();
     };
     const interval = window.setInterval(refreshCurrentData, 60_000);
@@ -70,11 +86,12 @@ export function useExpenses() {
       window.clearInterval(interval);
       window.removeEventListener('focus', refreshCurrentData);
     };
-  }, [fetchExpenses, fetchSummary]);
+  }, [fetchExpenses, fetchAllExpenses, fetchSummary]);
 
   const addExpense = async (data: ExpenseInput): Promise<Expense> => {
     const result = await api.createExpense(data);
     await fetchExpenses();
+    await fetchAllExpenses();
     await fetchSummary();
     return result;
   };
@@ -82,6 +99,7 @@ export function useExpenses() {
   const editExpense = async (id: number, data: ExpenseInput): Promise<Expense> => {
     const result = await api.updateExpense(id, data);
     await fetchExpenses();
+    await fetchAllExpenses();
     await fetchSummary();
     return result;
   };
@@ -89,7 +107,16 @@ export function useExpenses() {
   const removeExpense = async (id: number): Promise<void> => {
     await api.deleteExpense(id);
     await fetchExpenses();
+    await fetchAllExpenses();
     await fetchSummary();
+  };
+
+  const assignFolder = async (id: number, folderId: number | null): Promise<Expense> => {
+    const result = await api.assignExpenseFolder(id, folderId);
+    await fetchExpenses();
+    await fetchAllExpenses();
+    await fetchSummary();
+    return result;
   };
 
   const updateFilters = (newFilters: Partial<ExpenseFilters>): void => {
@@ -118,6 +145,7 @@ export function useExpenses() {
 
   return {
     expenses,
+    allExpenses,
     summary,
     exchangeRate,
     loading,
@@ -126,9 +154,10 @@ export function useExpenses() {
     addExpense,
     editExpense,
     removeExpense,
+    assignFolder,
     updateFilters,
     updateSort,
     clearFilters,
-    refresh: () => Promise.all([fetchExpenses(), fetchSummary()]),
+    refresh: () => Promise.all([fetchExpenses(), fetchAllExpenses(), fetchSummary()]),
   };
 }

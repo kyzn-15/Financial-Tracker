@@ -40,5 +40,29 @@ export function useFolders(): FolderStore {
     }
   };
 
-  return { folders, loading, error, refresh, createFolder };
+  const renameFolder = async (id: number, name: string): Promise<ExpenseFolder[]> => {
+    setError(null);
+    try {
+      const data = await api.renameFolder(id, name);
+      setFolders(data);
+      return data;
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not rename folder.'));
+      throw err;
+    }
+  };
+
+  const removeFolder = async (id: number): Promise<ExpenseFolder[]> => {
+    setError(null);
+    try {
+      const data = await api.deleteFolder(id);
+      setFolders(data);
+      return data;
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not delete folder.'));
+      throw err;
+    }
+  };
+
+  return { folders, loading, error, refresh, createFolder, renameFolder, removeFolder };
 }

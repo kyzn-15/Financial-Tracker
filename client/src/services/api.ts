@@ -135,6 +135,26 @@ export async function createFolder(name: string): Promise<ExpenseFolder> {
   });
 }
 
+export async function renameFolder(id: number, name: string): Promise<ExpenseFolder[]> {
+  return request<ExpenseFolder[]>(`/folders/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteFolder(id: number): Promise<ExpenseFolder[]> {
+  return request<ExpenseFolder[]>(`/folders/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function assignExpenseFolder(id: number, folderId: number | null): Promise<Expense> {
+  return request<Expense>(`/expenses/${id}/folder`, {
+    method: 'PUT',
+    body: JSON.stringify({ folderId }),
+  });
+}
+
 export async function getCategories(): Promise<Category[]> {
   return request<Category[]>('/categories');
 }

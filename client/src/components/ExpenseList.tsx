@@ -4,18 +4,32 @@ import { selectStoredExpenseAmount } from '../utils/historyAmount';
 import { maskFormattedCurrency, usePrivacyMode } from '../hooks/usePrivacyMode';
 import { getCategoryIconName } from '../utils/categoryIcons';
 import AppIcon from './AppIcon';
-import type { Currency, Expense, ExpenseFilters, ExpenseSortColumn } from '../types';
+import FolderSelect from './FolderSelect';
+import type { Currency, Expense, ExpenseFolder, ExpenseFilters, ExpenseSortColumn } from '../types';
 
 interface ExpenseListProps {
   expenses: Expense[];
+  folders: ExpenseFolder[];
   filters: ExpenseFilters;
   currency?: Currency;
   onSort: (column: ExpenseSortColumn) => void;
   onEdit: (expense: Expense) => void;
   onDelete: (expense: Expense) => void;
+  onAssignFolder: (expenseId: number, folderId: number | null) => Promise<unknown>;
+  onCreateAndAssignFolder: (expenseId: number, name: string) => Promise<unknown>;
 }
 
-export default function ExpenseList({ expenses, filters, currency = 'MYR', onSort, onEdit, onDelete }: ExpenseListProps) {
+export default function ExpenseList({
+  expenses,
+  folders,
+  filters,
+  currency = 'MYR',
+  onSort,
+  onEdit,
+  onDelete,
+  onAssignFolder,
+  onCreateAndAssignFolder,
+}: ExpenseListProps) {
   const { isPrivacyMode } = usePrivacyMode();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -62,7 +76,15 @@ export default function ExpenseList({ expenses, filters, currency = 'MYR', onSor
                   )}
                 </td>
                 <td data-label="Category"><span className="category-badge"><AppIcon name={getCategoryIconName(expense.category)} size={15} /><span>{expense.category}</span></span></td>
-                <td data-label="Folder">{expense.folder_name ? <span className="category-badge"><AppIcon name="folder" size={15} /><span>{expense.folder_name}</span></span> : '—'}</td>
+                <td data-label="Folder">
+                  <FolderSelect
+                    folders={folders}
+                    value={expense.folder_id}
+                    ariaLabel={`Folder for ${expense.name}`}
+                    onAssign={(folderId) => onAssignFolder(expense.id, folderId)}
+                    onCreateAndAssign={(name) => onCreateAndAssignFolder(expense.id, name)}
+                  />
+                </td>
                 <td data-label={`Price (${currency})`}><div className={isOriginalCurrency ? 'price-original' : 'price-converted'}>{displayAmount}{isOriginalCurrency && <span className="price-original__marker" title="Original currency"><AppIcon name="badge-check" size={13} /></span>}</div></td>
                 <td data-label="Exchange Rate" className="expense-table__rate">{expense.exchange_rate_used ? (isPrivacyMode ? '1 MYR = *** IDR' : `1 MYR = ${rate} IDR`) : 'Pending'}</td>
                 <td data-label="Actions"><div className="actions-cell"><button className="neo-btn neo-btn--secondary neo-btn--icon" onClick={() => onEdit(expense)} title="Edit expense" aria-label="Edit expense"><AppIcon name="pencil" size={16} /></button><button className="neo-btn neo-btn--danger neo-btn--icon" onClick={() => onDelete(expense)} title="Delete expense" aria-label="Delete expense"><AppIcon name="trash" size={16} /></button></div></td>

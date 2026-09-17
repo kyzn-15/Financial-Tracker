@@ -40,13 +40,12 @@ export default function ExpenseForm({
   const [validationError, setValidationError] = useState('');
   const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency>('monthly');
-  const [showCustomKurs, setShowCustomKurs] = useState(false);
   const [customKurs, setCustomKurs] = useState('');
   const [kursQuote, setKursQuote] = useState<KursQuote>('MYR_IDR');
   const [folderId, setFolderId] = useState('');
-  const [showFolder, setShowFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
 
   const liveKurs = exchangeRate?.myrToIdr;
 
@@ -68,8 +67,6 @@ export default function ExpenseForm({
 
       const assignedFolder = initialData.folder_id != null ? String(initialData.folder_id) : '';
       setFolderId(assignedFolder);
-      setShowFolder(false);
-      setShowCustomKurs(false);
       const storedKurs = Number(initialData.exchange_rate_used);
       if (Number.isFinite(storedKurs) && storedKurs > 0) {
         setCustomKurs(formatKursInput(storedKurs));
@@ -80,6 +77,7 @@ export default function ExpenseForm({
       }
       setRecurrenceEnabled(false);
       setRecurrenceFrequency('monthly');
+      setShowAdditionalDetails(false);
     } else {
       setName('');
       setCategory('');
@@ -89,12 +87,11 @@ export default function ExpenseForm({
       setUseCurrentTime(true);
       setRecurrenceEnabled(false);
       setRecurrenceFrequency('monthly');
-      setShowCustomKurs(false);
       setCustomKurs('');
       setKursQuote('MYR_IDR');
       setFolderId('');
-      setShowFolder(false);
       setNewFolderName('');
+      setShowAdditionalDetails(false);
     }
     setValidationError('');
   }, [initialData]);
@@ -114,23 +111,6 @@ export default function ExpenseForm({
     const categorySettings = categories.find((item) => item.name === nextCategory);
     setRecurrenceEnabled(Boolean(categorySettings?.automation_enabled));
     setRecurrenceFrequency(categorySettings?.automation_frequency || 'monthly');
-  };
-
-  const handleToggleCustomKurs = () => {
-    setShowCustomKurs((open) => {
-      const next = !open;
-      if (next && customKurs.trim() === '') {
-        const stored = initialData?.exchange_rate_used;
-        const seed = stored && Number.isFinite(Number(stored)) && Number(stored) > 0
-          ? Number(stored)
-          : liveKurs;
-        if (seed) {
-          setKursQuote('MYR_IDR');
-          setCustomKurs(formatKursInput(seed));
-        }
-      }
-      return next;
-    });
   };
 
   const handleSwapKursQuote = () => {
@@ -226,12 +206,11 @@ export default function ExpenseForm({
         setPrice('');
         setUseCurrentTime(true);
         setCustomDateTime('');
-        setShowCustomKurs(false);
         setCustomKurs('');
         setKursQuote('MYR_IDR');
         setFolderId('');
-        setShowFolder(false);
         setNewFolderName('');
+        setShowAdditionalDetails(false);
       }
     } catch (err) {
       setValidationError(getErrorMessage(err, 'Failed to submit expense.'));
@@ -304,6 +283,21 @@ export default function ExpenseForm({
         </div>
       </div>
 
+      <div className="neo-input-group">
+        <label className="neo-label" htmlFor="expense-price">Price ({currency})</label>
+        <input
+          id="expense-price"
+          type={isPrivacyMode ? 'password' : 'number'}
+          inputMode="decimal"
+          step="0.01"
+          className="neo-input"
+          placeholder="0.00"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          required
+        />
+      </div>
+
       {!initialData && (
         <div className="expense-recurrence">
           <div className="expense-recurrence__heading">
@@ -344,21 +338,6 @@ export default function ExpenseForm({
       )}
 
       <div className="neo-input-group">
-        <label className="neo-label" htmlFor="expense-price">Price ({currency})</label>
-        <input
-          id="expense-price"
-          type={isPrivacyMode ? 'password' : 'number'}
-          inputMode="decimal"
-          step="0.01"
-          className="neo-input"
-          placeholder="0.00"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          required
-        />
-      </div>
-
-      <div className="neo-input-group">
         <span className="neo-label">Date / Time</span>
         <div className="expense-form__datetime">
           <label className="expense-form__check">
@@ -383,102 +362,95 @@ export default function ExpenseForm({
         </div>
       </div>
 
-      <div className="expense-disclose">
+      <div className="expense-form__details">
         <button
           type="button"
-          className="expense-disclose__toggle"
-          onClick={handleToggleCustomKurs}
-          aria-expanded={showCustomKurs}
+          className="expense-form__details-toggle"
+          onClick={() => setShowAdditionalDetails((open) => !open)}
+          aria-expanded={showAdditionalDetails}
         >
-          <strong>Custom kurs</strong>
-          <span>{showCustomKurs ? 'Hide' : 'Add'}</span>
+          <strong>Additional Details</strong>
+          <span className={`expense-form__details-caret ${showAdditionalDetails ? 'expense-form__details-caret--open' : ''}`}>
+            <AppIcon name="chevron-right" size={16} />
+          </span>
         </button>
-        {showCustomKurs && (
-          <div className="expense-disclose__body">
-            <label className="neo-label" htmlFor="expense-custom-kurs">
-              {kursQuote === 'IDR_MYR' ? '1 IDR = Y MYR' : '1 MYR = X IDR'}
-            </label>
-            <div className="expense-form__kurs">
-              <span className="expense-form__kurs-prefix">{kursPrefix}</span>
-              <input
-                id="expense-custom-kurs"
-                type={isPrivacyMode ? 'password' : 'number'}
-                inputMode="decimal"
-                step="any"
-                min="0"
-                className="neo-input"
-                placeholder={kursQuote === 'IDR_MYR' ? 'e.g. 0.00023' : (liveKurs ? String(liveKurs) : 'e.g. 3750')}
-                value={customKurs}
-                onChange={(e) => setCustomKurs(e.target.value)}
-              />
-              <span className="expense-form__kurs-suffix">{kursSuffix}</span>
-              <button
-                type="button"
-                className="neo-btn neo-btn--secondary expense-form__swap"
-                onClick={handleSwapKursQuote}
-                title="Swap kurs quote between 1 MYR = X IDR and 1 IDR = Y MYR"
-                aria-label="Swap kurs quote direction"
-              >
-                <AppIcon name="swap" size={16} />
-                Swap
-              </button>
-            </div>
-            <p className="expense-form__hint">
-              {kursQuote === 'IDR_MYR'
-                ? 'Enter how many MYR one IDR is worth. Saved as 1 MYR = 1 / Y IDR.'
-                : 'Enter how many IDR one MYR is worth.'}
-            </p>
-          </div>
-        )}
-      </div>
+        {showAdditionalDetails && (
+          <div className="expense-form__details-body">
+            <p className="expense-form__hint">Optional exchange-rate override and organization.</p>
 
-      <div className="expense-disclose">
-        <button
-          type="button"
-          className="expense-disclose__toggle"
-          onClick={() => setShowFolder((open) => !open)}
-          aria-expanded={showFolder}
-        >
-          <strong>Folder</strong>
-          <span>{showFolder ? 'Hide' : 'Add'}</span>
-        </button>
-        {showFolder && (
-          <div className="expense-disclose__body">
-            <label className="neo-label" htmlFor="expense-folder">Folder</label>
-            <select
-              id="expense-folder"
-              className="neo-select"
-              value={folderId}
-              onChange={(e) => setFolderId(e.target.value)}
-            >
-              <option value="">No folder</option>
-              {folders.map((folder) => (
-                <option key={folder.id} value={folder.id}>
-                  {folder.name}
-                </option>
-              ))}
-            </select>
-            {onCreateFolder && (
-              <div className="expense-form__folder-create">
+            <div className="neo-input-group">
+              <label className="neo-label" htmlFor="expense-custom-kurs">
+                Custom kurs ({kursQuote === 'IDR_MYR' ? '1 IDR = Y MYR' : '1 MYR = X IDR'})
+              </label>
+              <div className="expense-form__kurs">
+                <span className="expense-form__kurs-prefix">{kursPrefix}</span>
                 <input
-                  type="text"
+                  id="expense-custom-kurs"
+                  type={isPrivacyMode ? 'password' : 'number'}
+                  inputMode="decimal"
+                  step="any"
+                  min="0"
                   className="neo-input"
-                  maxLength={60}
-                  placeholder="New folder, e.g. malaysian traveling trip"
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  aria-label="New folder name"
+                  placeholder={kursQuote === 'IDR_MYR' ? 'e.g. 0.00023' : (liveKurs ? String(liveKurs) : 'e.g. 3750')}
+                  value={customKurs}
+                  onChange={(e) => setCustomKurs(e.target.value)}
                 />
+                <span className="expense-form__kurs-suffix">{kursSuffix}</span>
                 <button
                   type="button"
-                  className="neo-btn neo-btn--secondary expense-form__folder-add"
-                  onClick={handleCreateFolder}
-                  disabled={creatingFolder}
+                  className="neo-btn neo-btn--secondary expense-form__swap"
+                  onClick={handleSwapKursQuote}
+                  title="Swap kurs quote between 1 MYR = X IDR and 1 IDR = Y MYR"
+                  aria-label="Swap kurs quote direction"
                 >
-                  <AppIcon name="plus" size={15} /> Add
+                  <AppIcon name="swap" size={16} />
+                  Swap
                 </button>
               </div>
-            )}
+              <p className="expense-form__hint">
+                {kursQuote === 'IDR_MYR'
+                  ? 'Enter how many MYR one IDR is worth. Saved as 1 MYR = 1 / Y IDR.'
+                  : 'Leave empty to use the live rate, or enter how many IDR one MYR is worth.'}
+              </p>
+            </div>
+
+            <div className="neo-input-group">
+              <label className="neo-label" htmlFor="expense-folder">Folder</label>
+              <select
+                id="expense-folder"
+                className="neo-select"
+                value={folderId}
+                onChange={(e) => setFolderId(e.target.value)}
+              >
+                <option value="">No folder</option>
+                {folders.map((folder) => (
+                  <option key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </option>
+                ))}
+              </select>
+              {onCreateFolder && (
+                <div className="expense-form__folder-create">
+                  <input
+                    type="text"
+                    className="neo-input"
+                    maxLength={60}
+                    placeholder="New folder, e.g. malaysian traveling trip"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    aria-label="New folder name"
+                  />
+                  <button
+                    type="button"
+                    className="neo-btn neo-btn--secondary expense-form__folder-add"
+                    onClick={handleCreateFolder}
+                    disabled={creatingFolder}
+                  >
+                    <AppIcon name="plus" size={15} /> Add
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
