@@ -775,36 +775,102 @@
   justify-self: end;
 }
 
-.expense-folder-select .neo-select {
+.expense-folder-select__trigger {
+  display: flex;
+  align-items: center;
   width: 100%;
   min-width: 0;
   padding: var(--space-sm) var(--space-md);
   font-size: var(--font-size-xs);
+  text-align: left;
+  cursor: pointer;
+}
+
+.expense-folder-select__trigger-label {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.expense-folder-select:has(.expense-folder-select__create) {
-  width: 100%;
-  min-width: 0;
 }
 
 .expense-table td[data-label="Folder"] {
   min-width: 0;
 }
 
-.expense-folder-select__create {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: var(--space-xs);
-  align-items: center;
-}
-
 .expense-folder-select__error {
   margin: 0;
   color: var(--danger);
   font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.folder-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.folder-picker__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-height: min(50vh, 320px);
+  overflow-y: auto;
+  padding: var(--space-xs);
+}
+
+.folder-picker__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius);
+  background: var(--bg);
+  box-shadow: var(--neo-out-sm);
+  color: var(--text-primary);
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  transition: color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.folder-picker__option .app-icon {
+  flex: 0 0 auto;
+}
+
+.folder-picker__option:hover {
+  color: var(--accent);
+}
+
+.folder-picker__option--selected {
+  color: var(--accent);
+  box-shadow: var(--neo-in);
+}
+
+.folder-picker__create {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.folder-picker__create-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.api-error-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  padding: var(--space-md);
+  border-radius: var(--radius);
+  background: var(--danger-soft);
+  color: var(--danger);
   font-weight: 700;
 }
 
@@ -2666,7 +2732,8 @@ button.heatmap-day:focus-visible {
     background: transparent;
   }
   
-  .expense-table td[data-label="Folder"] .expense-folder-select {
+  .expense-table td[data-label="Folder"] .expense-folder-select,
+  .expense-table td[data-label="Folder"] .expense-folder-select__trigger {
     width: 128px;
     max-width: 42vw;
     flex: 0 0 auto;
@@ -3385,21 +3452,15 @@ button.heatmap-day:focus-visible {
   .folder-manager__add-row,
   .folder-manager__member,
   .folder-manager__header,
-  .expense-folder-select__create {
+  .folder-picker__create-row {
     grid-template-columns: 1fr;
   }
 
   .expense-folder-select,
-  .expense-folder-select .neo-select {
+  .expense-folder-select__trigger {
     min-width: 0;
     width: 128px;
     max-width: 42vw;
-  }
-
-  .expense-folder-select:has(.expense-folder-select__create),
-  .expense-folder-select:has(.expense-folder-select__create) .neo-select {
-    width: 100%;
-    max-width: none;
   }
 
   .folder-manager__member .expense-folder-select {

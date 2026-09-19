@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import AppIcon from './AppIcon';
 
 interface ModalProps {
@@ -22,7 +23,7 @@ export default function Modal({
 }: ModalProps) {
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={dismissOnOverlayClick ? onClose : undefined}>
       <div className={`modal-content ${contentClassName}`.trim()} onClick={(event) => event.stopPropagation()}>
         <div className="modal-content__header">
@@ -37,6 +38,7 @@ export default function Modal({
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
