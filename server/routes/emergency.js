@@ -9,6 +9,46 @@ import {
 
 const router = Router();
 
+const VALID_TARGET_MONTHS = [3, 6, 9, 12];
+const VALID_CURRENCIES = new Set(['MYR', 'IDR']);
+const MAX_FUND_AMOUNT = 1_000_000_000_000;
+
+function invalidSettings(message) {
+  return Object.assign(new Error(message), { statusCode: 400 });
+}
+
+function parseFundAmount(value, field) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0 || number > MAX_FUND_AMOUNT) {
+    throw invalidSettings(`${field} must be a non-negative number`);
+  }
+  return number;
+}
+
+function parseEmergencySettingsBody(body) {
+  if (body == null || typeof body !== 'object' || Array.isArray(body)) {
+    throw invalidSettings('Invalid emergency settings');
+  }
+
+  const input = {};
+  if (body.current_savings !== undefined) input.current_savings = parseFundAmount(body.current_savings, 'current_savings');
+  if (body.reserved_funds !== undefined) input.reserved_funds = parseFundAmount(body.reserved_funds, 'reserved_funds');
+  if (body.currency !== undefined) {
+    const currency = typeof body.currency === 'string' ? body.currency.toUpperCase() : '';
+    if (!VALID_CURRENCIES.has(currency)) throw invalidSettings('currency must be MYR or IDR');
+    input.currency = currency;
+  }
+  if (body.target_months !== undefined) {
+    const targetMonths = Number(body.target_months);
+    if (!VALID_TARGET_MONTHS.includes(targetMonths)) {
+      throw invalidSettings('target_months must be one of 3, 6, 9, or 12');
+    }
+    input.target_months = targetMonths;
+  }
+  if (body.essential_categories !== undefined) input.essential_categories = body.essential_categories;
+  return input;
+}
+
 router.get('/settings', async (_req, res) => {
   try {
     const settings = await getEmergencySettings();
@@ -22,7 +62,7 @@ router.get('/settings', async (_req, res) => {
 
 router.put('/settings', async (req, res) => {
   try {
-    const settings = await updateEmergencySettings(req.body);
+    const settings = await updateEmergencySettings(parseEmergencySettingsBody(req.body));
     const categories = await getEmergencyCategoryOptions(settings);
     res.json({ settings, categories });
   } catch (err) {

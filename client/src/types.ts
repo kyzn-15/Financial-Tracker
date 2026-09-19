@@ -304,16 +304,23 @@ export interface ResetIntent {
 export interface EmergencySettings {
   id: number;
   current_savings_myr: number;
+  current_savings_idr: number;
   reserved_funds_myr: number;
+  reserved_funds_idr: number;
+  original_currency: Currency;
+  exchange_rate_used: number | null;
   target_months: number;
   essential_categories: string[];
   updated_at: string;
 }
 
-export type EmergencySettingsInput = Pick<
-  EmergencySettings,
-  'current_savings_myr' | 'reserved_funds_myr' | 'target_months' | 'essential_categories'
->;
+export interface EmergencySettingsInput {
+  current_savings?: number;
+  reserved_funds?: number;
+  currency?: Currency;
+  target_months?: number;
+  essential_categories?: string[];
+}
 
 export interface EmergencySettingsPayload {
   settings: EmergencySettings;
