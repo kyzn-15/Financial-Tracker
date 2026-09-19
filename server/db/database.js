@@ -50,6 +50,10 @@ async function ensureDatabaseColumns() {
     { table: 'expenses', column: 'folder_id', type: 'INTEGER' },
     { table: 'receipts', column: 'deleted_at', type: 'TEXT' },
     { table: 'receipts', column: 'image_data', type: 'BLOB' },
+    { table: 'emergency_settings', column: 'current_savings_idr', type: 'REAL' },
+    { table: 'emergency_settings', column: 'reserved_funds_idr', type: 'REAL' },
+    { table: 'emergency_settings', column: 'original_currency', type: "TEXT DEFAULT 'MYR'" },
+    { table: 'emergency_settings', column: 'exchange_rate_used', type: 'REAL' },
   ];
 
   for (const { table, column, type } of targets) {

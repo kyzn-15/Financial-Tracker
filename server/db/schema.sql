@@ -113,7 +113,11 @@ CREATE INDEX IF NOT EXISTS idx_receipts_deleted_at ON receipts(deleted_at);
 CREATE TABLE IF NOT EXISTS emergency_settings (
   id                    INTEGER PRIMARY KEY,
   current_savings_myr   REAL,
+  current_savings_idr   REAL,
   reserved_funds_myr    REAL DEFAULT 0,
+  reserved_funds_idr    REAL DEFAULT 0,
+  original_currency     TEXT DEFAULT 'MYR',
+  exchange_rate_used    REAL,
   target_months         INTEGER DEFAULT 6,
   essential_categories  TEXT,
   updated_at            TEXT

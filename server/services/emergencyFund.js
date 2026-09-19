@@ -1,8 +1,12 @@
 import db from '../db/database.js';
+import { convertExpenseAmounts } from '../utils/currency.js';
 import { nowUTC8 } from '../utils/datetime.js';
+import { getExchangeRate } from './exchangeRate.js';
 
 const DEFAULT_ESSENTIAL_CATEGORIES = ['Rent', 'Food', 'Transport', 'Phone', 'Insurance', 'Medicine', 'Utilities', 'Grocery', 'Health/Medical'];
 const VALID_TARGET_MONTHS = [3, 6, 9, 12];
+const VALID_CURRENCIES = new Set(['MYR', 'IDR']);
+const MAX_FUND_AMOUNT = 1_000_000_000_000;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function validationError(message) {
@@ -33,6 +37,48 @@ function parseCategories(value) {
 function normalizeCategories(categories) {
   if (!Array.isArray(categories)) return [];
   return [...new Set(categories.filter((item) => typeof item === 'string').map((item) => item.trim()).filter(Boolean))];
+}
+
+function resolveOriginalCurrency(value) {
+  return value === 'IDR' ? 'IDR' : 'MYR';
+}
+
+function parseFundAmount(value, field) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0 || number > MAX_FUND_AMOUNT) {
+    throw validationError(`${field} must be a non-negative number`);
+  }
+  return number;
+}
+
+function hasOwn(input, key) {
+  return Object.prototype.hasOwnProperty.call(input ?? {}, key);
+}
+
+async function resolveConversionRate(row) {
+  const storedRate = Number(row.exchange_rate_used);
+  if (Number.isFinite(storedRate) && storedRate > 0) return storedRate;
+  if (row.current_savings_idr != null && row.reserved_funds_idr != null) return 0;
+  return (await getExchangeRate()).myrToIdr;
+}
+
+function mapEmergencySettings(row, fallbackRate) {
+  const savingsMyr = toMoney(row.current_savings_myr);
+  const reservedMyr = toMoney(row.reserved_funds_myr);
+  const rate = fallbackRate > 0 ? fallbackRate : 0;
+
+  return {
+    id: row.id,
+    current_savings_myr: savingsMyr,
+    current_savings_idr: row.current_savings_idr != null ? toMoney(row.current_savings_idr) : savingsMyr * rate,
+    reserved_funds_myr: reservedMyr,
+    reserved_funds_idr: row.reserved_funds_idr != null ? toMoney(row.reserved_funds_idr) : reservedMyr * rate,
+    original_currency: resolveOriginalCurrency(row.original_currency),
+    exchange_rate_used: Number(row.exchange_rate_used) > 0 ? Number(row.exchange_rate_used) : null,
+    target_months: VALID_TARGET_MONTHS.includes(Number(row.target_months)) ? Number(row.target_months) : 6,
+    essential_categories: parseCategories(row.essential_categories),
+    updated_at: row.updated_at,
+  };
 }
 
 function currentMonthKey() {
@@ -298,22 +344,17 @@ export async function getEmergencySettings() {
   let row = result.rows[0];
   if (!row) {
     await db.execute({
-      sql: `INSERT OR IGNORE INTO emergency_settings (id, current_savings_myr, reserved_funds_myr, target_months, essential_categories, updated_at)
-            VALUES (1, 0, 0, 6, ?, ?)`,
+      sql: `INSERT OR IGNORE INTO emergency_settings (
+              id, current_savings_myr, current_savings_idr, reserved_funds_myr, reserved_funds_idr,
+              original_currency, exchange_rate_used, target_months, essential_categories, updated_at
+            ) VALUES (1, 0, 0, 0, 0, 'MYR', NULL, 6, ?, ?)`,
       args: [JSON.stringify(DEFAULT_ESSENTIAL_CATEGORIES), nowUTC8()],
     });
     result = await db.execute({ sql: 'SELECT * FROM emergency_settings WHERE id = 1', args: [] });
     row = result.rows[0];
   }
 
-  return {
-    id: row.id,
-    current_savings_myr: toMoney(row.current_savings_myr),
-    reserved_funds_myr: toMoney(row.reserved_funds_myr),
-    target_months: VALID_TARGET_MONTHS.includes(Number(row.target_months)) ? Number(row.target_months) : 6,
-    essential_categories: parseCategories(row.essential_categories),
-    updated_at: row.updated_at,
-  };
+  return mapEmergencySettings(row, await resolveConversionRate(row));
 }
 
 export async function getEmergencyCategoryOptions(settings = null) {
@@ -322,39 +363,86 @@ export async function getEmergencyCategoryOptions(settings = null) {
 }
 
 export async function updateEmergencySettings(input) {
-  const targetMonths = Number(input?.target_months);
-  if (!VALID_TARGET_MONTHS.includes(targetMonths)) {
-    throw validationError('target_months must be one of 3, 6, 9, or 12');
+  const existing = await getEmergencySettings();
+
+  let targetMonths = existing.target_months;
+  if (hasOwn(input, 'target_months')) {
+    targetMonths = Number(input.target_months);
+    if (!VALID_TARGET_MONTHS.includes(targetMonths)) {
+      throw validationError('target_months must be one of 3, 6, 9, or 12');
+    }
   }
 
-  const currentSavings = Number(input?.current_savings_myr);
-  const reservedFunds = Number(input?.reserved_funds_myr);
-  if (!Number.isFinite(currentSavings) || currentSavings < 0) {
-    throw validationError('current_savings_myr must be a non-negative number');
-  }
-  if (!Number.isFinite(reservedFunds) || reservedFunds < 0) {
-    throw validationError('reserved_funds_myr must be a non-negative number');
+  let essentialCategories = existing.essential_categories;
+  if (hasOwn(input, 'essential_categories')) {
+    if (
+      !Array.isArray(input.essential_categories) ||
+      input.essential_categories.length > 100 ||
+      input.essential_categories.some((category) => typeof category !== 'string' || category.trim().length > 160)
+    ) {
+      throw validationError('essential_categories must be a valid category list');
+    }
+    essentialCategories = normalizeCategories(input.essential_categories);
   }
 
-  if (
-    !Array.isArray(input?.essential_categories) ||
-    input.essential_categories.length > 100 ||
-    input.essential_categories.some((category) => typeof category !== 'string' || category.trim().length > 160)
-  ) {
-    throw validationError('essential_categories must be a valid category list');
+  let currentSavingsMyr = existing.current_savings_myr;
+  let currentSavingsIdr = existing.current_savings_idr;
+  let reservedFundsMyr = existing.reserved_funds_myr;
+  let reservedFundsIdr = existing.reserved_funds_idr;
+  let originalCurrency = existing.original_currency;
+  let exchangeRateUsed = existing.exchange_rate_used;
+
+  const hasAmountUpdate = hasOwn(input, 'current_savings') || hasOwn(input, 'reserved_funds') || hasOwn(input, 'currency');
+  if (hasAmountUpdate) {
+    if (!hasOwn(input, 'current_savings') || !hasOwn(input, 'reserved_funds') || !hasOwn(input, 'currency')) {
+      throw validationError('current_savings, reserved_funds, and currency are required together');
+    }
+
+    const currency = typeof input.currency === 'string' ? input.currency.toUpperCase() : '';
+    if (!VALID_CURRENCIES.has(currency)) {
+      throw validationError('currency must be MYR or IDR');
+    }
+
+    const currentSavings = parseFundAmount(input.current_savings, 'current_savings');
+    const reservedFunds = parseFundAmount(input.reserved_funds, 'reserved_funds');
+    const kurs = (await getExchangeRate()).myrToIdr;
+    const savings = convertExpenseAmounts(currentSavings, currency, kurs);
+    const reserved = convertExpenseAmounts(reservedFunds, currency, kurs);
+
+    currentSavingsMyr = savings.priceMyr;
+    currentSavingsIdr = savings.priceIdr;
+    reservedFundsMyr = reserved.priceMyr;
+    reservedFundsIdr = reserved.priceIdr;
+    originalCurrency = currency;
+    exchangeRateUsed = kurs;
   }
-  const essentialCategories = normalizeCategories(input.essential_categories);
 
   await db.execute({
-    sql: `INSERT INTO emergency_settings (id, current_savings_myr, reserved_funds_myr, target_months, essential_categories, updated_at)
-          VALUES (1, ?, ?, ?, ?, ?)
+    sql: `INSERT INTO emergency_settings (
+            id, current_savings_myr, current_savings_idr, reserved_funds_myr, reserved_funds_idr,
+            original_currency, exchange_rate_used, target_months, essential_categories, updated_at
+          ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(id) DO UPDATE SET
             current_savings_myr = excluded.current_savings_myr,
+            current_savings_idr = excluded.current_savings_idr,
             reserved_funds_myr = excluded.reserved_funds_myr,
+            reserved_funds_idr = excluded.reserved_funds_idr,
+            original_currency = excluded.original_currency,
+            exchange_rate_used = excluded.exchange_rate_used,
             target_months = excluded.target_months,
             essential_categories = excluded.essential_categories,
             updated_at = excluded.updated_at`,
-    args: [roundMoney(currentSavings), roundMoney(reservedFunds), targetMonths, JSON.stringify(essentialCategories), nowUTC8()],
+    args: [
+      currentSavingsMyr,
+      currentSavingsIdr,
+      reservedFundsMyr,
+      reservedFundsIdr,
+      originalCurrency,
+      exchangeRateUsed,
+      targetMonths,
+      JSON.stringify(essentialCategories),
+      nowUTC8(),
+    ],
   });
 
   return await getEmergencySettings();

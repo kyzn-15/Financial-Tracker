@@ -20,6 +20,7 @@ import type {
   Currency,
   EmergencyCategoryAverage,
   EmergencyFundStore,
+  EmergencySettings,
   EmergencySettingsInput,
   EmergencySettingsPayload,
   EmergencySimulation,
@@ -43,6 +44,32 @@ const DEFAULT_ESSENTIAL_CATEGORIES = ['Rent', 'Food', 'Transport', 'Phone', 'Ins
 function numberValue(value: NumericValue | null | undefined): number {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
+}
+
+function moneyInputValue(amount: NumericValue | null | undefined): string {
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return '0';
+  const rounded = Math.round(n * 100) / 100;
+  if (rounded === 0) return '0';
+  if (Number.isInteger(rounded)) return String(rounded);
+  return rounded.toFixed(2);
+}
+
+function fundAmountForCurrency(
+  settings: EmergencySettings,
+  field: 'current_savings' | 'reserved_funds',
+  currency: Currency,
+): number {
+  if (field === 'current_savings') {
+    return currency === 'IDR' ? settings.current_savings_idr : settings.current_savings_myr;
+  }
+  return currency === 'IDR' ? settings.reserved_funds_idr : settings.reserved_funds_myr;
+}
+
+interface FundDetailsForm {
+  current_savings: string;
+  reserved_funds: string;
+  target_months: number;
 }
 
 function formatMonths(value: NumericValue | null | undefined, isPrivacyMode = false): string {
@@ -75,53 +102,47 @@ interface EmergencySettingsPanelProps {
   onSave: (settings: EmergencySettingsInput) => Promise<EmergencySettingsPayload>;
   saving: boolean;
   currency: Currency;
-  myrToIdr: number;
 }
 
-export function EmergencySavingsSettingsPanel({ settingsPayload, onSave, saving, currency, myrToIdr }: EmergencySettingsPanelProps) {
+export function EmergencySavingsSettingsPanel({ settingsPayload, onSave, saving, currency }: EmergencySettingsPanelProps) {
   const { isPrivacyMode } = usePrivacyMode();
   const settings = settingsPayload?.settings;
-  const [form, setForm] = useState<EmergencySettingsInput>({
-    current_savings_myr: 0,
-    reserved_funds_myr: 0,
+  const [form, setForm] = useState<FundDetailsForm>({
+    current_savings: '0',
+    reserved_funds: '0',
     target_months: 6,
-    essential_categories: [],
   });
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     if (!settings) return;
     setForm({
-      current_savings_myr: settings.current_savings_myr ?? 0,
-      reserved_funds_myr: settings.reserved_funds_myr ?? 0,
+      current_savings: moneyInputValue(fundAmountForCurrency(settings, 'current_savings', currency)),
+      reserved_funds: moneyInputValue(fundAmountForCurrency(settings, 'reserved_funds', currency)),
       target_months: settings.target_months ?? 6,
-      essential_categories: settings.essential_categories,
     });
-  }, [settings]);
+  }, [currency, settings]);
 
-  const updateField = <K extends keyof EmergencySettingsInput>(field: K, value: EmergencySettingsInput[K]) => {
+  const updateField = <K extends keyof FundDetailsForm>(field: K, value: FundDetailsForm[K]) => {
     setMessage('');
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const updateMoneyField = (field: 'current_savings_myr' | 'reserved_funds_myr', value: NumericValue) => updateField(field, convertToMyrAmount(value, currency, myrToIdr));
-  const displayAmount = (value: number) => convertMyrAmount(value, currency, myrToIdr);
-
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const currentSavings = numberValue(form.current_savings_myr);
-    const reservedFunds = numberValue(form.reserved_funds_myr);
+    const currentSavings = form.current_savings.trim() === '' ? 0 : Number(form.current_savings);
+    const reservedFunds = form.reserved_funds.trim() === '' ? 0 : Number(form.reserved_funds);
 
-    if (currentSavings < 0 || reservedFunds < 0) {
+    if (!Number.isFinite(currentSavings) || !Number.isFinite(reservedFunds) || currentSavings < 0 || reservedFunds < 0) {
       setMessage('Savings and reserved funds must be zero or higher.');
       return;
     }
 
     await onSave({
-      current_savings_myr: currentSavings,
-      reserved_funds_myr: reservedFunds,
+      current_savings: currentSavings,
+      reserved_funds: reservedFunds,
+      currency,
       target_months: Number(form.target_months),
-      essential_categories: settings.essential_categories,
     });
     setMessage('Fund details saved.');
   };
@@ -135,7 +156,7 @@ export function EmergencySavingsSettingsPanel({ settingsPayload, onSave, saving,
 
       <div className="emergency-form-grid">
         <div className="neo-input-group">
-          <label className="neo-label" htmlFor="emergency-current-savings">Current Savings</label>
+          <label className="neo-label" htmlFor="emergency-current-savings">Current Savings ({currency})</label>
           <div className="money-input">
             <span>{currency === 'MYR' ? 'RM' : 'Rp'}</span>
             <input
@@ -145,14 +166,14 @@ export function EmergencySavingsSettingsPanel({ settingsPayload, onSave, saving,
               inputMode="decimal"
               min="0"
               step="0.01"
-              value={displayAmount(form.current_savings_myr)}
-              onChange={(event) => updateMoneyField('current_savings_myr', event.target.value)}
+              value={form.current_savings}
+              onChange={(event) => updateField('current_savings', event.target.value)}
             />
           </div>
         </div>
 
         <div className="neo-input-group">
-          <label className="neo-label" htmlFor="emergency-reserved-funds">Reserved Funds</label>
+          <label className="neo-label" htmlFor="emergency-reserved-funds">Reserved Funds ({currency})</label>
           <div className="money-input">
             <span>{currency === 'MYR' ? 'RM' : 'Rp'}</span>
             <input
@@ -162,8 +183,8 @@ export function EmergencySavingsSettingsPanel({ settingsPayload, onSave, saving,
               inputMode="decimal"
               min="0"
               step="0.01"
-              value={displayAmount(form.reserved_funds_myr)}
-              onChange={(event) => updateMoneyField('reserved_funds_myr', event.target.value)}
+              value={form.reserved_funds}
+              onChange={(event) => updateField('reserved_funds', event.target.value)}
             />
           </div>
         </div>
@@ -217,9 +238,6 @@ export function EmergencyEssentialCategoriesPanel({ settingsPayload, onSave, sav
     event.preventDefault();
     if (!settings) return;
     await onSave({
-      current_savings_myr: settings.current_savings_myr,
-      reserved_funds_myr: settings.reserved_funds_myr,
-      target_months: settings.target_months,
       essential_categories: essentialCategories,
     });
     setMessage('Essential categories saved.');
@@ -795,7 +813,6 @@ export default function EmergencyFundDashboard({ emergency, currency = 'MYR', ex
           onSave={saveSettings}
           saving={saving}
           currency={currency}
-          myrToIdr={myrToIdr}
         />
       )}
 
