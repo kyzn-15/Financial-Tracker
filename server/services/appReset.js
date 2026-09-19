@@ -1,5 +1,6 @@
 import db from '../db/database.js';
 import { nowUTC8 } from '../utils/datetime.js';
+import { LAST_EXCHANGE_RATE_FETCHED_AT_KEY, LAST_EXCHANGE_RATE_KEY } from './exchangeRate.js';
 
 const DEFAULT_CATEGORIES = [
   'Grocery',
@@ -34,7 +35,10 @@ export async function resetAppData() {
       { sql: 'DELETE FROM categories', args: [] },
       { sql: 'DELETE FROM emergency_settings', args: [] },
       { sql: 'DELETE FROM backup_preferences', args: [] },
-      { sql: 'DELETE FROM app_metadata', args: [] },
+      {
+        sql: 'DELETE FROM app_metadata WHERE key NOT IN (?, ?)',
+        args: [LAST_EXCHANGE_RATE_KEY, LAST_EXCHANGE_RATE_FETCHED_AT_KEY],
+      },
       {
         sql: `DELETE FROM sqlite_sequence
               WHERE name IN ('expenses', 'categories', 'recurring_expense_rules', 'receipts', 'expense_folders')`,
