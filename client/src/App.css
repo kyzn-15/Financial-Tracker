@@ -308,8 +308,17 @@
 }
 
 .theme-settings,
+.appearance-settings,
+.privacy-settings,
 .settings-page .emergency-settings {
   width: 100%;
+}
+
+.appearance-settings,
+.privacy-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
 }
 
 .settings-section-heading {
@@ -323,6 +332,67 @@
 .settings-page__status {
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
+}
+
+.privacy-login-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin: var(--space-lg) 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.privacy-login-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius);
+  background: var(--bg);
+  box-shadow: var(--neo-out-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.privacy-login-option:hover {
+  color: var(--accent);
+}
+
+.privacy-login-option:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.privacy-login-option--selected {
+  color: var(--accent);
+  box-shadow: var(--neo-in);
+}
+
+.privacy-login-option input {
+  width: 18px;
+  height: 18px;
+  margin-top: 0.35em;
+  appearance: auto;
+  accent-color: var(--accent);
+}
+
+.privacy-login-option__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.privacy-login-option__copy span {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .settings-page__status--error {
@@ -523,7 +593,8 @@
     padding: var(--space-md);
   }
 
-  .settings-category {
+  .settings-category,
+  .privacy-login-option {
     padding: var(--space-md);
   }
 

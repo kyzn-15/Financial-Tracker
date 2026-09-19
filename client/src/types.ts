@@ -1,5 +1,6 @@
 export type Currency = 'MYR' | 'IDR';
 export type Theme = 'light' | 'dark';
+export type PrivacyOnLoginPreference = 'always-on' | 'always-off' | 'remember';
 export type AppTab = 'add' | 'dashboard' | 'receipts' | 'emergency' | 'history' | 'settings';
 export type SortOrder = 'asc' | 'desc';
 export type ExpenseSortColumn = 'id' | 'name' | 'category' | 'price_myr' | 'price_idr' | 'timestamp' | 'created_at';
