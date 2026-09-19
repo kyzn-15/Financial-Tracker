@@ -11,6 +11,7 @@ process.env.TURSO_DATABASE_URL = pathToFileURL(
   path.join(tmpdir(), `financial-tracker-reset-${randomUUID()}.db`)
 ).href;
 delete process.env.TURSO_AUTH_TOKEN;
+process.env.EXCHANGE_RATE_API_URL = 'http://localhost.invalid/exchange-rate';
 
 const { default: db, initSchema, seedIfEmpty } = await import('../db/database.js');
 const { resetAppData } = await import('../services/appReset.js');
@@ -96,6 +97,12 @@ test('reset removes user data and restores only clean defaults', async () => {
             VALUES ('active_session_id', 'private-session')`,
       args: [],
     },
+    {
+      sql: `INSERT OR REPLACE INTO app_metadata (key, value)
+            VALUES ('last_exchange_rate_myr_idr', '4123.5'),
+                   ('last_exchange_rate_fetched_at', '2026-01-01T00:00:00.000Z')`,
+      args: [],
+    },
   ], 'write');
 
   // Follow the exact reset route sequence: stage receipt files, wipe the
@@ -132,7 +139,17 @@ test('reset removes user data and restores only clean defaults', async () => {
   assert.equal(categories.rows.some((category) => category.name === 'Custom'), false);
 
   const metadata = await db.execute('SELECT key FROM app_metadata ORDER BY key');
-  assert.deepEqual(metadata.rows.map((row) => row.key), ['categories_v1_migrated', 'sample_data_seeded_v1']);
+  assert.deepEqual(metadata.rows.map((row) => row.key), [
+    'categories_v1_migrated',
+    'last_exchange_rate_fetched_at',
+    'last_exchange_rate_myr_idr',
+    'sample_data_seeded_v1',
+  ]);
+  const savedRate = await db.execute({
+    sql: 'SELECT value FROM app_metadata WHERE key = ?',
+    args: ['last_exchange_rate_myr_idr'],
+  });
+  assert.equal(savedRate.rows[0].value, '4123.5');
 
   await seedIfEmpty();
   const expenses = await db.execute('SELECT COUNT(*) AS count FROM expenses');

@@ -3,8 +3,6 @@ import AppIcon from './AppIcon';
 import type { AppTab, Currency, ExchangeRate } from '../types';
 import { usePrivacyMode } from '../hooks/usePrivacyMode';
 
-const FALLBACK_MYR_TO_IDR = 4500;
-
 interface HeaderProps {
   exchangeRate: ExchangeRate | null;
   activeTab: AppTab;
@@ -31,14 +29,16 @@ export default function Header({ exchangeRate, activeTab, currency, onCurrencyCh
     return () => clearInterval(interval);
   }, []);
 
-  const isLiveRate = exchangeRate && !exchangeRate.usingFallback;
-  const rateValue = isLiveRate ? exchangeRate.myrToIdr : FALLBACK_MYR_TO_IDR;
-  const rateDisplay = Number(rateValue).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const isLiveRate = Boolean(exchangeRate && !exchangeRate.usingFallback);
+  const rateValue = exchangeRate?.myrToIdr;
+  const rateDisplay = rateValue
+    ? Number(rateValue).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '—';
   const rateBadgeClass = exchangeRate
     ? (isLiveRate ? 'header__rate-badge header__rate-badge--live' : 'header__rate-badge header__rate-badge--fallback')
     : 'header__rate-badge';
   const rateTitle = exchangeRate
-    ? (isLiveRate ? 'Live exchange rate from API' : 'Using safety fallback rate (API unavailable)')
+    ? (isLiveRate ? 'Live exchange rate from API' : (exchangeRate.message || 'Using last saved rate (API unavailable)'))
     : 'Loading exchange rate...';
   const titles: Record<AppTab, string> = {
     add: 'Add Expense', dashboard: 'Dashboard', receipts: 'Receipt Saver', emergency: 'Emergency Fund', history: 'Transaction History', settings: 'Settings',

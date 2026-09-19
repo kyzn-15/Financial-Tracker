@@ -105,7 +105,7 @@ The API allowlists `CLIENT_ORIGIN`, accepts credentialed CORS only for it, and r
 - `receipts`: image metadata, seven-day viewing expiry, and Recycle Bin soft-delete marker (`deleted_at`); image bytes are stored in the database as the `image_data` BLOB (so images survive ephemeral filesystems), with legacy rows still served from `server/uploads/receipts/` as a dev/fallback path. Image responses are authorized either by the session cookie or a short-lived HMAC receipt token bound to the active session.
 - `emergency_settings`: savings, reserved funds, target months, and essential categories.
 - `backup_preferences`: reminder interval and most recent export time, keyed by administrator username.
-- `app_metadata`: internal seed/migration markers and the active session ID.
+- `app_metadata`: internal seed/migration markers, the active session ID, and the last successful MYR-to-IDR API rate used when the live exchange-rate API is unavailable.
 
 Deletion semantics are enforced at the service/query level:
 
@@ -125,7 +125,7 @@ Every active-data query (history, dashboard totals, monthly/category/daily/heatm
 
 The schema also preserves categories already referenced by expenses or emergency settings on the one-time category migration. `seedIfEmpty` loads `server/db/seed.sql` only once for a new, empty expenses dataset; app reset instead restores default categories and marks sample data as already seeded.
 
-Expense creation and updates call `expenseRecords.calculateExpenseAmounts`, which uses `exchangeRate.getExchangeRate`. The conversion service caches a configured external MYR-to-IDR response in memory for the configured TTL and uses a fixed 4,500 fallback when it cannot fetch a valid rate. Converted values and the exact rate are persisted, so historical records do not change when the live rate changes.
+Expense creation and updates call `expenseRecords.calculateExpenseAmounts`, which uses `exchangeRate.getExchangeRate`. The conversion service caches a configured external MYR-to-IDR response in memory for the configured TTL and persists the last successful API rate in `app_metadata`. When the live API is unavailable, that saved rate is used; a fixed 4,500 MYR-to-IDR value is only a first-run bootstrap if no rate has ever been saved. Converted values and the exact rate are persisted on each expense, so historical records do not change when the live rate changes. The last saved API rate is kept across Reset App.
 
 Dashboard summary data is calculated server-side from `expenses` for current/previous month totals, categories, daily trend, heatmap, weekday averages, and largest purchase. The client formats and charts that response. Emergency-fund services separately derive coverage, stability, readiness, insights, and simulations from stored settings and expense/category data.
 
