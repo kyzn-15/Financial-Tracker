@@ -35,7 +35,7 @@ import type {
   ToastMessage,
   ToastType,
 } from './types';
-import { getErrorMessage } from './utils/errors';
+import { getErrorMessage, isAuthenticationError } from './utils/errors';
 
 const SESSION_HINT_KEY = 'financial-tracker-has-session';
 
@@ -305,6 +305,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
 
   const showToast = (message: string, type: ToastType = 'info') => {
+    if (isAuthenticationError(message)) return;
     const id = Date.now();
     setToasts((prev) => [...prev, { id, message, type, isExiting: false }]);
     
@@ -547,15 +548,14 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
           isLoggingOut={isLoggingOut}
         />
 
-        {/* API Error Toast */}
         {error && (
-          <div style={{ color: 'var(--danger)', padding: '16px', background: 'var(--danger-soft)', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 'bold' }}>
+          <div className="api-error-banner">
             <AppIcon name="alert" size={18} /> Error fetching data: {error}
           </div>
         )}
 
-        {activeTab === 'receipts' && receiptsError && (
-          <div style={{ color: 'var(--danger)', padding: '16px', background: 'var(--danger-soft)', borderRadius: 'var(--radius)', marginBottom: '24px', fontWeight: 'bold' }}>
+        {activeTab === 'receipts' && receiptsError && receiptsError !== error && (
+          <div className="api-error-banner">
             <AppIcon name="alert" size={18} /> Error fetching receipts: {receiptsError}
           </div>
         )}

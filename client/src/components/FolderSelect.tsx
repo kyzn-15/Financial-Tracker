@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { ExpenseFolder } from '../types';
 import { getErrorMessage } from '../utils/errors';
-import { NEW_FOLDER_VALUE, folderSelectAfterChange, truncateFolderName } from '../utils/folderSelect';
+import { folderSelectAfterChange, truncateFolderName } from '../utils/folderSelect';
+import AppIcon from './AppIcon';
+import Modal from './Modal';
 
 interface FolderSelectProps {
   folders: ExpenseFolder[];
@@ -20,17 +22,28 @@ export default function FolderSelect({
   onAssign,
   onCreateAndAssign,
 }: FolderSelectProps) {
-  const [creating, setCreating] = useState(false);
+  const newNameId = useId();
+  const [open, setOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const selected = value == null ? '' : String(value);
+  const selectedFolder = folders.find((folder) => folder.id === value);
+  const selectedLabel = selectedFolder?.name ?? 'No folder';
+
+  const closePicker = () => {
+    if (busy) return;
+    setOpen(false);
+    setNewName('');
+    setError('');
+  };
 
   const run = async (action: () => Promise<unknown>) => {
     setBusy(true);
     setError('');
     try {
       await action();
+      setOpen(false);
+      setNewName('');
     } catch (err) {
       setError(getErrorMessage(err, 'Could not update folder.'));
     } finally {
@@ -38,17 +51,12 @@ export default function FolderSelect({
     }
   };
 
-  const handleChange = (nextValue: string) => {
+  const handlePick = (nextValue: string) => {
     const next = folderSelectAfterChange(value, nextValue);
-    if (next.creating) {
-      setCreating(true);
-      setError('');
+    if (next.creating || !next.shouldAssign) {
+      closePicker();
       return;
     }
-    setCreating(false);
-    setNewName('');
-    setError('');
-    if (!next.shouldAssign) return;
     void run(() => onAssign(next.nextId));
   };
 
@@ -58,56 +66,88 @@ export default function FolderSelect({
       setError('Folder name must be between 1 and 60 characters.');
       return;
     }
-    void run(async () => {
-      await onCreateAndAssign(name);
-      setCreating(false);
-      setNewName('');
-    });
+    void run(() => onCreateAndAssign(name));
   };
 
   return (
     <div className="expense-folder-select">
-      <select
-        className="neo-select"
-        value={creating ? NEW_FOLDER_VALUE : selected}
-        onChange={(event) => handleChange(event.target.value)}
+      <button
+        type="button"
+        className="expense-folder-select__trigger neo-select"
         disabled={disabled || busy}
+        aria-haspopup="dialog"
+        aria-expanded={open}
         aria-label={ariaLabel}
+        title={selectedLabel}
+        onClick={() => setOpen(true)}
       >
-        <option value="">No folder</option>
-        {folders.map((folder) => (
-          <option key={folder.id} value={String(folder.id)} title={folder.name}>
-            {truncateFolderName(folder.name)}
-          </option>
-        ))}
-        <option value={NEW_FOLDER_VALUE}>New folder…</option>
-      </select>
-      {creating && (
-        <div className="expense-folder-select__create">
-          <input
-            type="text"
-            className="neo-input"
-            maxLength={60}
-            placeholder="Folder name"
-            value={newName}
-            onChange={(event) => setNewName(event.target.value)}
-            disabled={disabled || busy}
-            aria-label="New folder name"
-          />
-          <button className="neo-btn neo-btn--primary neo-btn--sm" type="button" onClick={handleCreate} disabled={disabled || busy}>
-            Add
-          </button>
-          <button
-            className="neo-btn neo-btn--secondary neo-btn--sm"
-            type="button"
-            onClick={() => { setCreating(false); setNewName(''); setError(''); }}
-            disabled={busy}
-          >
-            Cancel
-          </button>
+        <span className="expense-folder-select__trigger-label">{truncateFolderName(selectedLabel)}</span>
+      </button>
+      <Modal
+        isOpen={open}
+        onClose={closePicker}
+        title="Choose folder"
+        dismissOnOverlayClick={!busy}
+      >
+        <div className="folder-picker">
+          <div className="folder-picker__list" role="listbox" aria-label="Folders">
+            <button
+              type="button"
+              className={`folder-picker__option${value == null ? ' folder-picker__option--selected' : ''}`}
+              role="option"
+              aria-selected={value == null}
+              disabled={busy}
+              onClick={() => handlePick('')}
+            >
+              <AppIcon name="folder" size={16} />
+              No folder
+            </button>
+            {folders.map((folder) => {
+              const isSelected = folder.id === value;
+              return (
+                <button
+                  key={folder.id}
+                  type="button"
+                  className={`folder-picker__option${isSelected ? ' folder-picker__option--selected' : ''}`}
+                  role="option"
+                  aria-selected={isSelected}
+                  disabled={busy}
+                  title={folder.name}
+                  onClick={() => handlePick(String(folder.id))}
+                >
+                  <AppIcon name="folder" size={16} />
+                  {folder.name}
+                </button>
+              );
+            })}
+          </div>
+          <div className="folder-picker__create">
+            <label className="neo-label" htmlFor={newNameId}>New folder</label>
+            <div className="folder-picker__create-row">
+              <input
+                id={newNameId}
+                type="text"
+                className="neo-input"
+                maxLength={60}
+                placeholder="Folder name"
+                value={newName}
+                onChange={(event) => setNewName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleCreate();
+                  }
+                }}
+                disabled={disabled || busy}
+              />
+              <button className="neo-btn neo-btn--primary neo-btn--sm" type="button" onClick={handleCreate} disabled={disabled || busy}>
+                Add
+              </button>
+            </div>
+          </div>
+          {error && <p className="expense-folder-select__error">{error}</p>}
         </div>
-      )}
-      {error && <p className="expense-folder-select__error">{error}</p>}
+      </Modal>
     </div>
   );
 }
