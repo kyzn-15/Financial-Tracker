@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import AppearanceSettings from './AppearanceSettings';
 import BackupSettings from './BackupSettings';
 import CategoryManager from './CategoryManager';
 import FolderManager from './FolderManager';
+import HiddenBalancesSettings from './HiddenBalancesSettings';
 import { EmergencyEssentialCategoriesPanel } from './EmergencyFundDashboard';
 import AppIcon from './AppIcon';
 import RecycleBinManager from './RecycleBinManager';
@@ -56,7 +58,7 @@ interface SettingsPageProps {
 }
 
 interface SettingsSection {
-  id: 'appearance' | 'categories' | 'folders' | 'recurring' | 'emergency' | 'backup' | 'recycle-bin' | 'security';
+  id: 'appearance' | 'hidden-balances' | 'categories' | 'folders' | 'recurring' | 'emergency' | 'backup' | 'recycle-bin' | 'security';
   name: string;
   icon: string;
   tone?: 'danger';
@@ -79,6 +81,12 @@ const SETTINGS_GROUPS: SettingsGroup[] = [
         name: 'Appearance',
         icon: 'palette',
         description: 'Switch between light and dark themes across FinTracker.',
+      },
+      {
+        id: 'hidden-balances',
+        name: 'Hidden balances',
+        icon: 'eye-off',
+        description: 'Choose how privacy mode starts when you sign in or start a new session.',
       },
     ],
   },
@@ -170,9 +178,8 @@ export default function SettingsPage({
   onResetApp,
   onNotify,
 }: SettingsPageProps) {
-  const isDark = theme === 'dark';
   type SettingsSectionId = SettingsSection['id'];
-const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>(null);
+  const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>(null);
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [resetCountdown, setResetCountdown] = useState(10);
   const [resetIntent, setResetIntent] = useState('');
@@ -295,16 +302,9 @@ const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>
   const renderSection = (section: SettingsSection) => {
     switch (section.id) {
       case 'appearance':
-        return (
-          <section className="theme-settings neo-card" aria-labelledby="appearance-settings-title">
-            <div className="settings-section-heading">
-              <div><h3 id="appearance-settings-title">Theme</h3><p>Choose the theme used throughout FinTracker.</p></div>
-              <button className={`theme-toggle ${isDark ? 'theme-toggle--active' : ''}`} type="button" role="switch" aria-checked={isDark} aria-label="Use dark mode" onClick={() => onThemeChange(isDark ? 'light' : 'dark')}>
-                <span className="theme-toggle__icon"><AppIcon name="sun" size={16} /></span><span className="theme-toggle__track" aria-hidden="true"><span className="theme-toggle__thumb" /></span><span className="theme-toggle__icon"><AppIcon name="moon" size={16} /></span><span className="theme-toggle__label">{isDark ? 'Dark' : 'Light'}</span>
-              </button>
-            </div>
-          </section>
-        );
+        return <AppearanceSettings theme={theme} onThemeChange={onThemeChange} />;
+      case 'hidden-balances':
+        return <HiddenBalancesSettings />;
       case 'categories':
         return (
           <CategoryManager
@@ -445,7 +445,11 @@ const [activeSectionId, setActiveSectionId] = useState<SettingsSectionId | null>
           </>
         );
       default:
-        return null;
+        return (
+          <div className="settings-page__status neo-card">
+            This settings section could not be opened. Go back and try again.
+          </div>
+        );
     }
   };
 

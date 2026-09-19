@@ -20,7 +20,7 @@ import { useEmergencyFund } from './hooks/useEmergencyFund';
 import { useCategories } from './hooks/useCategories';
 import { useFolders } from './hooks/useFolders';
 import { useRecycleBin } from './hooks/useRecycleBin';
-import { PrivacyModeProvider } from './hooks/usePrivacyMode';
+import { PrivacyModeProvider, PRIVACY_MODE_KEY, PRIVACY_ON_LOGIN_KEY } from './hooks/usePrivacyMode';
 import * as api from './services/api';
 import AppIcon from './components/AppIcon';
 import type {
@@ -498,6 +498,8 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
     await api.resetAppData(resetToken, pin);
     window.sessionStorage.removeItem(`financial-tracker-backup-reminder-dismissed:${sessionExpiresAt}`);
     window.localStorage.removeItem('financial-tracker-theme');
+    window.localStorage.removeItem(PRIVACY_MODE_KEY);
+    window.localStorage.removeItem(PRIVACY_ON_LOGIN_KEY);
     onThemeChange('light');
     await onLogout();
   };
