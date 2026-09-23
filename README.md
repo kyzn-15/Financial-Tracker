@@ -1,64 +1,118 @@
 <p align="center">
-  <img src="./client/src/assets/logo.svg" alt="Financial Tracker" width="180">
+  <img src="./client/src/assets/logo.svg" alt="Financial Tracker logo" width="120">
 </p>
 
-<h1 align="center">Personal Financial Tracker</h1>
+<h1 align="center">Financial Tracker</h1>
 
-A beautiful, modern full-stack web application designed using the **Neomorphism (Soft UI)** aesthetic. It allows a single user to log their daily expenses, automatically converting and storing values in both **MYR (Malaysian Ringgit)** and **IDR (Indonesian Rupiah)** via the Frankfurter exchange rate API.
+<p align="center">
+  <strong>Personal expense manager</strong> with dual-currency MYR ↔ IDR conversion,<br>
+  privacy-first balances, analytics, receipts, and an emergency-fund planner.
+</p>
+
+<p align="center">
+  <a href="https://financial-tracker-pied-delta.vercel.app/"><img src="https://img.shields.io/badge/Live_Demo-Vercel-black?style=flat-square&logo=vercel" alt="Live demo"></a>
+  <img src="https://img.shields.io/badge/Frontend-React_19_%2B_Vite-61DAFB?style=flat-square&logo=react&logoColor=white" alt="React">
+  <img src="https://img.shields.io/badge/Backend-Node.js_%2B_Express-339933?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node">
+  <img src="https://img.shields.io/badge/Database-Turso_%2F_SQLite-4E8B4E?style=flat-square&logo=sqlite&logoColor=white" alt="Turso">
+  <img src="https://img.shields.io/badge/License-Proprietary-red?style=flat-square" alt="License">
+</p>
+
+<p align="center">
+  <a href="#screenshots">Screenshots</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#tech-stack">Tech Stack</a> ·
+  <a href="#getting-started">Getting Started</a> ·
+  <a href="#api-overview">API</a> ·
+  <a href="#security">Security</a> ·
+  <a href="#license">License</a>
+</p>
+
+---
+
+## Overview
+
+Financial Tracker is a full-stack personal finance app built around a **neomorphic (soft UI)** design. It is optimized for people who live across **Malaysia (MYR)** and **Indonesia (IDR)**: every expense stores both currencies using a live exchange rate, with graceful fallback when the rate provider is unavailable.
+
+**Live demo:** [financial-tracker-pied-delta.vercel.app](https://financial-tracker-pied-delta.vercel.app/)
+
+> Screenshots below use **privacy masking** (`***`). Real balances are never required to evaluate the UI.
+
+## Screenshots
+
+### Login
+
+<p align="center">
+  <img src="./docs/images/01-login.png" alt="Login screen" width="720">
+</p>
+
+### Dashboard
+
+<p align="center">
+  <img src="./docs/images/02-dashboard.png" alt="Dashboard with masked balances" width="900">
+</p>
+
+<p align="center">
+  <img src="./docs/images/08-mobile-dashboard.png" alt="Mobile dashboard" width="360">
+</p>
+
+### Add expense · History · Emergency fund
+
+| Add Expense | History | Emergency Fund |
+|:---:|:---:|:---:|
+| <img src="./docs/images/03-add-expense.png" alt="Add expense" width="280"> | <img src="./docs/images/04-history.png" alt="History" width="280"> | <img src="./docs/images/05-emergency-fund.png" alt="Emergency fund" width="280"> |
+
+### Settings · Receipts
+
+| Settings | Receipt Saver |
+|:---:|:---:|
+| <img src="./docs/images/06-settings.png" alt="Settings" width="420"> | <img src="./docs/images/07-receipts.png" alt="Receipts" width="420"> |
 
 ## Features
 
-- **Neomorphic UI/UX**: Soft, extruded containers using dual shadows, custom input states (inset on focus), and active toggles that look "pressed" into the surface.
-- **Auto Currency Conversion**: Log expenses in either MYR or IDR. The app automatically fetches the exchange rate, calculates the counterpart value, and stores both.
-- **Short TTL Caching**: API rates are cached in-memory on the server for 15 minutes to avoid excessive third-party requests.
-- **Timezone**: All timestamps are formatted, handled, and displayed in **UTC+8**.
-- **Dashboard Analytics**:
-  - Month-to-date totals in both MYR and IDR.
-  - Interactive Doughnut Chart showing spending breakdown by category.
-  - Interactive Line Chart displaying the daily spending trend over the last 30 days.
-  - **Chart Currency Toggle**: Dynamically toggle all dashboard charts/numbers between MYR and IDR.
-- **Tabbed Navigation**:
-  - **Add Expense**: Log new transactions with customizable timestamps (defaults to current time).
-  - **Dashboard**: High-level statistical summaries and trend visuals.
-  - **History**: Searchable list of transactions with category and date filters, sorting, editing, and deleting capabilities.
-- **Graceful Error Handling**: If the currency API is down, values are stored, and conversions can retry/backfill. Toast notifications alert the user about actions and server status.
-
----
+- **Neomorphic UI** — soft extruded surfaces, inset inputs, pressed toggles, light/dark appearance
+- **Dual currency (MYR ↔ IDR)** — log in either currency; server stores both using a cached exchange rate
+- **Privacy masking** — hide balances by default or on demand (`***`), including login preference
+- **Dashboard analytics** — monthly totals, top category, trends, weekday patterns, insights, MYR/IDR chart toggle
+- **Expense workflow** — add/edit, categories, searchable history, filters, soft-delete / recycle bin
+- **Recurring expenses** — scheduled payments with active / paused / cancelled status
+- **Receipt saver** — upload JPEG, PNG, WebP, HEIC/HEIF with server-side signature checks
+- **Emergency fund** — savings target, essential categories, coverage timeline, what-if planning
+- **Backup** — XLSX export/import with spreadsheet formula escaping
+- **Auth** — username + PIN session cookies, rate-limited login
+- **Timezone** — timestamps displayed in **UTC+8**
 
 ## Tech Stack
 
-- **Frontend**: React 19 + Vite, Chart.js (`react-chartjs-2`), Custom Vanilla CSS variables
-- **Backend**: Node.js + Express, Turso via `@libsql/client` (SQLite-compatible), `dotenv`, `cors`
-- **Currency Data**: Configured through `EXCHANGE_RATE_API_URL`; no API key is required by the current provider.
+| Layer | Stack |
+|---|---|
+| Frontend | React 19, Vite, TypeScript, Chart.js (`react-chartjs-2`), custom CSS variables |
+| Backend | Node.js, Express, Helmet, CORS, rate limiting |
+| Database | Turso (`@libsql/client`) / local SQLite-compatible file in development |
+| FX rates | Configurable `EXCHANGE_RATE_API_URL` (short TTL in-memory cache) |
+| Deploy | Frontend on Vercel; API on a Node host (e.g. Render) |
 
----
+See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for deeper system notes.
 
 ## Getting Started
 
 ### Prerequisites
 
-Make sure you have [Node.js](https://nodejs.org/) installed (v18+ recommended).
+- [Node.js](https://nodejs.org/) **v18+**
+- Git
 
-### 1. Installation
-
-Clone this repository and install dependencies for both client and server:
+### 1. Clone and install
 
 ```bash
-# Clone the repository and navigate inside
-cd "Financial Tracker"
+git clone https://github.com/kyzn-15/Financial-Tracker.git
+cd Financial-Tracker
 
-# Install backend dependencies
-cd server
-npm install
-
-# Install frontend dependencies
-cd ../client
-npm install
+cd server && npm install
+cd ../client && npm install
 ```
 
-### 2. Configuration
+### 2. Configure environment
 
-Create or modify `server/.env` for local backend configuration:
+**Backend** — create `server/.env`:
 
 ```env
 PORT=4000
@@ -71,23 +125,37 @@ ADMIN_PIN_HASH=
 AUTH_SESSION_SECRET=
 ```
 
-Create or modify `client/.env.development` for local frontend configuration:
+**Frontend** — create `client/.env.development`:
 
 ```env
 VITE_API_URL=http://localhost:4000/api
 ```
 
-### Separate frontend and backend deployment
+### 3. Run locally
 
-The frontend requires its API URL in the `VITE_API_URL` build variable. Set it in the frontend hosting provider before building or deploying:
+```bash
+# Terminal 1 — API
+cd server
+npm run start
+
+# Terminal 2 — Vite client
+cd client
+npm run dev
+```
+
+The API initializes the local database on startup. The Vite app talks to `VITE_API_URL`.
+
+### Production deploy notes
+
+Frontend build requires:
 
 ```env
 VITE_API_URL=https://api.example.com
 ```
 
-`VITE_API_URL` may be the backend origin or include the `/api` path; the client normalizes either form. Startup fails when it is missing instead of falling back to another server.
+`VITE_API_URL` may be the backend origin or include `/api`; the client normalizes either form. Startup fails if it is missing.
 
-Set the backend's production environment variables to allow the deployed frontend:
+Backend production environment (example):
 
 ```env
 NODE_ENV=production
@@ -101,71 +169,91 @@ AUTH_SESSION_SECRET=your-production-session-secret
 TRUST_PROXY=1
 ```
 
-`NODE_ENV` must be supplied by the process or hosting platform. Development loads `server/.env` and always uses the local `DB_PATH`; production loads `server/.env.production` and requires the remote Turso settings. Environment files are excluded from Git and Docker images, so configure production values in the hosting provider.
-
-Use HTTPS for both sites. For reliable cookie-based login, host the frontend and API on subdomains of the same parent domain (for example, `app.example.com` and `api.example.com`). Browsers can block the session cookie when the frontend and API use unrelated domains.
-
-### 3. Run the Application
-
-Start both the backend server and frontend development server:
-
-#### Start the Backend:
-```bash
-cd server
-npm run start
-```
-The server will run on the configured port, initialize the isolated local SQLite-compatible database, and populate an empty expenses table with sample seed data.
-
-#### Start the Frontend:
-```bash
-cd client
-npm run dev
-```
-The development client calls the backend configured by `client/.env.development`.
-
----
+- Development loads `server/.env` and uses local `DB_PATH`.
+- Production loads `server/.env.production` and requires Turso settings.
+- Env files are gitignored — configure secrets in the host, never commit them.
+- Prefer HTTPS everywhere. For reliable cookie auth, put app and API on subdomains of the **same parent domain** (e.g. `app.example.com` + `api.example.com`).
 
 ## Database Schema
 
-Table name: `expenses`
+Table: `expenses`
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | INTEGER | Primary Key, Auto-increment |
-| `name` | TEXT | Description of the expense |
+| `id` | INTEGER | Primary key (auto-increment) |
+| `name` | TEXT | Expense description |
 | `category` | TEXT | Category name |
-| `price_myr` | REAL | Cost in Malaysian Ringgit |
-| `price_idr` | REAL | Cost in Indonesian Rupiah |
-| `original_currency` | TEXT | Currency selected at entry (`MYR` or `IDR`) |
-| `exchange_rate_used` | REAL | Conversion rate applied (1 MYR = X IDR) |
-| `timestamp` | TEXT | Timestamp in UTC+8 (`YYYY-MM-DDTHH:MM:SS+08:00`) |
-| `created_at` | TEXT | Record insertion datetime |
+| `price_myr` | REAL | Amount in MYR |
+| `price_idr` | REAL | Amount in IDR |
+| `original_currency` | TEXT | Currency chosen at entry (`MYR` or `IDR`) |
+| `exchange_rate_used` | REAL | Rate applied (1 MYR = X IDR) |
+| `timestamp` | TEXT | Event time in UTC+8 (`YYYY-MM-DDTHH:MM:SS+08:00`) |
+| `created_at` | TEXT | Insert datetime |
+
+Additional tables support categories, recurring expenses, receipts, recycle bin, and emergency-fund settings (see server source / `ARCHITECTURE.md`).
+
+## API Overview
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/expenses` | Create expense (computes conversion) |
+| `GET` | `/api/expenses` | List expenses (sort + filters) |
+| `GET` | `/api/expenses/:id` | Get one expense |
+| `PUT` | `/api/expenses/:id` | Update expense |
+| `DELETE` | `/api/expenses/:id` | Soft-delete expense |
+| `GET` | `/api/summary` | Totals, categories, trends |
+| `GET` | `/api/exchange-rate` | Cached FX quote |
+
+Auth, receipts, recurring, recycle-bin, and emergency-fund routes live alongside these under `/api/*`.
+
+## Security
+
+The API is hardened with:
+
+- Helmet, restrictive CSP, no-store responses, Permissions-Policy, and production HSTS
+- Credentialed CORS allowlist via `CLIENT_ORIGIN` (HTTPS required in production)
+- Origin checks on state-changing requests (CSRF defense); `HttpOnly` session cookies (`SameSite=None; Secure` in production)
+- Signed, time-limited sessions; login/logout/credential changes invalidate older sessions
+- Rate limits: API (300 / 15 min), login (5 failed / 15 min), receipts (20 / hour), exports (10 / 15 min)
+- Strict validation, prepared SQL, sortable-column allowlists
+- Receipt uploads: size limits, server-generated names, magic-byte validation
+- XLSX export text escaped against spreadsheet formula injection
+
+Keep secrets in env files only. Never commit `ADMIN_PIN_HASH`, session secrets, or database files.
+
+## Project Structure
+
+```
+Financial-Tracker/
+├── client/                 # React + Vite frontend
+│   └── src/
+├── server/                 # Express API
+├── docs/images/            # README UI screenshots
+├── ARCHITECTURE.md
+├── AGENTS.md
+└── README.md
+```
+
+## Roadmap Ideas
+
+- Standalone budgets and spend alerts
+- Income / transfers alongside expenses
+- Import dry-run / restore preview
+- PWA offline read + queued expense entry
+- Stronger PIN recovery / lockout UX on the client
+
+## Contributing
+
+This repository is currently **proprietary**. External contributions are not accepted unless the copyright holder grants written permission. If you have access and are collaborating privately, open a PR against `main` with a clear summary and test notes.
+
+## License
+
+Copyright © 2026 Kevin Wilbert Johan. All Rights Reserved.
+
+See [`LICENSE.md`](./LICENSE.md). This software is proprietary and confidential. No part may be copied, modified, distributed, or sold without prior written permission from the copyright owner.
 
 ---
 
-## API Endpoints
-
-- `POST /api/expenses`: Add a new expense (computes conversion).
-- `GET /api/expenses`: Retrieve all expenses (supports sorting and filters).
-- `GET /api/expenses/:id`: Get a single expense by ID.
-- `PUT /api/expenses/:id`: Update an expense (recomputes conversion if price/currency changes).
-- `DELETE /api/expenses/:id`: Delete an expense.
-- `GET /api/summary`: Retrieve totals, category spending, and trend logs.
-- `GET /api/exchange-rate`: View cached exchange rate information.
-
----
-
-## Security Improvements
-
-The API is hardened with the following controls:
-
-- Helmet security headers, restrictive Content Security Policy, no-store responses, a restrictive Permissions Policy, and production HSTS.
-- A credentialed CORS allowlist. Configure `CLIENT_ORIGIN` with one or more comma-separated trusted origins; production requires HTTPS origins.
-- Allowlisted origin validation protects every state-changing API request against CSRF. Session cookies remain `HttpOnly` and `Priority=High`; they use `SameSite=None` with `Secure` in production and `SameSite=Lax` without `Secure` in development.
-- Signed, time-limited session tokens with constant-time signature verification; login, logout, and credential changes invalidate older sessions. Startup rejects missing, weak, or placeholder session secrets and invalid admin credential configuration.
-- Rate limits for all API traffic (300 requests per 15 minutes), login attempts (5 failed attempts per 15 minutes), receipt uploads (20 per hour), and exports (10 per 15 minutes). Set `TRUST_PROXY` only for the number of trusted proxy hops in production so client IP limits remain correct.
-- JSON body size limits, safe JSON error handling, and strict server-side validation of expense fields, amounts, timestamps, currencies, and identifiers.
-- Prepared SQL statements and an allowlist for sortable columns protect database operations from SQL injection.
-- Receipt uploads are size-limited, use server-generated names, and are validated by file signature before storage; only JPEG, PNG, WebP, HEIC, and HEIF images are accepted.
-- React’s default escaping protects rendered data from XSS, and exported spreadsheet text is escaped to prevent formula injection when opening XLSX files.
-- Sensitive configuration is kept in `server/.env`, which remains ignored by Git. Do not commit real session secrets, PIN hashes, or database files.
+<p align="center">
+  Built for dual-currency student life · MYR ↔ IDR · privacy first
+</p>
