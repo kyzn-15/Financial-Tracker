@@ -33,14 +33,18 @@
 
 Financial Tracker is a full-stack personal finance app built around a **neomorphic (soft UI)** design. It is optimized for people who live across **Malaysia (MYR)** and **Indonesia (IDR)**: every expense stores both currencies using a live exchange rate, with graceful fallback when the rate provider is unavailable.
 
+Accounts are **multi-user**: anyone can register a username + PIN, each account keeps its own records, and deleting an account removes only that account’s server data.
+
 **Live demo:** [financial-tracker-pied-delta.vercel.app](https://financial-tracker-pied-delta.vercel.app/)
 
 > UI images below use **privacy masking** (`***`). Real balances are never required to evaluate the product.
 
 ### Login
 
+Sign in with username and a 6-digit PIN, or open **Create an account** to register.
+
 <p align="center">
-  <img src="./docs/images/01-login.png" alt="Login screen" width="640">
+  <img src="./docs/images/01-login.png" alt="Login screen with create-account option" width="640">
 </p>
 
 ### Dashboard
@@ -56,7 +60,16 @@ Financial Tracker is a full-stack personal finance app built around a **neomorph
 - **Privacy masking** — hide balances by default or on demand (`***`), including login preference
 - **Dashboard analytics** — monthly totals, top category, trends, weekday patterns, insights, MYR/IDR chart toggle
 - **Timezone** — timestamps displayed in **UTC+8**
+- **Multi-user accounts** — self-serve registration, isolated data per account, and self-service account deletion
 - **Auth** — username + PIN session cookies, rate-limited login
+
+### Accounts & registration
+
+Create a personal login from the sign-in screen. Each account’s expenses, receipts, categories, folders, recurring payments, emergency fund, and backup preferences stay isolated from other users.
+
+<p align="center">
+  <img src="./docs/images/09-register.png" alt="Create account registration form" width="640">
+</p>
 
 ### Add expense
 
@@ -92,16 +105,19 @@ Upload and keep receipt images (JPEG, PNG, WebP, HEIC/HEIF) with server-side sig
 
 ### Settings & backup
 
-Categories, recurring payments, appearance, privacy preferences, XLSX export/import, and PIN management.
+Categories, folders, recurring payments, appearance, privacy preferences, XLSX export/import, account reset, and **delete account**.
 
 <p align="center">
-  <img src="./docs/images/06-settings.png" alt="Settings" width="720">
+  <img src="./docs/images/06-settings.png" alt="Settings security with reset and delete account" width="720">
 </p>
 
 Also included:
 
+- **Expense folders** — group related transactions and manage folders from Settings or History
+- **Custom FX rate** — override the live rate when you need a fixed conversion
 - **Recurring expenses** — scheduled payments with active / paused / cancelled status
 - **Backup** — XLSX export/import with spreadsheet formula escaping
+- **Account reset vs delete** — wipe this account’s data and keep the login, or permanently remove the account and its server records (other accounts are untouched)
 
 ## Tech Stack
 
@@ -212,7 +228,7 @@ Table: `expenses`
 | `timestamp` | TEXT | Event time in UTC+8 (`YYYY-MM-DDTHH:MM:SS+08:00`) |
 | `created_at` | TEXT | Insert datetime |
 
-Additional tables support categories, recurring expenses, receipts, recycle bin, and emergency-fund settings (see server source / `ARCHITECTURE.md`).
+Additional tables support accounts/ownership, categories, folders, recurring expenses, receipts, recycle bin, and emergency-fund settings (see server source / `ARCHITECTURE.md`).
 
 ## API Overview
 
@@ -226,7 +242,7 @@ Additional tables support categories, recurring expenses, receipts, recycle bin,
 | `GET` | `/api/summary` | Totals, categories, trends |
 | `GET` | `/api/exchange-rate` | Cached FX quote |
 
-Auth, receipts, recurring, recycle-bin, and emergency-fund routes live alongside these under `/api/*`.
+Auth (login, register, logout, delete account), receipts, recurring, recycle-bin, folders, and emergency-fund routes live alongside these under `/api/*`.
 
 ## Security
 
@@ -240,6 +256,8 @@ The API is hardened with:
 - Strict validation, prepared SQL, sortable-column allowlists
 - Receipt uploads: size limits, server-generated names, magic-byte validation
 - XLSX export text escaped against spreadsheet formula injection
+
+Multi-user data is scoped per account on the server: reset and delete affect only the signed-in account. Prefer unique usernames and strong PINs; there is no self-serve PIN recovery.
 
 Keep secrets in env files only. Never commit `ADMIN_PIN_HASH`, session secrets, or database files.
 
