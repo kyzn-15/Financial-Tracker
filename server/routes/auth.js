@@ -1,30 +1,21 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
+import db from '../db/database.js';
 import {
+  authenticateReceiptToken,
   createClearSessionCookie,
   createSessionCookie,
   createSessionToken,
   getCookie,
-  getConfiguredUsername,
   revokeSessionToken,
   SESSION_COOKIE_NAME,
-  verifyReceiptToken,
   verifySessionToken,
 } from '../utils/auth.js';
+import { deleteAccount, getAccountById, registerAccount } from '../services/accounts.js';
 import { loginLimiter } from '../middleware/security.js';
 
 const router = Router();
-
-function getAdminCredentials() {
-  const username = process.env.ADMIN_USERNAME;
-  const pinHash = process.env.ADMIN_PIN_HASH;
-
-  if (!username || !pinHash) {
-    throw new Error('ADMIN_USERNAME and ADMIN_PIN_HASH must be configured');
-  }
-
-  return { username, pinHash };
-}
+const DUMMY_PIN_HASH = '$2b$10$Lv/mX1AfEEf4o4p.qXJAoewB5ll6TINgaMucGrefMhu/FKtoNBjRK';
 
 function validateLoginInput(username, pin) {
   return (
@@ -36,8 +27,43 @@ function validateLoginInput(username, pin) {
   );
 }
 
-router.post('/login', loginLimiter, async (req, res) => {
+async function findAccountForLogin(username) {
+  const result = await db.execute({
+    sql: 'SELECT id, username, password_hash FROM accounts WHERE username = ? COLLATE NOCASE',
+    args: [username.trim()],
+  });
+  return result.rows[0] || null;
+}
 
+async function pinMatches(pin, passwordHash) {
+  try {
+    return await bcrypt.compare(pin, passwordHash);
+  } catch {
+    return false;
+  }
+}
+
+router.post('/register', loginLimiter, async (req, res) => {
+  const { username, pin } = req.body ?? {};
+  if (!validateLoginInput(username, pin)) {
+    return res.status(400).json({ error: 'Username must be 1 to 80 characters and PIN must be 4 to 12 digits.' });
+  }
+
+  try {
+    const account = await registerAccount(username, pin);
+    const token = await createSessionToken(account.username);
+    res.setHeader('Set-Cookie', createSessionCookie(token));
+    return res.status(201).json({ authenticated: true });
+  } catch (err) {
+    if (err.statusCode === 400 || err.statusCode === 409) {
+      return res.status(err.statusCode).json({ error: err.message });
+    }
+    console.error('POST /api/auth/register error:', err.message);
+    return res.status(500).json({ error: 'Could not create the account.' });
+  }
+});
+
+router.post('/login', loginLimiter, async (req, res) => {
   const { username, pin } = req.body ?? {};
 
   if (!validateLoginInput(username, pin)) {
@@ -45,16 +71,15 @@ router.post('/login', loginLimiter, async (req, res) => {
   }
 
   try {
-    const admin = getAdminCredentials();
-    const isUsernameValid = username.trim() === admin.username;
-    const isPinValid = await bcrypt.compare(pin, admin.pinHash);
+    const account = await findAccountForLogin(username);
+    const passwordHash = account ? String(account.password_hash) : DUMMY_PIN_HASH;
+    const isPinValid = await pinMatches(pin, passwordHash);
 
-    if (!isUsernameValid || !isPinValid) {
+    if (!account || !isPinValid) {
       return res.status(401).json({ error: 'Invalid username or PIN.' });
     }
 
-    const token = await createSessionToken(admin.username);
-
+    const token = await createSessionToken(String(account.username));
     res.setHeader('Set-Cookie', createSessionCookie(token));
     return res.json({ authenticated: true });
   } catch (err) {
@@ -79,6 +104,43 @@ router.get('/session', async (req, res) => {
   }
 });
 
+router.delete('/account', async (req, res) => {
+  try {
+    const session = await verifySessionToken(getCookie(req, SESSION_COOKIE_NAME));
+    if (!session) {
+      res.setHeader('Set-Cookie', createClearSessionCookie());
+      return res.status(401).json({ error: 'Authentication required.' });
+    }
+
+    const body = req.body ?? {};
+    const requestedName = typeof body.username === 'string' ? body.username.trim() : null;
+    const requestedId = body.userId == null || body.userId === '' ? null : Number(body.userId);
+    const targetsSomeoneElse = (
+      (requestedName && requestedName.localeCompare(session.username, undefined, { sensitivity: 'accent' }) !== 0)
+      || (requestedId != null && requestedId !== session.userId)
+    );
+    if (targetsSomeoneElse) {
+      return res.status(404).json({ error: 'Account not found.' });
+    }
+
+    if (typeof body.pin !== 'string' || !/^\d{4,12}$/.test(body.pin)) {
+      return res.status(400).json({ error: 'Current PIN is required.' });
+    }
+
+    const account = await getAccountById(session.userId);
+    if (!account || !await pinMatches(body.pin, account.password_hash)) {
+      return res.status(401).json({ error: 'Current PIN is incorrect.' });
+    }
+
+    await deleteAccount(account.id);
+    res.setHeader('Set-Cookie', createClearSessionCookie());
+    return res.status(204).send();
+  } catch (err) {
+    console.error('DELETE /api/auth/account error:', err.message);
+    return res.status(500).json({ error: 'Could not delete the account.' });
+  }
+});
+
 router.post('/logout', async (req, res) => {
   res.setHeader('Set-Cookie', createClearSessionCookie());
   try {
@@ -99,9 +161,12 @@ export async function requireAuth(req, res, next) {
       // Allow receipt image GET requests if authenticated via a valid session-bound receipt token
       if (req.method === 'GET' && req.path.endsWith('/image') && req.query?.token) {
         const match = req.path.match(/^\/(\d+)\/image$/);
-        if (match && await verifyReceiptToken(Number(match[1]), req.query.token)) {
-          req.auth = { username: getConfiguredUsername(), sessionId: null };
-          return next();
+        if (match) {
+          const owner = await authenticateReceiptToken(Number(match[1]), req.query.token);
+          if (owner) {
+            req.auth = owner;
+            return next();
+          }
         }
       }
 

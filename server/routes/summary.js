@@ -3,12 +3,16 @@ import { Router } from 'express';
 import db from '../db/database.js';
 import { getExchangeRateInfo } from '../services/exchangeRate.js';
 import { getMonthRangeUTC8, getUTC8Date, subtractDaysUTC8 } from '../utils/datetime.js';
+import { requestUserId } from '../utils/ownership.js';
 
 const router = Router();
 
 // ——— GET /api/summary — Dashboard aggregates ———————————————————————————
 router.get('/summary', async (req, res) => {
   try {
+    const userId = requestUserId(req);
+    const ownerSql = userId == null ? '' : ' AND user_id = ?';
+    const withOwner = (args) => (userId == null ? args : [...args, userId]);
     const referenceDate = getUTC8Date();
     const currentMonth = getMonthRangeUTC8(referenceDate);
     const previousMonth = getMonthRangeUTC8(referenceDate, -1);
@@ -30,36 +34,36 @@ router.get('/summary', async (req, res) => {
       db.execute({
         sql: `SELECT COALESCE(SUM(price_myr), 0) AS myr, COALESCE(SUM(price_idr), 0) AS idr
               FROM expenses
-              WHERE deleted_at IS NULL AND timestamp >= ? AND timestamp < ?`,
-        args: [currentMonth.start, currentMonth.end],
+              WHERE deleted_at IS NULL AND timestamp >= ? AND timestamp < ?${ownerSql}`,
+        args: withOwner([currentMonth.start, currentMonth.end]),
       }),
       db.execute({
         sql: `SELECT COALESCE(SUM(price_myr), 0) AS myr, COALESCE(SUM(price_idr), 0) AS idr
               FROM expenses
-              WHERE deleted_at IS NULL`,
-        args: [],
+              WHERE deleted_at IS NULL${ownerSql}`,
+        args: withOwner([]),
       }),
       db.execute({
         sql: `SELECT COUNT(*) AS count
               FROM expenses
-              WHERE deleted_at IS NULL AND timestamp >= ? AND timestamp < ?`,
-        args: [currentMonth.start, currentMonth.end],
+              WHERE deleted_at IS NULL AND timestamp >= ? AND timestamp < ?${ownerSql}`,
+        args: withOwner([currentMonth.start, currentMonth.end]),
       }),
       db.execute({
         sql: `SELECT category,
                      COALESCE(SUM(price_myr), 0) AS total_myr,
                      COALESCE(SUM(price_idr), 0) AS total_idr
               FROM expenses
-              WHERE deleted_at IS NULL AND timestamp >= ? AND timestamp < ?
+              WHERE deleted_at IS NULL AND timestamp >= ? AND timestamp < ?${ownerSql}
               GROUP BY category
               ORDER BY total_myr DESC`,
-        args: [currentMonth.start, currentMonth.end],
+        args: withOwner([currentMonth.start, currentMonth.end]),
       }),
       db.execute({
         sql: `SELECT COALESCE(SUM(price_myr), 0) AS myr, COALESCE(SUM(price_idr), 0) AS idr
               FROM expenses
-              WHERE deleted_at IS NULL AND timestamp >= ? AND timestamp < ?`,
-        args: [previousMonth.start, previousMonth.end],
+              WHERE deleted_at IS NULL AND timestamp >= ? AND timestamp < ?${ownerSql}`,
+        args: withOwner([previousMonth.start, previousMonth.end]),
       }),
       db.execute({
         sql: `SELECT category,
@@ -68,9 +72,9 @@ router.get('/summary', async (req, res) => {
                      COALESCE(SUM(CASE WHEN timestamp >= ? AND timestamp < ? THEN price_myr ELSE 0 END), 0) AS previous_myr,
                      COALESCE(SUM(CASE WHEN timestamp >= ? AND timestamp < ? THEN price_idr ELSE 0 END), 0) AS previous_idr
               FROM expenses
-              WHERE deleted_at IS NULL AND ((timestamp >= ? AND timestamp < ?) OR (timestamp >= ? AND timestamp < ?))
+              WHERE deleted_at IS NULL AND ((timestamp >= ? AND timestamp < ?) OR (timestamp >= ? AND timestamp < ?))${ownerSql}
               GROUP BY category`,
-        args: [
+        args: withOwner([
           currentMonth.start,
           currentMonth.end,
           currentMonth.start,
@@ -83,15 +87,15 @@ router.get('/summary', async (req, res) => {
           currentMonth.end,
           previousMonth.start,
           previousMonth.end,
-        ],
+        ]),
       }),
       db.execute({
         sql: `SELECT id, name, category, price_myr, price_idr, timestamp
               FROM expenses
-              WHERE deleted_at IS NULL
+              WHERE deleted_at IS NULL${ownerSql}
               ORDER BY COALESCE(price_myr, 0) DESC, id DESC
               LIMIT 1`,
-        args: [],
+        args: withOwner([]),
       }),
       db.execute({
         sql: `WITH daily_totals AS (
@@ -100,7 +104,7 @@ router.get('/summary', async (req, res) => {
                        COALESCE(SUM(price_myr), 0) AS total_myr,
                        COALESCE(SUM(price_idr), 0) AS total_idr
                 FROM expenses
-                WHERE deleted_at IS NULL
+                WHERE deleted_at IS NULL${ownerSql}
                 GROUP BY weekday, date
               )
               SELECT weekday,
@@ -109,7 +113,7 @@ router.get('/summary', async (req, res) => {
                      COUNT(*) AS active_days
               FROM daily_totals
               GROUP BY weekday`,
-        args: [],
+        args: withOwner([]),
       }),
       db.execute({
         sql: `SELECT substr(timestamp, 1, 10) AS date,
@@ -117,10 +121,10 @@ router.get('/summary', async (req, res) => {
                      COALESCE(SUM(price_idr), 0) AS total_idr,
                      COUNT(*) AS transaction_count
               FROM expenses
-              WHERE deleted_at IS NULL AND timestamp >= ?
+              WHERE deleted_at IS NULL AND timestamp >= ?${ownerSql}
               GROUP BY date
               ORDER BY date ASC`,
-        args: [trendStart],
+        args: withOwner([trendStart]),
       }),
       db.execute({
         sql: `SELECT substr(timestamp, 1, 10) AS date,
@@ -128,10 +132,10 @@ router.get('/summary', async (req, res) => {
                      COALESCE(SUM(price_idr), 0) AS total_idr,
                      COUNT(*) AS transaction_count
               FROM expenses
-              WHERE deleted_at IS NULL AND timestamp >= ?
+              WHERE deleted_at IS NULL AND timestamp >= ?${ownerSql}
               GROUP BY date
               ORDER BY date ASC`,
-        args: [heatmapStart],
+        args: withOwner([heatmapStart]),
       }),
     ]);
 

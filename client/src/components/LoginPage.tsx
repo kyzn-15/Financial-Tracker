@@ -7,15 +7,18 @@ import appLogo from '../assets/logo.svg';
 
 interface LoginPageProps {
   onLogin: (credentials: LoginCredentials) => Promise<void>;
+  onRegister: (credentials: LoginCredentials) => Promise<void>;
 }
 
 type LoginStep = 'username' | 'pin';
 type SystemStatus = 'checking' | 'operational' | 'issues';
 
-export default function LoginPage({ onLogin }: LoginPageProps) {
+export default function LoginPage({ onLogin, onRegister }: LoginPageProps) {
+  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [step, setStep] = useState<LoginStep>('username');
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [systemStatus, setSystemStatus] = useState<SystemStatus>('checking');
@@ -96,6 +99,49 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     setError('');
   };
 
+  const showRegister = () => {
+    setMode('register');
+    setStep('username');
+    setPin('');
+    setConfirmPin('');
+    setError('');
+  };
+
+  const showLogin = () => {
+    setMode('login');
+    setStep('username');
+    setPin('');
+    setConfirmPin('');
+    setError('');
+  };
+
+  const handleRegisterSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const normalizedUsername = username.trim();
+    if (!normalizedUsername) {
+      setError('Enter a username.');
+      return;
+    }
+    if (pin.length !== 6 || confirmPin.length !== 6) {
+      setError('Enter and confirm a 6-digit PIN.');
+      return;
+    }
+    if (pin !== confirmPin) {
+      setError('PINs do not match.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError('');
+      await onRegister({ username: normalizedUsername, pin });
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not create the account.'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <main className="login-shell">
       <section className="login-panel" aria-labelledby="login-title">
@@ -108,9 +154,11 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             Financial Tracker
           </h1>
           <p className="login-subtitle">
-            {step === 'username'
-              ? 'Enter your username to continue.'
-              : 'Enter your 6-digit PIN.'}
+            {mode === 'register'
+              ? 'Create a username and a 6-digit PIN.'
+              : step === 'username'
+                ? 'Enter your username to continue.'
+                : 'Enter your 6-digit PIN.'}
           </p>
         </div>
 
@@ -120,7 +168,68 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             <span>System issues detected</span>
           </div>
         )}
-        {step === 'username' ? (
+        {mode === 'register' ? (
+          <form className="login-form" onSubmit={handleRegisterSubmit}>
+            <label className="neo-label" htmlFor="register-username">Username</label>
+            <input
+              id="register-username"
+              className="neo-input login-input"
+              type="text"
+              value={username}
+              autoComplete="username"
+              spellCheck="false"
+              maxLength={80}
+              disabled={isSubmitting}
+              onChange={(event) => {
+                setUsername(event.target.value);
+                if (error) setError('');
+              }}
+            />
+            <label className="neo-label" htmlFor="register-pin">PIN</label>
+            <input
+              id="register-pin"
+              className="neo-input login-input login-input--pin"
+              type="password"
+              value={pin}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={6}
+              autoComplete="new-password"
+              disabled={isSubmitting}
+              onChange={(event) => {
+                setPin(event.target.value.replace(/\D/g, '').slice(0, 6));
+                if (error) setError('');
+              }}
+            />
+            <label className="neo-label" htmlFor="register-confirm-pin">Confirm PIN</label>
+            <input
+              id="register-confirm-pin"
+              className="neo-input login-input login-input--pin"
+              type="password"
+              value={confirmPin}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={6}
+              autoComplete="new-password"
+              disabled={isSubmitting}
+              onChange={(event) => {
+                setConfirmPin(event.target.value.replace(/\D/g, '').slice(0, 6));
+                if (error) setError('');
+              }}
+            />
+            {error && <p className="login-error">{error}</p>}
+            <button
+              className="neo-btn neo-btn--primary neo-btn--full"
+              type="submit"
+              disabled={isSubmitting || pin.length !== 6 || confirmPin.length !== 6}
+            >
+              {isSubmitting ? 'Creating account...' : 'Create account'}
+            </button>
+            <button className="neo-btn neo-btn--secondary neo-btn--full" type="button" onClick={showLogin} disabled={isSubmitting}>
+              Back to sign in
+            </button>
+          </form>
+        ) : step === 'username' ? (
           <form className="login-form" onSubmit={handleUsernameSubmit}>
             <label className="neo-label" htmlFor="login-username">
               Username
@@ -144,6 +253,9 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
             <button className="neo-btn neo-btn--primary neo-btn--full" type="submit">
               Continue
+            </button>
+            <button className="neo-btn neo-btn--secondary neo-btn--full" type="button" onClick={showRegister}>
+              Create an account
             </button>
           </form>
         ) : (

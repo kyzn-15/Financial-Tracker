@@ -101,34 +101,40 @@ function placeholders(items) {
   return items.map(() => '?').join(', ');
 }
 
-async function getCompleteMonths(limit = 3) {
+function ownerSql(userId) {
+  return userId == null ? { sql: '', args: [] } : { sql: ' AND user_id = ?', args: [userId] };
+}
+
+async function getCompleteMonths(limit = 3, userId = null) {
+  const owner = ownerSql(userId);
   const result = await db.execute({
     sql: `SELECT substr(timestamp, 1, 7) AS month
           FROM expenses
-          WHERE deleted_at IS NULL AND substr(timestamp, 1, 7) < ?
+          WHERE deleted_at IS NULL AND substr(timestamp, 1, 7) < ?${owner.sql}
           GROUP BY month
           ORDER BY month DESC
           LIMIT ?`,
-    args: [currentMonthKey(), limit],
+    args: [currentMonthKey(), ...owner.args, limit],
   });
   return result.rows.map((row) => row.month);
 }
 
-async function getCategoryTotalsForMonths(months) {
+async function getCategoryTotalsForMonths(months, userId = null) {
   if (months.length === 0) return [];
+  const owner = ownerSql(userId);
   const result = await db.execute({
     sql: `SELECT substr(timestamp, 1, 7) AS month,
                  category,
                  COALESCE(SUM(price_myr), 0) AS total_myr
           FROM expenses
-          WHERE deleted_at IS NULL AND substr(timestamp, 1, 7) IN (${placeholders(months)})
+          WHERE deleted_at IS NULL AND substr(timestamp, 1, 7) IN (${placeholders(months)})${owner.sql}
           GROUP BY month, category`,
-    args: months,
+    args: [...months, ...owner.args],
   });
   return result.rows;
 }
 
-async function getCurrentMonthCategoryTotals() {
+async function getCurrentMonthCategoryTotals(userId = null) {
   const monthKey = currentMonthKey();
   const nextMonthKey = addMonths(monthKey, 1);
   const result = await db.execute({
@@ -136,19 +142,21 @@ async function getCurrentMonthCategoryTotals() {
                  category,
                  COALESCE(SUM(price_myr), 0) AS total_myr
           FROM expenses
-          WHERE deleted_at IS NULL AND timestamp >= ? AND timestamp < ?
+          WHERE deleted_at IS NULL AND timestamp >= ? AND timestamp < ?${ownerSql(userId).sql}
           GROUP BY month, category`,
-    args: [monthStartFromKey(monthKey), monthStartFromKey(nextMonthKey)],
+    args: [monthStartFromKey(monthKey), monthStartFromKey(nextMonthKey), ...ownerSql(userId).args],
   });
   return result.rows;
 }
 
-async function getManagedCategories() {
+async function getManagedCategories(userId = null) {
+  const owner = userId == null ? { sql: '', args: [] } : { sql: 'WHERE user_id = ?', args: [userId] };
   const result = await db.execute({
     sql: `SELECT name
           FROM categories
+          ${owner.sql}
           ORDER BY sort_order ASC, id ASC`,
-    args: [],
+    args: owner.args,
   });
   return result.rows.map((row) => row.name);
 }
@@ -157,14 +165,14 @@ function sumRows(rows, predicate) {
   return rows.reduce((sum, row) => (predicate(row) ? sum + toMoney(row.total_myr) : sum), 0);
 }
 
-async function buildExpenseProfile(settings) {
+async function buildExpenseProfile(settings, userId = null) {
   const essentialCategories = new Set(settings.essential_categories);
-  const completeMonths = await getCompleteMonths(3);
+  const completeMonths = await getCompleteMonths(3, userId);
   const usesPartialData = completeMonths.length === 0;
   const months = usesPartialData ? [currentMonthKey()] : completeMonths;
   const rows = usesPartialData
-    ? await getCurrentMonthCategoryTotals()
-    : await getCategoryTotalsForMonths(months);
+    ? await getCurrentMonthCategoryTotals(userId)
+    : await getCategoryTotalsForMonths(months, userId);
   const divisor = Math.max(months.length, 1);
 
   const monthlyTotals = months.map((month) => {
@@ -276,10 +284,10 @@ function calculateReadinessScore(core, profile) {
   };
 }
 
-async function foodIncreaseInsight() {
-  const months = await getCompleteMonths(2);
+async function foodIncreaseInsight(userId = null) {
+  const months = await getCompleteMonths(2, userId);
   if (months.length < 2) return null;
-  const rows = await getCategoryTotalsForMonths(months);
+  const rows = await getCategoryTotalsForMonths(months, userId);
   const [latestMonth, previousMonth] = months;
   const foodTotal = (month) => sumRows(rows, (row) => row.month === month && row.category.toLowerCase().includes('food'));
   const latest = foodTotal(latestMonth);
@@ -294,7 +302,7 @@ async function foodIncreaseInsight() {
   return null;
 }
 
-async function buildInsights(core) {
+async function buildInsights(core, userId = null) {
   const insights = [];
 
   if (core.averageMonthlyEssentialExpenseMyr <= 0) {
@@ -326,7 +334,7 @@ async function buildInsights(core) {
     });
   }
 
-  const foodInsight = await foodIncreaseInsight();
+  const foodInsight = await foodIncreaseInsight(userId);
   if (foodInsight) insights.push(foodInsight);
 
   if (insights.length === 0) {
@@ -339,31 +347,48 @@ async function buildInsights(core) {
   return insights;
 }
 
-export async function getEmergencySettings() {
-  let result = await db.execute({ sql: 'SELECT * FROM emergency_settings WHERE id = 1', args: [] });
-  let row = result.rows[0];
-  if (!row) {
-    await db.execute({
-      sql: `INSERT OR IGNORE INTO emergency_settings (
-              id, current_savings_myr, current_savings_idr, reserved_funds_myr, reserved_funds_idr,
-              original_currency, exchange_rate_used, target_months, essential_categories, updated_at
-            ) VALUES (1, 0, 0, 0, 0, 'MYR', NULL, 6, ?, ?)`,
-      args: [JSON.stringify(DEFAULT_ESSENTIAL_CATEGORIES), nowUTC8()],
-    });
-    result = await db.execute({ sql: 'SELECT * FROM emergency_settings WHERE id = 1', args: [] });
-    row = result.rows[0];
+async function loadEmergencyRow(userId = null) {
+  if (userId == null) {
+    let result = await db.execute({ sql: 'SELECT * FROM emergency_settings WHERE id = 1', args: [] });
+    if (!result.rows[0]) {
+      await db.execute({
+        sql: `INSERT OR IGNORE INTO emergency_settings (
+                id, current_savings_myr, current_savings_idr, reserved_funds_myr, reserved_funds_idr,
+                original_currency, exchange_rate_used, target_months, essential_categories, updated_at
+              ) VALUES (1, 0, 0, 0, 0, 'MYR', NULL, 6, ?, ?)`,
+        args: [JSON.stringify(DEFAULT_ESSENTIAL_CATEGORIES), nowUTC8()],
+      });
+      result = await db.execute({ sql: 'SELECT * FROM emergency_settings WHERE id = 1', args: [] });
+    }
+    return result.rows[0];
   }
 
+  let result = await db.execute({ sql: 'SELECT * FROM emergency_settings WHERE user_id = ?', args: [userId] });
+  if (!result.rows[0]) {
+    await db.execute({
+      sql: `INSERT INTO emergency_settings (
+              user_id, current_savings_myr, current_savings_idr, reserved_funds_myr, reserved_funds_idr,
+              original_currency, exchange_rate_used, target_months, essential_categories, updated_at
+            ) VALUES (?, 0, 0, 0, 0, 'MYR', NULL, 6, ?, ?)`,
+      args: [userId, JSON.stringify(DEFAULT_ESSENTIAL_CATEGORIES), nowUTC8()],
+    });
+    result = await db.execute({ sql: 'SELECT * FROM emergency_settings WHERE user_id = ?', args: [userId] });
+  }
+  return result.rows[0];
+}
+
+export async function getEmergencySettings(userId = null) {
+  const row = await loadEmergencyRow(userId);
   return mapEmergencySettings(row, await resolveConversionRate(row));
 }
 
-export async function getEmergencyCategoryOptions(settings = null) {
-  if (!settings) await getEmergencySettings();
-  return getManagedCategories();
+export async function getEmergencyCategoryOptions(settings = null, userId = null) {
+  if (!settings) await getEmergencySettings(userId);
+  return getManagedCategories(userId);
 }
 
-export async function updateEmergencySettings(input) {
-  const existing = await getEmergencySettings();
+export async function updateEmergencySettings(input, userId = null) {
+  const existing = await getEmergencySettings(userId);
 
   let targetMonths = existing.target_months;
   if (hasOwn(input, 'target_months')) {
@@ -417,42 +442,63 @@ export async function updateEmergencySettings(input) {
     exchangeRateUsed = kurs;
   }
 
-  await db.execute({
-    sql: `INSERT INTO emergency_settings (
-            id, current_savings_myr, current_savings_idr, reserved_funds_myr, reserved_funds_idr,
-            original_currency, exchange_rate_used, target_months, essential_categories, updated_at
-          ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(id) DO UPDATE SET
-            current_savings_myr = excluded.current_savings_myr,
-            current_savings_idr = excluded.current_savings_idr,
-            reserved_funds_myr = excluded.reserved_funds_myr,
-            reserved_funds_idr = excluded.reserved_funds_idr,
-            original_currency = excluded.original_currency,
-            exchange_rate_used = excluded.exchange_rate_used,
-            target_months = excluded.target_months,
-            essential_categories = excluded.essential_categories,
-            updated_at = excluded.updated_at`,
-    args: [
-      currentSavingsMyr,
-      currentSavingsIdr,
-      reservedFundsMyr,
-      reservedFundsIdr,
-      originalCurrency,
-      exchangeRateUsed,
-      targetMonths,
-      JSON.stringify(essentialCategories),
-      nowUTC8(),
-    ],
-  });
+  if (userId == null) {
+    await db.execute({
+      sql: `INSERT INTO emergency_settings (
+              id, current_savings_myr, current_savings_idr, reserved_funds_myr, reserved_funds_idr,
+              original_currency, exchange_rate_used, target_months, essential_categories, updated_at
+            ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              current_savings_myr = excluded.current_savings_myr,
+              current_savings_idr = excluded.current_savings_idr,
+              reserved_funds_myr = excluded.reserved_funds_myr,
+              reserved_funds_idr = excluded.reserved_funds_idr,
+              original_currency = excluded.original_currency,
+              exchange_rate_used = excluded.exchange_rate_used,
+              target_months = excluded.target_months,
+              essential_categories = excluded.essential_categories,
+              updated_at = excluded.updated_at`,
+      args: [
+        currentSavingsMyr,
+        currentSavingsIdr,
+        reservedFundsMyr,
+        reservedFundsIdr,
+        originalCurrency,
+        exchangeRateUsed,
+        targetMonths,
+        JSON.stringify(essentialCategories),
+        nowUTC8(),
+      ],
+    });
+  } else {
+    await db.execute({
+      sql: `UPDATE emergency_settings
+            SET current_savings_myr = ?, current_savings_idr = ?, reserved_funds_myr = ?, reserved_funds_idr = ?,
+                original_currency = ?, exchange_rate_used = ?, target_months = ?, essential_categories = ?, updated_at = ?
+            WHERE user_id = ?`,
+      args: [
+        currentSavingsMyr,
+        currentSavingsIdr,
+        reservedFundsMyr,
+        reservedFundsIdr,
+        originalCurrency,
+        exchangeRateUsed,
+        targetMonths,
+        JSON.stringify(essentialCategories),
+        nowUTC8(),
+        userId,
+      ],
+    });
+  }
 
-  return await getEmergencySettings();
+  return await getEmergencySettings(userId);
 }
 
-export async function buildEmergencySummary() {
-  const settings = await getEmergencySettings();
+export async function buildEmergencySummary(userId = null) {
+  const settings = await getEmergencySettings(userId);
   const [profile, categoryOptions] = await Promise.all([
-    buildExpenseProfile(settings),
-    getEmergencyCategoryOptions(settings),
+    buildExpenseProfile(settings, userId),
+    getEmergencyCategoryOptions(settings, userId),
   ]);
   const core = calculateCore(settings, profile.averageMonthlyEssentialExpense);
 
@@ -468,7 +514,7 @@ export async function buildEmergencySummary() {
       categoryAverages: profile.categoryAverages,
       readinessScore: calculateReadinessScore(core, profile),
     },
-    insights: await buildInsights(core),
+    insights: await buildInsights(core, userId),
   };
 }
 
@@ -543,8 +589,8 @@ function parseSimulationAdjustments(query, categoryAverages) {
     .filter((item) => item.deltaMyr !== 0);
 }
 
-export async function buildEmergencySimulation(query) {
-  const summary = await buildEmergencySummary();
+export async function buildEmergencySimulation(query, userId = null) {
+  const summary = await buildEmergencySummary(userId);
   const categoryAverages = summary.analytics.categoryAverages;
   const adjustments = parseSimulationAdjustments(query, categoryAverages);
   const totalDeltaMyr = roundMoney(adjustments.reduce((sum, item) => sum + item.deltaMyr, 0));

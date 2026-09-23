@@ -6,6 +6,7 @@ import {
   getEmergencySettings,
   updateEmergencySettings,
 } from '../services/emergencyFund.js';
+import { requestUserId } from '../utils/ownership.js';
 
 const router = Router();
 
@@ -49,10 +50,11 @@ function parseEmergencySettingsBody(body) {
   return input;
 }
 
-router.get('/settings', async (_req, res) => {
+router.get('/settings', async (req, res) => {
   try {
-    const settings = await getEmergencySettings();
-    const categories = await getEmergencyCategoryOptions(settings);
+    const userId = requestUserId(req);
+    const settings = await getEmergencySettings(userId);
+    const categories = await getEmergencyCategoryOptions(settings, userId);
     res.json({ settings, categories });
   } catch (err) {
     console.error('GET /api/emergency/settings error:', err);
@@ -62,8 +64,9 @@ router.get('/settings', async (_req, res) => {
 
 router.put('/settings', async (req, res) => {
   try {
-    const settings = await updateEmergencySettings(parseEmergencySettingsBody(req.body));
-    const categories = await getEmergencyCategoryOptions(settings);
+    const userId = requestUserId(req);
+    const settings = await updateEmergencySettings(parseEmergencySettingsBody(req.body), userId);
+    const categories = await getEmergencyCategoryOptions(settings, userId);
     res.json({ settings, categories });
   } catch (err) {
     if (err.statusCode === 400) return res.status(400).json({ error: err.message });
@@ -72,9 +75,9 @@ router.put('/settings', async (req, res) => {
   }
 });
 
-router.get('/summary', async (_req, res) => {
+router.get('/summary', async (req, res) => {
   try {
-    res.json(await buildEmergencySummary());
+    res.json(await buildEmergencySummary(requestUserId(req)));
   } catch (err) {
     console.error('GET /api/emergency/summary error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -83,7 +86,7 @@ router.get('/summary', async (_req, res) => {
 
 router.get('/simulation', async (req, res) => {
   try {
-    res.json(await buildEmergencySimulation(req.query));
+    res.json(await buildEmergencySimulation(req.query, requestUserId(req)));
   } catch (err) {
     if (err.statusCode === 400) return res.status(400).json({ error: err.message });
     console.error('GET /api/emergency/simulation error:', err);

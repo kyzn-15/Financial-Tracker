@@ -104,8 +104,7 @@ export default function App() {
     return () => window.clearTimeout(timeoutId);
   }, [sessionExpiresAt]);
 
-  const handleLogin = async ({ username, pin }: LoginCredentials): Promise<void> => {
-    await api.login(username, pin);
+  const applySession = async () => {
     const session = await api.getSession();
     setIsAuthenticated(session.authenticated);
     setSessionExpiresAt(session.expiresAt ?? null);
@@ -116,16 +115,35 @@ export default function App() {
     }
   };
 
+  const handleLogin = async ({ username, pin }: LoginCredentials): Promise<void> => {
+    await api.login(username, pin);
+    await applySession();
+  };
+
+  const handleRegister = async ({ username, pin }: LoginCredentials): Promise<void> => {
+    await api.register(username, pin);
+    await applySession();
+  };
+
+  const clearLocalSession = () => {
+    setIsAuthenticated(false);
+    setSessionExpiresAt(null);
+    window.localStorage.removeItem(SESSION_HINT_KEY);
+  };
+
   const handleLogout = async () => {
     try {
       await api.logout();
     } catch {
       // Local state still resets so a stale client session cannot keep the app open.
     } finally {
-      setIsAuthenticated(false);
-      setSessionExpiresAt(null);
-      window.localStorage.removeItem(SESSION_HINT_KEY);
+      clearLocalSession();
     }
+  };
+
+  const handleDeleteAccount = async (pin: string) => {
+    await api.deleteAccount(pin);
+    clearLocalSession();
   };
 
   if (isCheckingSession) {
@@ -133,10 +151,10 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
-    return <LoginPage onLogin={handleLogin} />;
+    return <LoginPage onLogin={handleLogin} onRegister={handleRegister} />;
   }
 
-  return <PrivacyModeProvider><AuthenticatedApp onLogout={handleLogout} sessionExpiresAt={sessionExpiresAt} theme={theme} onThemeChange={setTheme} /></PrivacyModeProvider>;
+  return <PrivacyModeProvider><AuthenticatedApp onLogout={handleLogout} onDeleteAccount={handleDeleteAccount} sessionExpiresAt={sessionExpiresAt} theme={theme} onThemeChange={setTheme} /></PrivacyModeProvider>;
 }
 
 function SkeletonLine({ className = '' }: { className?: string }) {
@@ -200,12 +218,13 @@ function AppSkeleton() {
 
 interface AuthenticatedAppProps {
   onLogout: () => Promise<void>;
+  onDeleteAccount: (pin: string) => Promise<void>;
   sessionExpiresAt: number | null;
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
 }
 
-function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: AuthenticatedAppProps) {
+function AuthenticatedApp({ onLogout, onDeleteAccount, sessionExpiresAt, theme, onThemeChange }: AuthenticatedAppProps) {
   const [activeTab, setActiveTab] = useState<AppTab>('dashboard'); // Default to dashboard for better first impression
   const [currency, setCurrency] = useState<Currency>('MYR');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -679,6 +698,7 @@ function AuthenticatedApp({ onLogout, sessionExpiresAt, theme, onThemeChange }: 
               recycleBin={recycleBinStore}
               onCreateResetIntent={api.createResetIntent}
               onResetApp={handleResetApp}
+              onDeleteAccount={onDeleteAccount}
               onNotify={showToast}
             />
           )}

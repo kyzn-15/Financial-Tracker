@@ -1,6 +1,7 @@
 import db from '../db/database.js';
 import { calculateExpenseAmounts, expenseInsert } from './expenseRecords.js';
 import { getNextRecurrenceUTC8, nowUTC8 } from '../utils/datetime.js';
+import { ownerClause } from '../utils/ownership.js';
 
 const PROCESS_INTERVAL_MS = 60 * 1000;
 
@@ -20,23 +21,29 @@ function serializeRule(row) {
   };
 }
 
-export async function listRecurringRules() {
+export async function listRecurringRules(userId = null) {
+  const owner = ownerClause(userId);
   const result = await db.execute({
     sql: `SELECT * FROM recurring_expense_rules
-          WHERE status <> 'cancelled'
+          WHERE status <> 'cancelled'${owner.sql}
           ORDER BY CASE status WHEN 'active' THEN 0 ELSE 1 END, next_run_at ASC, id ASC`,
-    args: [],
+    args: owner.args,
   });
   return result.rows.map(serializeRule);
 }
 
-export async function getRecurringRule(id) {
-  const result = await db.execute({ sql: 'SELECT * FROM recurring_expense_rules WHERE id = ?', args: [id] });
+export async function getRecurringRule(id, userId = null) {
+  const owner = ownerClause(userId);
+  const result = await db.execute({
+    sql: `SELECT * FROM recurring_expense_rules WHERE id = ?${owner.sql}`,
+    args: [id, ...owner.args],
+  });
   return result.rows[0] ? serializeRule(result.rows[0]) : null;
 }
 
-export async function updateRecurringRule(id, input) {
-  const existing = await getRecurringRule(id);
+export async function updateRecurringRule(id, input, userId = null) {
+  const owner = ownerClause(userId);
+  const existing = await getRecurringRule(id, userId);
   if (!existing || existing.status === 'cancelled') return null;
   const updatedAt = nowUTC8();
   const scheduleChanged = input.frequency !== existing.frequency || input.next_run_at !== existing.next_run_at;
@@ -45,18 +52,19 @@ export async function updateRecurringRule(id, input) {
   await db.execute({
     sql: `UPDATE recurring_expense_rules
           SET name = ?, category = ?, price = ?, currency = ?, frequency = ?, anchor_timestamp = ?, next_run_at = ?, status = ?, updated_at = ?
-          WHERE id = ?`,
-    args: [input.name, input.category, input.price, input.currency, input.frequency, anchorTimestamp, input.next_run_at, input.status, updatedAt, id],
+          WHERE id = ?${owner.sql}`,
+    args: [input.name, input.category, input.price, input.currency, input.frequency, anchorTimestamp, input.next_run_at, input.status, updatedAt, id, ...owner.args],
   });
-  return getRecurringRule(id);
+  return getRecurringRule(id, userId);
 }
 
-export async function cancelRecurringRule(id) {
-  const existing = await getRecurringRule(id);
+export async function cancelRecurringRule(id, userId = null) {
+  const existing = await getRecurringRule(id, userId);
   if (!existing) return null;
+  const owner = ownerClause(userId);
   await db.execute({
-    sql: `UPDATE recurring_expense_rules SET status = 'cancelled', updated_at = ? WHERE id = ?`,
-    args: [nowUTC8(), id],
+    sql: `UPDATE recurring_expense_rules SET status = 'cancelled', updated_at = ? WHERE id = ?${owner.sql}`,
+    args: [nowUTC8(), id, ...owner.args],
   });
   return { ...existing, status: 'cancelled' };
 }
@@ -90,7 +98,7 @@ async function createOccurrence(rule, scheduledFor) {
 
   try {
     await db.batch([
-      expenseInsert(rule.name, rule.category, amounts, rule.currency, scheduledFor),
+      expenseInsert(rule.name, rule.category, amounts, rule.currency, scheduledFor, null, rule.userId ?? null),
       {
         sql: `INSERT INTO recurring_expense_occurrences (rule_id, scheduled_for, expense_id, created_at)
               VALUES (?, ?, last_insert_rowid(), ?)`,
@@ -122,6 +130,7 @@ export async function processDueRecurringExpenses(cutoff = nowUTC8()) {
 
   for (const row of result.rows) {
     const rule = serializeRule(row);
+    rule.userId = row.user_id == null ? null : Number(row.user_id);
     while (rule.next_run_at <= cutoff) {
       if (await createOccurrence(rule, rule.next_run_at)) created += 1;
     }
