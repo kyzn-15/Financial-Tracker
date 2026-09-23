@@ -54,6 +54,7 @@ interface SettingsPageProps {
   onCreateAndAssignFolder: (expenseId: number, name: string) => Promise<unknown>;
   onCreateResetIntent: () => Promise<ResetIntent>;
   onResetApp: (resetToken: string, pin: string) => Promise<void>;
+  onDeleteAccount: (pin: string) => Promise<void>;
   onNotify: (message: string, type?: 'info' | 'success' | 'error') => void;
 }
 
@@ -141,7 +142,7 @@ const SETTINGS_GROUPS: SettingsGroup[] = [
         name: 'Security & Reset',
         icon: 'shield-check',
         tone: 'danger',
-        description: 'Permanently erase all app data behind PIN confirmation.',
+        description: 'Reset this account’s data or permanently delete the account.',
       },
     ],
   },
@@ -176,6 +177,7 @@ export default function SettingsPage({
   onCreateAndAssignFolder,
   onCreateResetIntent,
   onResetApp,
+  onDeleteAccount,
   onNotify,
 }: SettingsPageProps) {
   type SettingsSectionId = SettingsSection['id'];
@@ -187,6 +189,10 @@ export default function SettingsPage({
   const [isPreparingReset, setIsPreparingReset] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [resetError, setResetError] = useState('');
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deletePin, setDeletePin] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const overviewHeadingRef = useRef<HTMLElement>(null);
   const breadcrumbRef = useRef<HTMLElement>(null);
   const hasNavigatedRef = useRef(false);
@@ -375,7 +381,7 @@ export default function SettingsPage({
               <div className="settings-section-heading">
                 <div>
                   <h3 id="reset-settings-title">Danger zone</h3>
-                  <p>Permanently delete every saved record and restart with a clean app.</p>
+                  <p>Erase this account’s records and start again with the default categories. Other accounts are left untouched.</p>
                 </div>
                 <button className="neo-btn neo-btn--danger" type="button" onClick={openResetDialog}>
                   Reset app
@@ -390,7 +396,7 @@ export default function SettingsPage({
             >
               <div className="confirm-dialog reset-confirmation">
                 <p className="confirm-dialog__text">
-                  This permanently deletes all expenses, receipt images, custom categories, recurring payments,
+                  This permanently deletes this account’s expenses, receipt images, custom categories, recurring payments,
                   emergency fund settings, and backup preferences.
                 </p>
                 <p className="reset-confirmation__warning">
@@ -438,6 +444,78 @@ export default function SettingsPage({
                       ? 'Resetting...'
                       : isPreparingReset ? 'Preparing secure reset...'
                       : resetCountdown > 0 ? `Confirm reset (${resetCountdown}s)` : 'Confirm permanent reset'}
+                  </button>
+                </div>
+              </div>
+            </Modal>
+            <section className="reset-settings neo-card" aria-labelledby="delete-account-title">
+              <div className="settings-section-heading">
+                <div>
+                  <h3 id="delete-account-title">Delete account</h3>
+                  <p>Remove this login and every record stored for it. This cannot be undone.</p>
+                </div>
+                <button className="neo-btn neo-btn--danger" type="button" onClick={() => {
+                  setDeletePin('');
+                  setDeleteError('');
+                  setIsDeleteOpen(true);
+                }}>
+                  Delete account
+                </button>
+              </div>
+            </section>
+            <Modal
+              isOpen={isDeleteOpen}
+              onClose={() => {
+                if (!isDeletingAccount) setIsDeleteOpen(false);
+              }}
+              title="Delete this account?"
+              dismissOnOverlayClick={!isDeletingAccount}
+            >
+              <div className="confirm-dialog reset-confirmation">
+                <p className="confirm-dialog__text">
+                  The account, its expenses, receipts, categories, folders, recurring payments,
+                  emergency fund settings, and backup preferences will be removed from the server.
+                </p>
+                <p className="reset-confirmation__warning">
+                  Recycle Bin items for this account are removed too. Other people’s data stays in place.
+                </p>
+                <div className="reset-confirmation__pin-field">
+                  <label className="neo-label" htmlFor="delete-account-pin">Current PIN</label>
+                  <input
+                    id="delete-account-pin"
+                    className="neo-input reset-confirmation__pin"
+                    type="password"
+                    inputMode="numeric"
+                    autoComplete="current-password"
+                    maxLength={12}
+                    value={deletePin}
+                    onChange={(event) => setDeletePin(event.target.value.replace(/\D/g, '').slice(0, 12))}
+                    disabled={isDeletingAccount}
+                    aria-describedby={deleteError ? 'delete-account-error' : undefined}
+                  />
+                </div>
+                {deleteError && <p id="delete-account-error" className="reset-confirmation__error">{deleteError}</p>}
+                <div className="confirm-dialog__actions">
+                  <button className="neo-btn neo-btn--secondary" type="button" onClick={() => setIsDeleteOpen(false)} disabled={isDeletingAccount}>
+                    Cancel
+                  </button>
+                  <button
+                    className="neo-btn neo-btn--danger"
+                    type="button"
+                    onClick={async () => {
+                      if (!/^\d{4,12}$/.test(deletePin) || isDeletingAccount) return;
+                      try {
+                        setIsDeletingAccount(true);
+                        setDeleteError('');
+                        await onDeleteAccount(deletePin);
+                      } catch (error) {
+                        setDeleteError(getErrorMessage(error, 'Could not delete the account.'));
+                        setIsDeletingAccount(false);
+                      }
+                    }}
+                    disabled={isDeletingAccount || !/^\d{4,12}$/.test(deletePin)}
+                  >
+                    {isDeletingAccount ? 'Deleting account...' : 'Delete account'}
                   </button>
                 </div>
               </div>

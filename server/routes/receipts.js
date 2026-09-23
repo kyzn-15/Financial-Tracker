@@ -9,6 +9,7 @@ import { RETENTION_DAYS } from '../services/receiptCleanup.js';
 import { softDeleteReceipt } from '../services/recycleBin.js';
 import { RECEIPTS_UPLOAD_DIR, RECEIPT_MIME_TYPES, resolveReceiptFilePath } from '../utils/receiptFiles.js';
 import { receiptUploadLimiter } from '../middleware/security.js';
+import { requestUserId } from '../utils/ownership.js';
 
 const router = Router();
 
@@ -83,12 +84,13 @@ export function toReceiptResponse(row, sessionId) {
 router.get('/', async (req, res) => {
   try {
     // Soft-deleted receipts live in the Recycle Bin, not the receipts tab.
+    const userId = requestUserId(req);
     const result = await db.execute({
       sql: `SELECT id, filename, mime_type, uploaded_at, expires_at
             FROM receipts
-            WHERE deleted_at IS NULL
+            WHERE deleted_at IS NULL${userId == null ? '' : ' AND user_id = ?'}
             ORDER BY uploaded_at DESC`,
-      args: [],
+      args: userId == null ? [] : [userId],
     });
     const rows = result.rows;
 
@@ -128,11 +130,18 @@ router.post('/', receiptUploadLimiter, async (req, res) => {
         // Best-effort local file write
       }
 
-      const result = await db.execute({
-        sql: `INSERT INTO receipts (filename, mime_type, uploaded_at, expires_at, image_data)
-              VALUES (?, ?, ?, ?, ?)`,
-        args: [filename, req.file.mimetype, uploadedAt, expiresAt, req.file.buffer],
-      });
+      const userId = requestUserId(req);
+      const result = userId == null
+        ? await db.execute({
+            sql: `INSERT INTO receipts (filename, mime_type, uploaded_at, expires_at, image_data)
+                  VALUES (?, ?, ?, ?, ?)`,
+            args: [filename, req.file.mimetype, uploadedAt, expiresAt, req.file.buffer],
+          })
+        : await db.execute({
+            sql: `INSERT INTO receipts (user_id, filename, mime_type, uploaded_at, expires_at, image_data)
+                  VALUES (?, ?, ?, ?, ?, ?)`,
+            args: [userId, filename, req.file.mimetype, uploadedAt, expiresAt, req.file.buffer],
+          });
 
       const createdResult = await db.execute({
         sql: `SELECT id, filename, mime_type, uploaded_at, expires_at
@@ -151,12 +160,13 @@ router.post('/', receiptUploadLimiter, async (req, res) => {
 
 router.get('/:id/image', async (req, res) => {
   try {
+    const userId = requestUserId(req);
     const id = parseReceiptId(req.params.id);
     if (!id) return res.status(400).json({ error: 'Invalid receipt id.' });
 
     const result = await db.execute({
-      sql: 'SELECT filename, mime_type, image_data FROM receipts WHERE id = ?',
-      args: [id],
+      sql: `SELECT filename, mime_type, image_data FROM receipts WHERE id = ?${userId == null ? '' : ' AND user_id = ?'}`,
+      args: userId == null ? [id] : [id, userId],
     });
     const receipt = result.rows[0];
     if (!receipt) {
@@ -208,7 +218,7 @@ router.delete('/:id', async (req, res) => {
 
     // Normal deletion is a soft delete: metadata and image data stay
     // recoverable in the Recycle Bin until retention cleanup removes them.
-    const deleted = await softDeleteReceipt(id);
+    const deleted = await softDeleteReceipt(id, requestUserId(req));
     if (!deleted) {
       return res.status(404).json({ error: 'Receipt not found' });
     }

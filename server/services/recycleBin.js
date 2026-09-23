@@ -4,6 +4,7 @@ import db from '../db/database.js';
 import { addDaysUTC8, nowUTC8 } from '../utils/datetime.js';
 import { createReceiptToken } from '../utils/auth.js';
 import { resolveReceiptFilePath } from '../utils/receiptFiles.js';
+import { ownerClause } from '../utils/ownership.js';
 
 export const RETENTION_DAYS = 7;
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
@@ -44,10 +45,11 @@ function parseRowId(value) {
 /**
  * Soft-delete an active expense so it can be restored for RETENTION_DAYS.
  */
-export async function softDeleteExpense(id) {
+export async function softDeleteExpense(id, userId = null) {
+  const owner = ownerClause(userId);
   const result = await db.execute({
-    sql: 'UPDATE expenses SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL',
-    args: [nowUTC8(), id],
+    sql: `UPDATE expenses SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL${owner.sql}`,
+    args: [nowUTC8(), id, ...owner.args],
   });
   return result.rowsAffected > 0;
 }
@@ -56,29 +58,30 @@ export async function softDeleteExpense(id) {
  * Soft-delete an active receipt. The image data is kept while the
  * record stays recoverable, so normal expiry purges must ignore it.
  */
-export async function softDeleteReceipt(id) {
+export async function softDeleteReceipt(id, userId = null) {
+  const owner = ownerClause(userId);
   const result = await db.execute({
-    sql: 'UPDATE receipts SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL',
-    args: [nowUTC8(), id],
+    sql: `UPDATE receipts SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL${owner.sql}`,
+    args: [nowUTC8(), id, ...owner.args],
   });
   return result.rowsAffected > 0;
 }
 
-export async function listRecycleBin(sessionId) {
+export async function listRecycleBin(sessionId, userId = null) {
   const [expensesResult, receiptsResult] = await Promise.all([
     db.execute({
       sql: `SELECT id, name, category, price_myr, price_idr, original_currency, timestamp, deleted_at
             FROM expenses
-            WHERE deleted_at IS NOT NULL
+            WHERE deleted_at IS NOT NULL${ownerClause(userId).sql}
             ORDER BY deleted_at DESC`,
-      args: [],
+      args: ownerClause(userId).args,
     }),
     db.execute({
       sql: `SELECT id, filename, mime_type, uploaded_at, deleted_at, (image_data IS NOT NULL) AS has_blob
             FROM receipts
-            WHERE deleted_at IS NOT NULL
+            WHERE deleted_at IS NOT NULL${ownerClause(userId).sql}
             ORDER BY deleted_at DESC`,
-      args: [],
+      args: ownerClause(userId).args,
     }),
   ]);
 
@@ -108,15 +111,16 @@ export async function listRecycleBin(sessionId) {
   };
 }
 
-export async function restoreExpense(id) {
+export async function restoreExpense(id, userId = null) {
+  const owner = ownerClause(userId);
   const result = await db.execute({
-    sql: 'UPDATE expenses SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL',
-    args: [id],
+    sql: `UPDATE expenses SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL${owner.sql}`,
+    args: [id, ...owner.args],
   });
   return result.rowsAffected > 0;
 }
 
-export async function restoreReceipt(id) {
+export async function restoreReceipt(id, userId = null) {
   // A receipt whose normal expires_at elapsed inside the bin gets a fresh
   // viewing window on restore instead of being re-purged immediately.
   const restoredAt = nowUTC8();
@@ -124,24 +128,25 @@ export async function restoreReceipt(id) {
     sql: `UPDATE receipts
           SET deleted_at = NULL,
               expires_at = CASE WHEN expires_at <= ? THEN ? ELSE expires_at END
-          WHERE id = ? AND deleted_at IS NOT NULL`,
-    args: [restoredAt, addDaysUTC8(new Date(), RETENTION_DAYS), id],
+          WHERE id = ? AND deleted_at IS NOT NULL${ownerClause(userId).sql}`,
+    args: [restoredAt, addDaysUTC8(new Date(), RETENTION_DAYS), id, ...ownerClause(userId).args],
   });
   return result.rowsAffected > 0;
 }
 
-export function getRecycledExpenseState(id) {
-  return getItemState('expenses', id);
+export function getRecycledExpenseState(id, userId = null) {
+  return getItemState('expenses', id, userId);
 }
 
-export function getRecycledReceiptState(id) {
-  return getItemState('receipts', id);
+export function getRecycledReceiptState(id, userId = null) {
+  return getItemState('receipts', id, userId);
 }
 
-async function getItemState(table, id) {
+async function getItemState(table, id, userId = null) {
+  const owner = ownerClause(userId);
   const result = await db.execute({
-    sql: `SELECT deleted_at FROM ${table} WHERE id = ?`,
-    args: [id],
+    sql: `SELECT deleted_at FROM ${table} WHERE id = ?${owner.sql}`,
+    args: [id, ...owner.args],
   });
   const row = result.rows[0];
   if (!row) return 'missing';
@@ -154,10 +159,11 @@ async function getItemState(table, id) {
  * expense disappears (its rule anchor is released, mirroring the schema's
  * ON DELETE SET NULL). The deleted_at re-check makes concurrent restores safe.
  */
-export async function purgeExpense(id) {
+export async function purgeExpense(id, userId = null) {
+  const owner = ownerClause(userId);
   const deleted = await db.execute({
-    sql: 'DELETE FROM expenses WHERE id = ? AND deleted_at IS NOT NULL',
-    args: [id],
+    sql: `DELETE FROM expenses WHERE id = ? AND deleted_at IS NOT NULL${owner.sql}`,
+    args: [id, ...owner.args],
   });
   if (deleted.rowsAffected > 0) {
     await db.batch([
@@ -174,17 +180,18 @@ export async function purgeExpense(id) {
  * so the item cannot be restored once its file is being removed; a failed
  * file deletion only leaves an orphaned file, never a broken record.
  */
-export async function purgeReceipt(id) {
+export async function purgeReceipt(id, userId = null) {
+  const owner = ownerClause(userId);
   const result = await db.execute({
-    sql: `SELECT filename FROM receipts WHERE id = ? AND deleted_at IS NOT NULL`,
-    args: [id],
+    sql: `SELECT filename FROM receipts WHERE id = ? AND deleted_at IS NOT NULL${owner.sql}`,
+    args: [id, ...owner.args],
   });
   const receipt = result.rows[0];
   if (!receipt) return false;
 
   const deleted = await db.execute({
-    sql: 'DELETE FROM receipts WHERE id = ? AND deleted_at IS NOT NULL',
-    args: [id],
+    sql: `DELETE FROM receipts WHERE id = ? AND deleted_at IS NOT NULL${owner.sql}`,
+    args: [id, ...owner.args],
   });
   if (deleted.rowsAffected === 0) return false;
 
@@ -196,15 +203,16 @@ export async function purgeReceipt(id) {
  * Permanently remove every soft-deleted expense and receipt. Only records
  * whose deleted_at is set are touched — active data is never affected.
  */
-export async function emptyRecycleBin() {
+export async function emptyRecycleBin(userId = null) {
+  const owner = ownerClause(userId);
   const receiptsResult = await db.execute({
-    sql: 'SELECT id, filename FROM receipts WHERE deleted_at IS NOT NULL',
-    args: [],
+    sql: `SELECT id, filename FROM receipts WHERE deleted_at IS NOT NULL${owner.sql}`,
+    args: owner.args,
   });
 
   const expensesCount = (await db.execute({
-    sql: 'DELETE FROM expenses WHERE deleted_at IS NOT NULL',
-    args: [],
+    sql: `DELETE FROM expenses WHERE deleted_at IS NOT NULL${owner.sql}`,
+    args: owner.args,
   })).rowsAffected;
 
   // Re-check per row so items restored mid-operation keep their files.
@@ -212,8 +220,8 @@ export async function emptyRecycleBin() {
   let receiptCount = 0;
   for (const row of receiptsResult.rows) {
     const deleted = await db.execute({
-      sql: 'DELETE FROM receipts WHERE id = ? AND deleted_at IS NOT NULL',
-      args: [Number(row.id)],
+      sql: `DELETE FROM receipts WHERE id = ? AND deleted_at IS NOT NULL${owner.sql}`,
+      args: [Number(row.id), ...owner.args],
     });
     if (deleted.rowsAffected > 0) {
       receiptCount += 1;

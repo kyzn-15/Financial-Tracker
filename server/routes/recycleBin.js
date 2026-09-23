@@ -11,6 +11,7 @@ import {
   restoreReceipt,
 } from '../services/recycleBin.js';
 import { RETENTION_DAYS } from '../services/receiptCleanup.js';
+import { requestUserId } from '../utils/ownership.js';
 
 const router = Router();
 
@@ -32,7 +33,7 @@ router.get('/', async (req, res) => {
   try {
     res.json({
       retention_days: RETENTION_DAYS,
-      ...await listRecycleBin(req.auth?.sessionId),
+      ...await listRecycleBin(req.auth?.sessionId, requestUserId(req)),
     });
   } catch (err) {
     console.error('GET /api/recycle-bin error:', err);
@@ -46,8 +47,9 @@ router.post('/expenses/:id/restore', async (req, res) => {
     const id = parseItemId(req.params.id);
     if (!id) return res.status(400).json({ error: 'Invalid expense id.' });
 
-    if (!await restoreExpense(id)) {
-      return itemNotFound(res, 'Expense', await getRecycledExpenseState(id));
+    const userId = requestUserId(req);
+    if (!await restoreExpense(id, userId)) {
+      return itemNotFound(res, 'Expense', await getRecycledExpenseState(id, userId));
     }
 
     res.json({ message: 'Expense restored.' });
@@ -63,8 +65,9 @@ router.delete('/expenses/:id', async (req, res) => {
     const id = parseItemId(req.params.id);
     if (!id) return res.status(400).json({ error: 'Invalid expense id.' });
 
-    if (!await purgeExpense(id)) {
-      return itemNotFound(res, 'Expense', await getRecycledExpenseState(id));
+    const userId = requestUserId(req);
+    if (!await purgeExpense(id, userId)) {
+      return itemNotFound(res, 'Expense', await getRecycledExpenseState(id, userId));
     }
 
     res.status(204).send();
@@ -80,8 +83,9 @@ router.post('/receipts/:id/restore', async (req, res) => {
     const id = parseItemId(req.params.id);
     if (!id) return res.status(400).json({ error: 'Invalid receipt id.' });
 
-    if (!await restoreReceipt(id)) {
-      return itemNotFound(res, 'Receipt', await getRecycledReceiptState(id));
+    const userId = requestUserId(req);
+    if (!await restoreReceipt(id, userId)) {
+      return itemNotFound(res, 'Receipt', await getRecycledReceiptState(id, userId));
     }
 
     res.json({ message: 'Receipt restored.' });
@@ -97,8 +101,9 @@ router.delete('/receipts/:id', async (req, res) => {
     const id = parseItemId(req.params.id);
     if (!id) return res.status(400).json({ error: 'Invalid receipt id.' });
 
-    if (!await purgeReceipt(id)) {
-      return itemNotFound(res, 'Receipt', await getRecycledReceiptState(id));
+    const userId = requestUserId(req);
+    if (!await purgeReceipt(id, userId)) {
+      return itemNotFound(res, 'Receipt', await getRecycledReceiptState(id, userId));
     }
 
     res.status(204).send();
@@ -109,9 +114,9 @@ router.delete('/receipts/:id', async (req, res) => {
 });
 
 // ─── DELETE /api/recycle-bin — Permanently empty the Recycle Bin ────────────
-router.delete('/', async (_req, res) => {
+router.delete('/', async (req, res) => {
   try {
-    res.json(await emptyRecycleBin());
+    res.json(await emptyRecycleBin(requestUserId(req)));
   } catch (err) {
     console.error('DELETE /api/recycle-bin error:', err);
     res.status(500).json({ error: 'Internal server error' });

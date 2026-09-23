@@ -7,7 +7,6 @@ export const SESSION_COOKIE_NAME = 'financial_tracker_session';
 
 const CLOCK_SKEW_MS = 60 * 1000;
 const SESSION_VERSION = 1;
-const ACTIVE_SESSION_KEY = 'active_session_id';
 const BCRYPT_HASH_PATTERN = /^\$2[aby]\$(\d{2})\$[./A-Za-z0-9]{53}$/;
 
 function getSessionSecret() {
@@ -44,27 +43,38 @@ function sign(value) {
   return createHmac('sha256', getSessionSecret()).update(value).digest('base64url');
 }
 
-function getCredentialVersion() {
-  return sign(`credential:${process.env.ADMIN_PIN_HASH || ''}`);
+function credentialVersionFor(passwordHash) {
+  return sign(`credential:${passwordHash || ''}`);
 }
 
-async function getActiveSessionId() {
+async function findAccountByUsername(username) {
   const result = await db.execute({
-    sql: 'SELECT value FROM app_metadata WHERE key = ?',
-    args: [ACTIVE_SESSION_KEY],
+    sql: 'SELECT id, username, password_hash, active_session_id FROM accounts WHERE username = ? COLLATE NOCASE',
+    args: [username],
   });
-  return typeof result.rows[0]?.value === 'string' ? result.rows[0].value : null;
+  const row = result.rows[0];
+  if (!row) return null;
+  return {
+    id: Number(row.id),
+    username: String(row.username),
+    password_hash: String(row.password_hash),
+    active_session_id: row.active_session_id == null ? null : String(row.active_session_id),
+  };
 }
 
-async function rotateActiveSessionId() {
-  const sessionId = randomUUID();
-  await db.execute({
-    sql: `INSERT INTO app_metadata (key, value, updated_at)
-          VALUES (?, ?, datetime('now','+8 hours'))
-          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
-    args: [ACTIVE_SESSION_KEY, sessionId],
+async function findAccountBySessionId(sessionId) {
+  if (!sessionId) return null;
+  const result = await db.execute({
+    sql: 'SELECT id, username, active_session_id FROM accounts WHERE active_session_id = ?',
+    args: [sessionId],
   });
-  return sessionId;
+  const row = result.rows[0];
+  if (!row) return null;
+  return {
+    id: Number(row.id),
+    username: String(row.username),
+    active_session_id: String(row.active_session_id),
+  };
 }
 
 function safeEqual(a, b) {
@@ -97,12 +107,24 @@ export function assertAuthConfiguration() {
 }
 
 export async function createSessionToken(username) {
+  const account = await findAccountByUsername(username);
+  if (!account) {
+    throw new Error('Cannot create a session for an unknown account');
+  }
+
+  const sessionId = randomUUID();
+  await db.execute({
+    sql: 'UPDATE accounts SET active_session_id = ? WHERE id = ?',
+    args: [sessionId, account.id],
+  });
+
   const issuedAt = Date.now();
   const payload = {
     version: SESSION_VERSION,
-    username,
-    credentialVersion: getCredentialVersion(),
-    sessionId: await rotateActiveSessionId(),
+    username: account.username,
+    userId: account.id,
+    credentialVersion: credentialVersionFor(account.password_hash),
+    sessionId,
     issuedAt,
     expiresAt: issuedAt + SESSION_DURATION_MS,
   };
@@ -155,12 +177,17 @@ export async function verifySessionToken(token) {
     const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
     const now = Date.now();
 
+    const account = typeof payload?.username === 'string'
+      ? await findAccountByUsername(payload.username)
+      : null;
+
     if (
       payload?.version !== SESSION_VERSION ||
-      payload.username !== getConfiguredUsername() ||
-      payload.credentialVersion !== getCredentialVersion() ||
+      !account ||
+      payload.userId !== account.id ||
+      payload.credentialVersion !== credentialVersionFor(account.password_hash) ||
       typeof payload.sessionId !== 'string' ||
-      payload.sessionId !== await getActiveSessionId() ||
+      payload.sessionId !== account.active_session_id ||
       !Number.isFinite(payload.issuedAt) ||
       !Number.isFinite(payload.expiresAt) ||
       payload.issuedAt > now + CLOCK_SKEW_MS ||
@@ -170,15 +197,23 @@ export async function verifySessionToken(token) {
       return null;
     }
 
-    return payload;
+    return {
+      ...payload,
+      username: account.username,
+      userId: account.id,
+    };
   } catch {
     return null;
   }
 }
 
 export async function revokeSessionToken(token) {
-  if (!await verifySessionToken(token)) return false;
-  await rotateActiveSessionId();
+  const session = await verifySessionToken(token);
+  if (!session) return false;
+  await db.execute({
+    sql: 'UPDATE accounts SET active_session_id = ? WHERE id = ? AND active_session_id = ?',
+    args: [randomUUID(), session.userId, session.sessionId],
+  });
   return true;
 }
 
@@ -219,11 +254,31 @@ export async function verifyReceiptToken(receiptId, token) {
     return false;
   }
 
-  const activeSessionId = await getActiveSessionId();
-  if (!activeSessionId || tokenSessionId !== activeSessionId) {
-    return false;
-  }
+  const owner = await findAccountBySessionId(tokenSessionId);
+  if (!owner) return false;
+
+  const receipt = await db.execute({
+    sql: 'SELECT user_id FROM receipts WHERE id = ?',
+    args: [Number(receiptId)],
+  });
+  const receiptOwner = receipt.rows[0]?.user_id;
+  if (receiptOwner != null && Number(receiptOwner) !== owner.id) return false;
 
   return true;
+}
+
+export async function authenticateReceiptToken(receiptId, token) {
+  if (!await verifyReceiptToken(receiptId, token)) return null;
+  const parts = String(token).split('.');
+  let rawPayload = '';
+  try {
+    rawPayload = Buffer.from(parts[0], 'base64url').toString('utf8');
+  } catch {
+    return null;
+  }
+  const sessionId = rawPayload.split(':')[1];
+  const owner = await findAccountBySessionId(sessionId);
+  if (!owner) return null;
+  return { username: owner.username, userId: owner.id, sessionId: owner.active_session_id };
 }
 

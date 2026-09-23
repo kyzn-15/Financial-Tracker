@@ -71,6 +71,20 @@ export async function login(username: string, pin: string): Promise<{ authentica
   });
 }
 
+export async function register(username: string, pin: string): Promise<{ authenticated: boolean }> {
+  return request<{ authenticated: boolean }>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ username, pin }),
+  });
+}
+
+export async function deleteAccount(pin: string): Promise<void> {
+  return request('/auth/account', {
+    method: 'DELETE',
+    body: JSON.stringify({ pin }),
+  }, true);
+}
+
 export async function getSession(): Promise<SessionResponse> {
   return request<SessionResponse>('/auth/session');
 }
