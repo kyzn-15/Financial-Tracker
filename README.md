@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <a href="#screenshots">Screenshots</a> ·
+  <a href="#overview">Overview</a> ·
   <a href="#features">Features</a> ·
   <a href="#tech-stack">Tech Stack</a> ·
   <a href="#getting-started">Getting Started</a> ·
@@ -35,37 +35,19 @@ Financial Tracker is a full-stack personal finance app built around a **neomorph
 
 **Live demo:** [financial-tracker-pied-delta.vercel.app](https://financial-tracker-pied-delta.vercel.app/)
 
-> Screenshots below use **privacy masking** (`***`). Real balances are never required to evaluate the UI.
-
-## Screenshots
+> UI images below use **privacy masking** (`***`). Real balances are never required to evaluate the product.
 
 ### Login
 
 <p align="center">
-  <img src="./docs/images/01-login.png" alt="Login screen" width="720">
+  <img src="./docs/images/01-login.png" alt="Login screen" width="640">
 </p>
 
 ### Dashboard
 
 <p align="center">
-  <img src="./docs/images/02-dashboard.png" alt="Dashboard with masked balances" width="900">
+  <img src="./docs/images/02-dashboard.png" alt="Desktop dashboard with masked balances" width="900">
 </p>
-
-<p align="center">
-  <img src="./docs/images/08-mobile-dashboard.png" alt="Mobile dashboard" width="360">
-</p>
-
-### Add expense · History · Emergency fund
-
-| Add Expense | History | Emergency Fund |
-|:---:|:---:|:---:|
-| <img src="./docs/images/03-add-expense.png" alt="Add expense" width="280"> | <img src="./docs/images/04-history.png" alt="History" width="280"> | <img src="./docs/images/05-emergency-fund.png" alt="Emergency fund" width="280"> |
-
-### Settings · Receipts
-
-| Settings | Receipt Saver |
-|:---:|:---:|
-| <img src="./docs/images/06-settings.png" alt="Settings" width="420"> | <img src="./docs/images/07-receipts.png" alt="Receipts" width="420"> |
 
 ## Features
 
@@ -73,13 +55,53 @@ Financial Tracker is a full-stack personal finance app built around a **neomorph
 - **Dual currency (MYR ↔ IDR)** — log in either currency; server stores both using a cached exchange rate
 - **Privacy masking** — hide balances by default or on demand (`***`), including login preference
 - **Dashboard analytics** — monthly totals, top category, trends, weekday patterns, insights, MYR/IDR chart toggle
-- **Expense workflow** — add/edit, categories, searchable history, filters, soft-delete / recycle bin
-- **Recurring expenses** — scheduled payments with active / paused / cancelled status
-- **Receipt saver** — upload JPEG, PNG, WebP, HEIC/HEIF with server-side signature checks
-- **Emergency fund** — savings target, essential categories, coverage timeline, what-if planning
-- **Backup** — XLSX export/import with spreadsheet formula escaping
-- **Auth** — username + PIN session cookies, rate-limited login
 - **Timezone** — timestamps displayed in **UTC+8**
+- **Auth** — username + PIN session cookies, rate-limited login
+
+### Add expense
+
+Log transactions in MYR or IDR with category, optional custom timestamp, and automatic counterpart conversion.
+
+<p align="center">
+  <img src="./docs/images/03-add-expense.png" alt="Add expense form" width="720">
+</p>
+
+### History
+
+Searchable transaction list with category and date filters, sorting, edit, and soft-delete / recycle bin.
+
+<p align="center">
+  <img src="./docs/images/04-history.png" alt="Expense history" width="720">
+</p>
+
+### Emergency fund
+
+Savings target, essential categories, coverage timeline, and what-if planning for your safety net.
+
+<p align="center">
+  <img src="./docs/images/05-emergency-fund.png" alt="Emergency fund planner" width="720">
+</p>
+
+### Receipts
+
+Upload and keep receipt images (JPEG, PNG, WebP, HEIC/HEIF) with server-side signature checks.
+
+<p align="center">
+  <img src="./docs/images/07-receipts.png" alt="Receipt saver" width="720">
+</p>
+
+### Settings & backup
+
+Categories, recurring payments, appearance, privacy preferences, XLSX export/import, and PIN management.
+
+<p align="center">
+  <img src="./docs/images/06-settings.png" alt="Settings" width="720">
+</p>
+
+Also included:
+
+- **Recurring expenses** — scheduled payments with active / paused / cancelled status
+- **Backup** — XLSX export/import with spreadsheet formula escaping
 
 ## Tech Stack
 
@@ -228,7 +250,7 @@ Financial-Tracker/
 ├── client/                 # React + Vite frontend
 │   └── src/
 ├── server/                 # Express API
-├── docs/images/            # README UI screenshots
+├── docs/images/            # README UI images
 ├── ARCHITECTURE.md
 ├── AGENTS.md
 └── README.md
