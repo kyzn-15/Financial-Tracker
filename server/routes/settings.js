@@ -1,13 +1,18 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import { resetLimiter } from '../middleware/security.js';
+import { getAccountById } from '../services/accounts.js';
 import { resetAppData } from '../services/appReset.js';
 import {
   discardStagedReceiptFiles,
+  receiptFilenamesForUser,
+  restoreNamedReceiptFiles,
   restoreStagedReceiptFiles,
+  stageNamedReceiptFiles,
   stageReceiptFilesForReset,
 } from '../services/receiptCleanup.js';
 import { consumeResetIntent, createResetIntent } from '../services/resetIntent.js';
+import { requestUserId } from '../utils/ownership.js';
 
 const router = Router();
 
@@ -29,8 +34,16 @@ router.delete('/data', resetLimiter, async (req, res) => {
 
   let stagedReceiptDir;
   let databaseReset = false;
+  const userId = requestUserId(req);
   try {
-    const isPinValid = await bcrypt.compare(pin, process.env.ADMIN_PIN_HASH);
+    const account = userId == null ? null : await getAccountById(userId);
+    const pinHash = account?.password_hash || process.env.ADMIN_PIN_HASH || '';
+    let isPinValid = false;
+    try {
+      isPinValid = await bcrypt.compare(pin, pinHash);
+    } catch {
+      isPinValid = false;
+    }
     if (!isPinValid) {
       return res.status(401).json({ error: 'Current PIN is incorrect.' });
     }
@@ -43,15 +56,19 @@ router.delete('/data', resetLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Reset confirmation expired. Open the reset dialog again.' });
     }
 
-    stagedReceiptDir = stageReceiptFilesForReset();
-    await resetAppData();
+    const ownedFilenames = userId == null ? null : await receiptFilenamesForUser(userId);
+    stagedReceiptDir = ownedFilenames == null
+      ? stageReceiptFilesForReset()
+      : stageNamedReceiptFiles(ownedFilenames);
+    await resetAppData(userId);
     databaseReset = true;
     discardStagedReceiptFiles(stagedReceiptDir);
     return res.status(204).send();
   } catch (error) {
     if (stagedReceiptDir && !databaseReset) {
       try {
-        restoreStagedReceiptFiles(stagedReceiptDir);
+        if (userId == null) restoreStagedReceiptFiles(stagedReceiptDir);
+        else restoreNamedReceiptFiles(stagedReceiptDir);
       } catch (restoreError) {
         console.error('Receipt reset rollback error:', restoreError);
       }

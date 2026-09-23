@@ -1,12 +1,25 @@
+CREATE TABLE IF NOT EXISTS accounts (
+  id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+  username           TEXT NOT NULL COLLATE NOCASE UNIQUE,
+  password_hash      TEXT NOT NULL,
+  active_session_id  TEXT,
+  created_at         TEXT NOT NULL DEFAULT (datetime('now','+8 hours'))
+);
+CREATE INDEX IF NOT EXISTS idx_accounts_username ON accounts(username);
+
 CREATE TABLE IF NOT EXISTS expense_folders (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  name        TEXT NOT NULL COLLATE NOCASE UNIQUE,
-  created_at  TEXT NOT NULL DEFAULT (datetime('now','+8 hours'))
+  user_id     INTEGER,
+  name        TEXT NOT NULL COLLATE NOCASE,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now','+8 hours')),
+  UNIQUE (user_id, name)
 );
 CREATE INDEX IF NOT EXISTS idx_expense_folders_name ON expense_folders(name);
+CREATE INDEX IF NOT EXISTS idx_expense_folders_user_id ON expense_folders(user_id);
 
 CREATE TABLE IF NOT EXISTS expenses (
   id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id             INTEGER,
   name                TEXT NOT NULL,
   category            TEXT NOT NULL,
   price_myr           REAL,
@@ -23,14 +36,18 @@ CREATE INDEX IF NOT EXISTS idx_expenses_timestamp ON expenses(timestamp);
 CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
 CREATE INDEX IF NOT EXISTS idx_expenses_deleted_at ON expenses(deleted_at);
 CREATE INDEX IF NOT EXISTS idx_expenses_folder_id ON expenses(folder_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses(user_id);
 
 CREATE TABLE IF NOT EXISTS categories (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  name        TEXT NOT NULL COLLATE NOCASE UNIQUE,
+  user_id     INTEGER,
+  name        TEXT NOT NULL COLLATE NOCASE,
   sort_order  INTEGER NOT NULL,
-  created_at  TEXT NOT NULL DEFAULT (datetime('now','+8 hours'))
+  created_at  TEXT NOT NULL DEFAULT (datetime('now','+8 hours')),
+  UNIQUE (user_id, name)
 );
 CREATE INDEX IF NOT EXISTS idx_categories_sort_order ON categories(sort_order);
+CREATE INDEX IF NOT EXISTS idx_categories_user_id ON categories(user_id);
 
 INSERT INTO categories (name, sort_order)
 SELECT name, sort_order
@@ -71,6 +88,7 @@ FROM categories;
 
 CREATE TABLE IF NOT EXISTS recurring_expense_rules (
   id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id            INTEGER,
   anchor_expense_id  INTEGER,
   name               TEXT NOT NULL,
   category           TEXT NOT NULL,
@@ -86,6 +104,7 @@ CREATE TABLE IF NOT EXISTS recurring_expense_rules (
 );
 CREATE INDEX IF NOT EXISTS idx_recurring_rules_due ON recurring_expense_rules(status, next_run_at);
 CREATE INDEX IF NOT EXISTS idx_recurring_rules_category ON recurring_expense_rules(category);
+CREATE INDEX IF NOT EXISTS idx_recurring_rules_user_id ON recurring_expense_rules(user_id);
 
 CREATE TABLE IF NOT EXISTS recurring_expense_occurrences (
   rule_id        INTEGER NOT NULL,
@@ -100,6 +119,7 @@ CREATE INDEX IF NOT EXISTS idx_recurring_occurrences_expense ON recurring_expens
 
 CREATE TABLE IF NOT EXISTS receipts (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id      INTEGER,
   filename     TEXT NOT NULL,
   mime_type    TEXT NOT NULL,
   uploaded_at  TEXT NOT NULL,
@@ -109,9 +129,11 @@ CREATE TABLE IF NOT EXISTS receipts (
 );
 CREATE INDEX IF NOT EXISTS idx_receipts_expires_at ON receipts(expires_at);
 CREATE INDEX IF NOT EXISTS idx_receipts_deleted_at ON receipts(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_receipts_user_id ON receipts(user_id);
 
 CREATE TABLE IF NOT EXISTS emergency_settings (
   id                    INTEGER PRIMARY KEY,
+  user_id               INTEGER,
   current_savings_myr   REAL,
   current_savings_idr   REAL,
   reserved_funds_myr    REAL DEFAULT 0,
@@ -122,6 +144,8 @@ CREATE TABLE IF NOT EXISTS emergency_settings (
   essential_categories  TEXT,
   updated_at            TEXT
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_emergency_settings_user
+  ON emergency_settings(user_id) WHERE user_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS backup_preferences (
   username                TEXT PRIMARY KEY,
@@ -150,6 +174,10 @@ FROM (
 ) AS existing
 WHERE NOT EXISTS (
   SELECT 1 FROM app_metadata WHERE key = 'categories_v1_migrated'
+)
+AND NOT EXISTS (
+  SELECT 1 FROM categories AS already
+  WHERE already.name = existing.name COLLATE NOCASE
 );
 
 INSERT OR IGNORE INTO categories (name, sort_order)
@@ -170,7 +198,96 @@ FROM (
 ) AS existing
 WHERE NOT EXISTS (
   SELECT 1 FROM app_metadata WHERE key = 'categories_v1_migrated'
+)
+AND NOT EXISTS (
+  SELECT 1 FROM categories AS already
+  WHERE already.name = existing.name COLLATE NOCASE
 );
 
 INSERT OR IGNORE INTO app_metadata (key, value)
 VALUES ('categories_v1_migrated', 'complete');
+
+-- Legacy inserts that omit user_id belong to the configured administrator.
+CREATE TRIGGER IF NOT EXISTS expense_folders_assign_owner
+AFTER INSERT ON expense_folders
+FOR EACH ROW
+WHEN NEW.user_id IS NULL
+BEGIN
+  UPDATE expense_folders
+  SET user_id = (
+    SELECT id FROM accounts
+    WHERE username = (SELECT value FROM app_metadata WHERE key = 'bootstrap_admin_username')
+    LIMIT 1
+  )
+  WHERE id = NEW.id AND user_id IS NULL;
+END;
+
+CREATE TRIGGER IF NOT EXISTS expenses_assign_owner
+AFTER INSERT ON expenses
+FOR EACH ROW
+WHEN NEW.user_id IS NULL
+BEGIN
+  UPDATE expenses
+  SET user_id = (
+    SELECT id FROM accounts
+    WHERE username = (SELECT value FROM app_metadata WHERE key = 'bootstrap_admin_username')
+    LIMIT 1
+  )
+  WHERE id = NEW.id AND user_id IS NULL;
+END;
+
+CREATE TRIGGER IF NOT EXISTS categories_assign_owner
+AFTER INSERT ON categories
+FOR EACH ROW
+WHEN NEW.user_id IS NULL
+BEGIN
+  UPDATE categories
+  SET user_id = (
+    SELECT id FROM accounts
+    WHERE username = (SELECT value FROM app_metadata WHERE key = 'bootstrap_admin_username')
+    LIMIT 1
+  )
+  WHERE id = NEW.id AND user_id IS NULL;
+END;
+
+CREATE TRIGGER IF NOT EXISTS recurring_rules_assign_owner
+AFTER INSERT ON recurring_expense_rules
+FOR EACH ROW
+WHEN NEW.user_id IS NULL
+BEGIN
+  UPDATE recurring_expense_rules
+  SET user_id = (
+    SELECT id FROM accounts
+    WHERE username = (SELECT value FROM app_metadata WHERE key = 'bootstrap_admin_username')
+    LIMIT 1
+  )
+  WHERE id = NEW.id AND user_id IS NULL;
+END;
+
+CREATE TRIGGER IF NOT EXISTS receipts_assign_owner
+AFTER INSERT ON receipts
+FOR EACH ROW
+WHEN NEW.user_id IS NULL
+BEGIN
+  UPDATE receipts
+  SET user_id = (
+    SELECT id FROM accounts
+    WHERE username = (SELECT value FROM app_metadata WHERE key = 'bootstrap_admin_username')
+    LIMIT 1
+  )
+  WHERE id = NEW.id AND user_id IS NULL;
+END;
+
+CREATE TRIGGER IF NOT EXISTS emergency_settings_assign_owner
+AFTER INSERT ON emergency_settings
+FOR EACH ROW
+WHEN NEW.user_id IS NULL
+BEGIN
+  UPDATE emergency_settings
+  SET user_id = (
+    SELECT id FROM accounts
+    WHERE username = (SELECT value FROM app_metadata WHERE key = 'bootstrap_admin_username')
+    LIMIT 1
+  )
+  WHERE id = NEW.id AND user_id IS NULL;
+END;

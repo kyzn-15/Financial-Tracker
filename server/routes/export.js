@@ -6,6 +6,7 @@ import {
   importDatabaseWorkbook,
 } from '../services/exportWorkbook.js';
 import { nowUTC8 } from '../utils/datetime.js';
+import { requestUserId } from '../utils/ownership.js';
 import { backupImportLimiter, exportLimiter } from '../middleware/security.js';
 
 const router = Router();
@@ -24,9 +25,9 @@ const upload = multer({
   },
 });
 
-router.get('/records', exportLimiter, async (_req, res) => {
+router.get('/records', exportLimiter, async (req, res) => {
   try {
-    const buffer = await buildDatabaseExportWorkbook();
+    const buffer = await buildDatabaseExportWorkbook(requestUserId(req));
     const datePart = nowUTC8().slice(0, 10);
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -55,7 +56,7 @@ router.post('/records/import', backupImportLimiter, (req, res) => {
     }
 
     try {
-      const result = await importDatabaseWorkbook(req.file.buffer);
+      const result = await importDatabaseWorkbook(req.file.buffer, requestUserId(req));
       res.json({ message: 'Database backup imported successfully.', ...result });
     } catch (error) {
       if (error instanceof BackupValidationError) {

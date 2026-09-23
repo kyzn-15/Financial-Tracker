@@ -12,15 +12,22 @@ export async function calculateExpenseAmounts(price, currency, customKurs) {
   return convertExpenseAmounts(price, currency, kurs);
 }
 
-export function expenseInsert(name, category, amounts, currency, timestamp, folderId = null) {
+export function expenseInsert(name, category, amounts, currency, timestamp, folderId = null, userId = null) {
+  if (userId == null) {
+    return {
+      sql: `INSERT INTO expenses (name, category, price_myr, price_idr, original_currency, exchange_rate_used, timestamp, folder_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [name, category, amounts.priceMyr, amounts.priceIdr, currency, amounts.exchangeRateUsed, timestamp, folderId],
+    };
+  }
   return {
-    sql: `INSERT INTO expenses (name, category, price_myr, price_idr, original_currency, exchange_rate_used, timestamp, folder_id)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [name, category, amounts.priceMyr, amounts.priceIdr, currency, amounts.exchangeRateUsed, timestamp, folderId],
+    sql: `INSERT INTO expenses (name, category, price_myr, price_idr, original_currency, exchange_rate_used, timestamp, folder_id, user_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [name, category, amounts.priceMyr, amounts.priceIdr, currency, amounts.exchangeRateUsed, timestamp, folderId, userId],
   };
 }
 
-export async function getExpenseRecord(id) {
+export async function getExpenseRecord(id, userId = null) {
   const result = await db.execute({
     sql: `SELECT expenses.*,
                  expense_folders.name AS folder_name,
@@ -29,8 +36,8 @@ export async function getExpenseRecord(id) {
           FROM expenses
           LEFT JOIN expense_folders ON expense_folders.id = expenses.folder_id
           LEFT JOIN recurring_expense_occurrences ON recurring_expense_occurrences.expense_id = expenses.id
-          WHERE expenses.id = ?`,
-    args: [id],
+          WHERE expenses.id = ?${userId == null ? '' : ' AND expenses.user_id = ?'}`,
+    args: userId == null ? [id] : [id, userId],
   });
   return result.rows[0] || null;
 }
@@ -39,22 +46,31 @@ export async function createExpenseRecord(input, recurrence = { enabled: false }
   const timestamp = normalizeUTC8Timestamp(input.timestamp || nowUTC8());
   const amounts = await calculateExpenseAmounts(input.price, input.currency, input.customKurs);
   const folderId = input.folderId ?? null;
+  const userId = input.userId ?? null;
 
   if (!recurrence.enabled) {
-    const result = await db.execute(expenseInsert(input.name, input.category, amounts, input.currency, timestamp, folderId));
-    return getExpenseRecord(result.lastInsertRowid);
+    const result = await db.execute(expenseInsert(input.name, input.category, amounts, input.currency, timestamp, folderId, userId));
+    return getExpenseRecord(result.lastInsertRowid, userId);
   }
 
   const createdAt = nowUTC8();
   const nextRunAt = getNextRecurrenceUTC8(timestamp, timestamp, recurrence.frequency);
+  const ruleInsert = userId == null
+    ? {
+        sql: `INSERT INTO recurring_expense_rules
+                (anchor_expense_id, name, category, price, currency, frequency, anchor_timestamp, next_run_at, status, created_at, updated_at)
+              VALUES (last_insert_rowid(), ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+        args: [input.name, input.category, input.price, input.currency, recurrence.frequency, timestamp, nextRunAt, createdAt, createdAt],
+      }
+    : {
+        sql: `INSERT INTO recurring_expense_rules
+                (anchor_expense_id, name, category, price, currency, frequency, anchor_timestamp, next_run_at, status, created_at, updated_at, user_id)
+              VALUES (last_insert_rowid(), ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)`,
+        args: [input.name, input.category, input.price, input.currency, recurrence.frequency, timestamp, nextRunAt, createdAt, createdAt, userId],
+      };
   const results = await db.batch([
-    expenseInsert(input.name, input.category, amounts, input.currency, timestamp, folderId),
-    {
-      sql: `INSERT INTO recurring_expense_rules
-              (anchor_expense_id, name, category, price, currency, frequency, anchor_timestamp, next_run_at, status, created_at, updated_at)
-            VALUES (last_insert_rowid(), ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
-      args: [input.name, input.category, input.price, input.currency, recurrence.frequency, timestamp, nextRunAt, createdAt, createdAt],
-    },
+    expenseInsert(input.name, input.category, amounts, input.currency, timestamp, folderId, userId),
+    ruleInsert,
     {
       sql: `INSERT INTO recurring_expense_occurrences (rule_id, scheduled_for, expense_id, created_at)
             SELECT id, ?, anchor_expense_id, ? FROM recurring_expense_rules WHERE id = last_insert_rowid()`,
@@ -62,5 +78,5 @@ export async function createExpenseRecord(input, recurrence = { enabled: false }
     },
   ], 'write');
 
-  return getExpenseRecord(results[0].lastInsertRowid);
+  return getExpenseRecord(results[0].lastInsertRowid, userId);
 }

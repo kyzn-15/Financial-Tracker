@@ -6,6 +6,7 @@ import { folderExists } from '../services/folders.js';
 import { softDeleteExpense } from '../services/recycleBin.js';
 import { toMyrToIdrKurs } from '../utils/currency.js';
 import { nowUTC8 } from '../utils/datetime.js';
+import { requestUserId } from '../utils/ownership.js';
 
 const router = Router();
 
@@ -97,9 +98,9 @@ function parseFolderFilter(value) {
   return { folderId: id };
 }
 
-async function resolveFolderId(folderId) {
+async function resolveFolderId(folderId, userId = null) {
   if (folderId == null) return null;
-  return (await folderExists(folderId)) ? folderId : undefined;
+  return (await folderExists(folderId, userId)) ? folderId : undefined;
 }
 
 function parseExpenseId(value) {
@@ -148,16 +149,17 @@ function validateExpenseFilters(query) {
   return { name, category, startDate, endDate, sort, order, folderId: folderFilter.folderId };
 }
 
-async function resolveCategoryName(category) {
+async function resolveCategoryName(category, userId = null) {
   const result = await db.execute({
-    sql: 'SELECT name FROM categories WHERE name = ? COLLATE NOCASE',
-    args: [category],
+    sql: `SELECT name FROM categories WHERE name = ? COLLATE NOCASE${userId == null ? '' : ' AND user_id = ?'}`,
+    args: userId == null ? [category] : [category, userId],
   });
   return result.rows[0]?.name || null;
 }
 // ─── POST /api/expenses — Create a new expense ──────────────────────────────
 router.post('/', async (req, res) => {
   try {
+    const userId = requestUserId(req);
     const input = validateExpenseInput(req.body);
     if (!input) {
       return res.status(400).json({ error: 'Invalid expense details.' });
@@ -174,11 +176,11 @@ router.post('/', async (req, res) => {
     if (folderInput.invalid) {
       return res.status(400).json({ error: 'Invalid folder.' });
     }
-    const category = await resolveCategoryName(input.category);
+    const category = await resolveCategoryName(input.category, userId);
     if (!category) {
       return res.status(400).json({ error: 'Choose a category that is currently available.' });
     }
-    const folderId = await resolveFolderId(folderInput.folderId);
+    const folderId = await resolveFolderId(folderInput.folderId, userId);
     if (folderId === undefined) {
       return res.status(400).json({ error: 'Choose a folder that exists.' });
     }
@@ -187,6 +189,7 @@ router.post('/', async (req, res) => {
       category,
       customKurs: customKurs.kurs,
       folderId,
+      userId,
     }, recurrence);
     res.status(201).json(created);
   } catch (err) {
@@ -202,8 +205,13 @@ router.get('/', async (req, res) => {
     if (!filters) return res.status(400).json({ error: 'Invalid expense filters.' });
     const { name, category, startDate, endDate, sort, order, folderId } = filters;
 
+    const userId = requestUserId(req);
     const conditions = ['deleted_at IS NULL'];
     const params = [];
+    if (userId != null) {
+      conditions.push('user_id = ?');
+      params.push(userId);
+    }
 
     if (name) {
       const escapedName = name.replace(/[\\%_]/g, '\\$&');
@@ -253,12 +261,13 @@ router.get('/', async (req, res) => {
 // ─── PUT /api/expenses/:id/folder — Assign or move an expense folder ───────
 router.put('/:id/folder', async (req, res) => {
   try {
+    const userId = requestUserId(req);
     const id = parseExpenseId(req.params.id);
     if (!id) return res.status(400).json({ error: 'Invalid expense id' });
 
     const existingResult = await db.execute({
-      sql: 'SELECT id FROM expenses WHERE id = ? AND deleted_at IS NULL',
-      args: [id],
+      sql: `SELECT id FROM expenses WHERE id = ? AND deleted_at IS NULL${userId == null ? '' : ' AND user_id = ?'}`,
+      args: userId == null ? [id] : [id, userId],
     });
     if (!existingResult.rows[0]) {
       return res.status(404).json({ error: 'Expense not found' });
@@ -268,16 +277,16 @@ router.put('/:id/folder', async (req, res) => {
     if (folderInput.invalid) {
       return res.status(400).json({ error: 'Invalid folder.' });
     }
-    const folderId = await resolveFolderId(folderInput.folderId);
+    const folderId = await resolveFolderId(folderInput.folderId, userId);
     if (folderId === undefined) {
       return res.status(400).json({ error: 'Choose a folder that exists.' });
     }
 
     await db.execute({
-      sql: 'UPDATE expenses SET folder_id = ? WHERE id = ? AND deleted_at IS NULL',
-      args: [folderId, id],
+      sql: `UPDATE expenses SET folder_id = ? WHERE id = ? AND deleted_at IS NULL${userId == null ? '' : ' AND user_id = ?'}`,
+      args: userId == null ? [folderId, id] : [folderId, id, userId],
     });
-    const updated = await getExpenseRecord(id);
+    const updated = await getExpenseRecord(id, userId);
     res.json(updated);
   } catch (err) {
     console.error('PUT /api/expenses/:id/folder error:', err);
@@ -288,10 +297,14 @@ router.put('/:id/folder', async (req, res) => {
 // ─── PUT /api/expenses/:id — Update an expense ─────────────────────────────
 router.put('/:id', async (req, res) => {
   try {
+    const userId = requestUserId(req);
     const id = parseExpenseId(req.params.id);
     if (!id) return res.status(400).json({ error: 'Invalid expense id' });
 
-    const existingResult = await db.execute({ sql: 'SELECT * FROM expenses WHERE id = ? AND deleted_at IS NULL', args: [id] });
+    const existingResult = await db.execute({
+      sql: `SELECT * FROM expenses WHERE id = ? AND deleted_at IS NULL${userId == null ? '' : ' AND user_id = ?'}`,
+      args: userId == null ? [id] : [id, userId],
+    });
     const existing = existingResult.rows[0];
     if (!existing) {
       return res.status(404).json({ error: 'Expense not found' });
@@ -308,11 +321,11 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ error: 'Invalid folder.' });
     }
     const { name, price, currency, timestamp } = input;
-    const category = await resolveCategoryName(input.category);
+    const category = await resolveCategoryName(input.category, userId);
     if (!category) {
       return res.status(400).json({ error: 'Choose a category that is currently available.' });
     }
-    const folderId = await resolveFolderId(folderInput.folderId);
+    const folderId = await resolveFolderId(folderInput.folderId, userId);
     if (folderId === undefined) {
       return res.status(400).json({ error: 'Choose a folder that exists.' });
     }
@@ -329,11 +342,13 @@ router.put('/:id', async (req, res) => {
     await db.execute({
       sql: `UPDATE expenses
             SET name = ?, category = ?, price_myr = ?, price_idr = ?, original_currency = ?, exchange_rate_used = ?, timestamp = ?, folder_id = ?
-            WHERE id = ?`,
-      args: [name, category, priceMyr, priceIdr, cur, exchangeRateUsed, ts, folderId, id],
+            WHERE id = ?${userId == null ? '' : ' AND user_id = ?'}`,
+      args: userId == null
+        ? [name, category, priceMyr, priceIdr, cur, exchangeRateUsed, ts, folderId, id]
+        : [name, category, priceMyr, priceIdr, cur, exchangeRateUsed, ts, folderId, id, userId],
     });
 
-    const updated = await getExpenseRecord(id);
+    const updated = await getExpenseRecord(id, userId);
     res.json(updated);
   } catch (err) {
     console.error('PUT /api/expenses/:id error:', err);
@@ -349,7 +364,7 @@ router.delete('/:id', async (req, res) => {
 
     // Normal deletion is a soft delete: the expense stays recoverable in the
     // Recycle Bin for RETENTION_DAYS before automatic permanent cleanup.
-    const deleted = await softDeleteExpense(id);
+    const deleted = await softDeleteExpense(id, requestUserId(req));
     if (!deleted) {
       return res.status(404).json({ error: 'Expense not found' });
     }

@@ -19,6 +19,44 @@ function deleteReceiptFile(filename) {
   if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 }
 
+export async function receiptFilenamesForUser(userId) {
+  const result = await db.execute({
+    sql: 'SELECT filename FROM receipts WHERE user_id = ?',
+    args: [userId],
+  });
+  return result.rows.map((row) => String(row.filename || '')).filter(Boolean);
+}
+
+export function stageNamedReceiptFiles(filenames) {
+  const parentDir = path.dirname(RECEIPTS_UPLOAD_DIR);
+  fs.mkdirSync(parentDir, { recursive: true });
+  fs.mkdirSync(RECEIPTS_UPLOAD_DIR, { recursive: true });
+  const stagedDir = path.join(parentDir, `.receipts-reset-${randomUUID()}`);
+  fs.mkdirSync(stagedDir, { recursive: true });
+
+  for (const filename of filenames) {
+    let filePath;
+    try {
+      filePath = resolveReceiptFilePath(filename);
+    } catch {
+      continue;
+    }
+    if (!fs.existsSync(filePath)) continue;
+    fs.renameSync(filePath, path.join(stagedDir, path.basename(filePath)));
+  }
+  return stagedDir;
+}
+
+export function restoreNamedReceiptFiles(stagedDir) {
+  if (!stagedDir || !fs.existsSync(stagedDir)) return;
+  fs.mkdirSync(RECEIPTS_UPLOAD_DIR, { recursive: true });
+  for (const name of fs.readdirSync(stagedDir)) {
+    const target = path.join(RECEIPTS_UPLOAD_DIR, name);
+    if (!fs.existsSync(target)) fs.renameSync(path.join(stagedDir, name), target);
+  }
+  fs.rmSync(stagedDir, { recursive: true, force: true });
+}
+
 export async function purgeExpiredReceipts() {
   if (!fs.existsSync(RECEIPTS_UPLOAD_DIR)) {
     fs.mkdirSync(RECEIPTS_UPLOAD_DIR, { recursive: true });
