@@ -17,6 +17,7 @@ import type {
   EmergencyFundStore,
   ExchangeRate,
   Expense,
+  DeleteIntent,
   ExpenseFolder,
   FolderStore,
   RecurrenceFrequency,
@@ -54,7 +55,8 @@ interface SettingsPageProps {
   onCreateAndAssignFolder: (expenseId: number, name: string) => Promise<unknown>;
   onCreateResetIntent: () => Promise<ResetIntent>;
   onResetApp: (resetToken: string, pin: string) => Promise<void>;
-  onDeleteAccount: (pin: string) => Promise<void>;
+  onCreateDeleteIntent: () => Promise<DeleteIntent>;
+  onDeleteAccount: (deleteToken: string, pin: string) => Promise<void>;
   onNotify: (message: string, type?: 'info' | 'success' | 'error') => void;
 }
 
@@ -177,6 +179,7 @@ export default function SettingsPage({
   onCreateAndAssignFolder,
   onCreateResetIntent,
   onResetApp,
+  onCreateDeleteIntent,
   onDeleteAccount,
   onNotify,
 }: SettingsPageProps) {
@@ -190,7 +193,10 @@ export default function SettingsPage({
   const [isResetting, setIsResetting] = useState(false);
   const [resetError, setResetError] = useState('');
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteCountdown, setDeleteCountdown] = useState(10);
+  const [deleteIntent, setDeleteIntent] = useState('');
   const [deletePin, setDeletePin] = useState('');
+  const [isPreparingDelete, setIsPreparingDelete] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const overviewHeadingRef = useRef<HTMLElement>(null);
@@ -212,6 +218,12 @@ export default function SettingsPage({
     const timeoutId = window.setTimeout(() => setResetCountdown((seconds) => seconds - 1), 1000);
     return () => window.clearTimeout(timeoutId);
   }, [isResetOpen, resetCountdown]);
+
+  useEffect(() => {
+    if (!isDeleteOpen || deleteCountdown === 0) return undefined;
+    const timeoutId = window.setTimeout(() => setDeleteCountdown((seconds) => seconds - 1), 1000);
+    return () => window.clearTimeout(timeoutId);
+  }, [isDeleteOpen, deleteCountdown]);
 
   const openSection = (sectionId: SettingsSectionId | null) => {
     hasNavigatedRef.current = true;
@@ -245,7 +257,7 @@ export default function SettingsPage({
   };
 
   const confirmReset = async () => {
-    if (resetCountdown > 0 || isResetting || !resetIntent || !/^\d{4,12}$/.test(resetPin)) return;
+    if (resetCountdown > 0 || isResetting || !resetIntent || !/^\d{6,12}$/.test(resetPin)) return;
     setIsResetting(true);
     setResetError('');
     try {
@@ -253,6 +265,44 @@ export default function SettingsPage({
     } catch (error) {
       setResetError(getErrorMessage(error, 'Could not reset the application.'));
       setIsResetting(false);
+    }
+  };
+
+  const openDeleteDialog = async () => {
+    setDeleteCountdown(10);
+    setDeleteIntent('');
+    setDeletePin('');
+    setDeleteError('');
+    setIsDeleteOpen(true);
+    setIsPreparingDelete(true);
+    try {
+      const intent = await onCreateDeleteIntent();
+      setDeleteIntent(intent.token);
+      setDeleteCountdown(intent.waitSeconds);
+    } catch (error) {
+      setDeleteError(getErrorMessage(error, 'Could not prepare account deletion.'));
+    } finally {
+      setIsPreparingDelete(false);
+    }
+  };
+
+  const closeDeleteDialog = () => {
+    if (!isDeletingAccount) {
+      setIsDeleteOpen(false);
+      setDeleteIntent('');
+      setDeletePin('');
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (deleteCountdown > 0 || isDeletingAccount || !deleteIntent || !/^\d{6,12}$/.test(deletePin)) return;
+    setIsDeletingAccount(true);
+    setDeleteError('');
+    try {
+      await onDeleteAccount(deleteIntent, deletePin);
+    } catch (error) {
+      setDeleteError(getErrorMessage(error, 'Could not delete the account.'));
+      setIsDeletingAccount(false);
     }
   };
 
@@ -380,11 +430,11 @@ export default function SettingsPage({
             <section className="reset-settings neo-card" aria-labelledby="reset-settings-title">
               <div className="settings-section-heading">
                 <div>
-                  <h3 id="reset-settings-title">Danger zone</h3>
-                  <p>Erase this account’s records and start again with the default categories. Other accounts are left untouched.</p>
+                  <h3 id="reset-settings-title">Reset app data</h3>
+                  <p>Permanently erase this account’s records and start again with the default categories. This cannot be undone.</p>
                 </div>
                 <button className="neo-btn neo-btn--danger" type="button" onClick={openResetDialog}>
-                  Reset app
+                  Reset app data
                 </button>
               </div>
             </section>
@@ -437,7 +487,7 @@ export default function SettingsPage({
                       isPreparingReset ||
                       isResetting ||
                       !resetIntent ||
-                      !/^\d{4,12}$/.test(resetPin)
+                      !/^\d{6,12}$/.test(resetPin)
                     }
                   >
                     {isResetting
@@ -452,32 +502,26 @@ export default function SettingsPage({
               <div className="settings-section-heading">
                 <div>
                   <h3 id="delete-account-title">Delete account</h3>
-                  <p>Remove this login and every record stored for it. This cannot be undone.</p>
+                  <p>Permanently remove this login and every record stored for it. This cannot be undone.</p>
                 </div>
-                <button className="neo-btn neo-btn--danger" type="button" onClick={() => {
-                  setDeletePin('');
-                  setDeleteError('');
-                  setIsDeleteOpen(true);
-                }}>
+                <button className="neo-btn neo-btn--danger" type="button" onClick={openDeleteDialog}>
                   Delete account
                 </button>
               </div>
             </section>
             <Modal
               isOpen={isDeleteOpen}
-              onClose={() => {
-                if (!isDeletingAccount) setIsDeleteOpen(false);
-              }}
+              onClose={closeDeleteDialog}
               title="Delete this account?"
               dismissOnOverlayClick={!isDeletingAccount}
             >
               <div className="confirm-dialog reset-confirmation">
                 <p className="confirm-dialog__text">
-                  The account, its expenses, receipts, categories, folders, recurring payments,
-                  emergency fund settings, and backup preferences will be removed from the server.
+                  This permanently deletes this account and its expenses, receipt images, categories, folders,
+                  recurring payments, emergency fund settings, and backup preferences.
                 </p>
                 <p className="reset-confirmation__warning">
-                  Recycle Bin items for this account are removed too. Other people’s data stays in place.
+                  Recycle Bin items for this account are removed too. This process is irreversible.
                 </p>
                 <div className="reset-confirmation__pin-field">
                   <label className="neo-label" htmlFor="delete-account-pin">Current PIN</label>
@@ -489,33 +533,37 @@ export default function SettingsPage({
                     autoComplete="current-password"
                     maxLength={12}
                     value={deletePin}
-                    onChange={(event) => setDeletePin(event.target.value.replace(/\D/g, '').slice(0, 12))}
+                    onChange={(event) => setDeletePin(event.target.value)}
                     disabled={isDeletingAccount}
                     aria-describedby={deleteError ? 'delete-account-error' : undefined}
                   />
                 </div>
                 {deleteError && <p id="delete-account-error" className="reset-confirmation__error">{deleteError}</p>}
                 <div className="confirm-dialog__actions">
-                  <button className="neo-btn neo-btn--secondary" type="button" onClick={() => setIsDeleteOpen(false)} disabled={isDeletingAccount}>
+                  <button
+                    className="neo-btn neo-btn--secondary"
+                    type="button"
+                    onClick={closeDeleteDialog}
+                    disabled={isDeletingAccount}
+                  >
                     Cancel
                   </button>
                   <button
                     className="neo-btn neo-btn--danger"
                     type="button"
-                    onClick={async () => {
-                      if (!/^\d{4,12}$/.test(deletePin) || isDeletingAccount) return;
-                      try {
-                        setIsDeletingAccount(true);
-                        setDeleteError('');
-                        await onDeleteAccount(deletePin);
-                      } catch (error) {
-                        setDeleteError(getErrorMessage(error, 'Could not delete the account.'));
-                        setIsDeletingAccount(false);
-                      }
-                    }}
-                    disabled={isDeletingAccount || !/^\d{4,12}$/.test(deletePin)}
+                    onClick={confirmDelete}
+                    disabled={
+                      deleteCountdown > 0 ||
+                      isPreparingDelete ||
+                      isDeletingAccount ||
+                      !deleteIntent ||
+                      !/^\d{6,12}$/.test(deletePin)
+                    }
                   >
-                    {isDeletingAccount ? 'Deleting account...' : 'Delete account'}
+                    {isDeletingAccount
+                      ? 'Deleting account...'
+                      : isPreparingDelete ? 'Preparing secure deletion...'
+                      : deleteCountdown > 0 ? `Confirm deletion (${deleteCountdown}s)` : 'Confirm permanent deletion'}
                   </button>
                 </div>
               </div>

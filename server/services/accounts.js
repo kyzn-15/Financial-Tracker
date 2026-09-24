@@ -16,7 +16,7 @@ export function validateNewAccount(username, pin) {
   const normalized = username.trim();
   if (normalized.length < 1 || normalized.length > 80) return null;
   if (/[\u0000-\u001F\u007F]/.test(normalized)) return null;
-  if (!/^\d{4,12}$/.test(pin)) return null;
+  if (!/^\d{6,12}$/.test(pin)) return null;
   return { username: normalized, pin };
 }
 
@@ -37,7 +37,7 @@ export async function getAccountById(id) {
 export async function registerAccount(username, pin) {
   const account = validateNewAccount(username, pin);
   if (!account) {
-    const error = new Error('Username must be 1 to 80 characters and PIN must be 4 to 12 digits.');
+    const error = new Error('Username must be 1 to 80 characters and PIN must be 6 to 12 digits.');
     error.statusCode = 400;
     throw error;
   }

@@ -146,7 +146,7 @@ async function uploadReceipt(cookie) {
   return request('/api/receipts', { method: 'POST', cookie, form });
 }
 
-test('register, isolate, and delete an account without touching anyone else', async () => {
+test('register, isolate, and delete an account without touching anyone else', { timeout: 60_000 }, async () => {
   const categorySql = await db.execute({
     sql: "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'categories'",
     args: [],
@@ -253,10 +253,26 @@ test('register, isolate, and delete an account without touching anyone else', as
   assert.equal(crossDelete.response.status, 404);
   assert.equal((await request('/api/expenses', { cookie: bobCookie })).body[0].name, 'Bob lunch');
 
-  const deleted = await request('/api/auth/account', {
+  const pinOnly = await request('/api/auth/account', {
     method: 'DELETE',
     cookie: bobCookie,
     body: { pin: '246802' },
+  });
+  assert.equal(pinOnly.response.status, 400);
+  assert.equal((await request('/api/expenses', { cookie: bobCookie })).body[0].name, 'Bob lunch');
+
+  const deleteIntent = await request('/api/auth/account/delete-intent', {
+    method: 'POST',
+    cookie: bobCookie,
+  });
+  assert.equal(deleteIntent.response.status, 201);
+  assert.equal(deleteIntent.body.waitSeconds, 10);
+  await new Promise((resolve) => setTimeout(resolve, deleteIntent.body.waitSeconds * 1000 + 1000));
+
+  const deleted = await request('/api/auth/account', {
+    method: 'DELETE',
+    cookie: bobCookie,
+    body: { pin: '246802', deleteToken: deleteIntent.body.token },
   });
   assert.equal(deleted.response.status, 204);
   assert.equal((await request('/api/auth/session', { cookie: bobCookie })).response.status, 401);

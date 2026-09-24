@@ -25,7 +25,7 @@ router.delete('/data', resetLimiter, async (req, res) => {
   if (
     confirmation !== 'RESET' ||
     typeof pin !== 'string' ||
-    !/^\d{4,12}$/.test(pin) ||
+    !/^\d{6,12}$/.test(pin) ||
     typeof resetToken !== 'string' ||
     !/^[A-Za-z0-9_-]{43}$/.test(resetToken)
   ) {
