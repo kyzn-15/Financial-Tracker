@@ -1852,6 +1852,7 @@
 }
 
 .chart-card {
+  position: relative;
   background: var(--bg);
   border-radius: var(--radius-xl);
   box-shadow: var(--neo-out);
@@ -1860,15 +1861,82 @@
 
 .chart-card__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: var(--space-md);
   margin-bottom: var(--space-lg);
+  padding-right: 44px;
+}
+
+.chart-card__heading {
+  min-width: 0;
+}
+
+.chart-card__aside {
+  flex: 0 0 auto;
+}
+
+.chart-card__expand {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  z-index: 1;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text-secondary);
+  box-shadow: var(--neo-out-sm);
+  transition: color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.chart-card__expand:hover {
+  color: var(--accent);
+}
+
+.chart-card__expand:active {
+  box-shadow: var(--neo-in);
+  transform: scale(0.96);
+}
+
+.chart-card__expand:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 .chart-container {
   position: relative;
   width: 100%;
   height: 300px;
+}
+
+.chart-popup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.chart-popup__subtitle {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.chart-popup .chart-container {
+  height: min(72vh, 760px);
+}
+
+.chart-popup .heatmap-grid {
+  grid-template-rows: repeat(7, 18px);
+  grid-auto-columns: 18px;
+  gap: 5px;
+}
+
+.chart-popup .heatmap-day {
+  width: 18px;
+  height: 18px;
+  flex-basis: 18px;
 }
 
 /* ---- DASHBOARD ANALYTICS ---- */
@@ -2393,6 +2461,11 @@ button.heatmap-day:focus-visible {
 
 .modal-content--wide {
   max-width: 960px;
+}
+
+.modal-content.modal-content--chart {
+  width: min(1120px, calc(100vw - 2rem));
+  max-width: none;
 }
 
 .modal-content__header {
