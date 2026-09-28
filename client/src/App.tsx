@@ -141,8 +141,8 @@ export default function App() {
     }
   };
 
-  const handleDeleteAccount = async (pin: string) => {
-    await api.deleteAccount(pin);
+  const handleDeleteAccount = async (deleteToken: string, pin: string) => {
+    await api.deleteAccount(deleteToken, pin);
     clearLocalSession();
   };
 
@@ -218,7 +218,7 @@ function AppSkeleton() {
 
 interface AuthenticatedAppProps {
   onLogout: () => Promise<void>;
-  onDeleteAccount: (pin: string) => Promise<void>;
+  onDeleteAccount: (deleteToken: string, pin: string) => Promise<void>;
   sessionExpiresAt: number | null;
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
@@ -698,6 +698,7 @@ function AuthenticatedApp({ onLogout, onDeleteAccount, sessionExpiresAt, theme, 
               recycleBin={recycleBinStore}
               onCreateResetIntent={api.createResetIntent}
               onResetApp={handleResetApp}
+              onCreateDeleteIntent={api.createDeleteIntent}
               onDeleteAccount={onDeleteAccount}
               onNotify={showToast}
             />

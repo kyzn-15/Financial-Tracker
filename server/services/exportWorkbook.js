@@ -232,7 +232,11 @@ export async function buildDatabaseExportWorkbook(userId = null) {
 
     rowsResult.rows.forEach((row, index) => {
       sheet.addRow([
-        ...table.columns.map((column) => encodeCellValue(row[column.name])),
+        ...table.columns.map((column) => encodeCellValue(
+          table.name === 'accounts' && (column.name === 'password_hash' || column.name === 'active_session_id')
+            ? null
+            : row[column.name]
+        )),
         index + 1,
       ]);
     });
@@ -430,7 +434,10 @@ function parseTableRows(workbook, manifestTables, currentSchema) {
           sheet.getCell(sheetRow, columnIndex + 1),
           `Table "${table.name}", row ${rowIndex + 1}, column "${column.name}"`
         );
-        if (value == null && (column.notNull || column.primaryKey > 0)) {
+        // Exports clear credential columns. Those cells stay blank, and import does not write them back.
+        const blankedCredential = table.name === 'accounts'
+          && (column.name === 'password_hash' || column.name === 'active_session_id');
+        if (value == null && !blankedCredential && (column.notNull || column.primaryKey > 0)) {
           throw new BackupValidationError(`Table "${table.name}" contains a missing required value in column "${column.name}".`);
         }
         return value;

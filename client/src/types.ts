@@ -302,6 +302,12 @@ export interface ResetIntent {
   expiresAt: number;
 }
 
+export interface DeleteIntent {
+  token: string;
+  waitSeconds: number;
+  expiresAt: number;
+}
+
 export interface EmergencySettings {
   id: number;
   current_savings_myr: number;

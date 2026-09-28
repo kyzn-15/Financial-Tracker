@@ -16,6 +16,7 @@ import { Doughnut, Line } from 'react-chartjs-2';
 import { convertMyrAmount, convertToMyrAmount } from '../utils/formatters';
 import { getChartTheme } from '../utils/chartTheme';
 import AppIcon from './AppIcon';
+import ChartCard from './ChartCard';
 import type {
   Currency,
   EmergencyCategoryAverage,
@@ -699,23 +700,21 @@ function Analytics({ summary, planMonths, currency, myrToIdr, formatAmount }: An
         <h3>Analytics</h3>
       </div>
       <div className="emergency-analytics-grid">
-        <div className="chart-card">
-          <div className="chart-card__header">
-            <h3 className="chart-card__title">Essential vs Non-Essential</h3>
-          </div>
-          <div className="chart-container">
-            {hasPieData ? <Doughnut data={pieData} options={pieOptions} /> : <EmptyState>No spending data available.</EmptyState>}
-          </div>
-        </div>
+        <ChartCard title="Essential vs Non-Essential">
+          {() => (
+            <div className="chart-container">
+              {hasPieData ? <Doughnut data={pieData} options={pieOptions} /> : <EmptyState>No spending data available.</EmptyState>}
+            </div>
+          )}
+        </ChartCard>
 
-        <div className="chart-card">
-          <div className="chart-card__header">
-            <h3 className="chart-card__title">Coverage Trend</h3>
-          </div>
-          <div className="chart-container">
-            <Line data={lineData} options={lineOptions} />
-          </div>
-        </div>
+        <ChartCard title="Coverage Trend">
+          {() => (
+            <div className="chart-container">
+              <Line data={lineData} options={lineOptions} />
+            </div>
+          )}
+        </ChartCard>
 
         <div className="neo-card emergency-ranking">
           <div className="emergency-section-heading">

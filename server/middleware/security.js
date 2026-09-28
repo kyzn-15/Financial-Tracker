@@ -156,6 +156,14 @@ export const loginLimiter = rateLimit({
   message: { error: 'Too many login attempts. Try again later.' },
 });
 
+// Counts every attempt, including accounts that were created, so signup cannot fill the database.
+export const registerLimiter = rateLimit({
+  ...rateLimitDefaults,
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  message: { error: 'Too many registration attempts. Try again later.' },
+});
+
 export const receiptUploadLimiter = rateLimit({
   ...rateLimitDefaults,
   windowMs: 60 * 60 * 1000,
