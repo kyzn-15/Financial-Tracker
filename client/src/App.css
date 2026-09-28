@@ -4062,8 +4062,9 @@ button.heatmap-day:focus-visible {
   }
 
   .header__details--open .header__info {
-    max-height: 180px;
+    max-height: 240px;
     margin-top: var(--space-sm);
+    padding: 14px 12px;
     opacity: 1;
     transform: translateY(0);
   }
@@ -4073,6 +4074,10 @@ button.heatmap-day:focus-visible {
   .header__logout-btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .header__logout-btn {
+    border-radius: var(--radius);
   }
 }
 
