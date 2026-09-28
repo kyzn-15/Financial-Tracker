@@ -750,7 +750,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 168px;
   gap: var(--space-sm);
-  align-items: start;
+  align-items: center;
 }
 
 .folder-manager__member-name {
@@ -3564,10 +3564,14 @@ button.heatmap-day:focus-visible {
 
   .category-manager__add-row,
   .folder-manager__add-row,
-  .folder-manager__member,
   .folder-manager__header,
   .folder-picker__create-row {
     grid-template-columns: 1fr;
+  }
+
+  .folder-manager__member {
+    grid-template-columns: minmax(0, 1fr) minmax(6.5rem, 9.5rem);
+    align-items: center;
   }
 
   .expense-folder-select,
@@ -3577,8 +3581,11 @@ button.heatmap-day:focus-visible {
     max-width: 42vw;
   }
 
-  .folder-manager__member .expense-folder-select {
-    justify-self: end;
+  .folder-manager__member .expense-folder-select,
+  .folder-manager__member .expense-folder-select__trigger {
+    width: 100%;
+    max-width: none;
+    justify-self: stretch;
   }
 
   .expense-table td[data-label="Folder"] {
