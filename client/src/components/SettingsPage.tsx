@@ -101,7 +101,7 @@ const SETTINGS_GROUPS: SettingsGroup[] = [
         id: 'categories',
         name: 'Expense Categories',
         icon: 'sliders-horizontal',
-        description: 'Add, rename, reorder, and automate expense categories.',
+        description: 'Add, rename, reorder, autosort by use, and automate expense categories.',
       },
       {
         id: 'folders',

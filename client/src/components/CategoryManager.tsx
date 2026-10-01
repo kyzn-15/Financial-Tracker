@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import AppIcon from './AppIcon';
+import OptionSelect from './OptionSelect';
 import type { Category, RecurrenceFrequency } from '../types';
+import { orderCategoriesByUse, useCategoryAutosort } from '../utils/categoryOrder';
 import { getErrorMessage } from '../utils/errors';
 
 interface CategoryManagerProps {
@@ -33,6 +35,15 @@ export default function CategoryManager({
   const [confirmingRemovalId, setConfirmingRemovalId] = useState<number | null>(null);
   const [message, setMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [autosort, setAutosort] = useCategoryAutosort();
+  const orderedCategories = useMemo(
+    () => (autosort ? orderCategoriesByUse(categories) : categories),
+    [autosort, categories],
+  );
+
+  useEffect(() => {
+    onRetry().catch(() => {});
+  }, [onRetry]);
 
   const runAction = async (action: () => Promise<unknown>, successMessage: string): Promise<boolean> => {
     setIsSaving(true);
@@ -90,9 +101,10 @@ export default function CategoryManager({
   };
 
   const moveCategory = async (index: number, direction: -1 | 1) => {
+    if (autosort) return;
     const destination = index + direction;
-    if (destination < 0 || destination >= categories.length) return;
-    const reordered = [...categories];
+    if (destination < 0 || destination >= orderedCategories.length) return;
+    const reordered = [...orderedCategories];
     [reordered[index], reordered[destination]] = [reordered[destination], reordered[index]];
     await runAction(() => onReorder(reordered.map((category) => category.id)), 'Category order updated.');
   };
@@ -109,8 +121,18 @@ export default function CategoryManager({
       <div className="settings-section-heading">
         <div>
           <h3 id="category-manager-title">Expense Categories</h3>
-          <p>Set the default for future expense entries. Every automated payment can still be disabled individually.</p>
+          <p>Set the default for future expense entries. Autosort keeps this list and the add-expense categories ordered by how many expenses use them, most used first. Turn it off to arrange them with the arrows. Every automated payment can still be disabled individually.</p>
         </div>
+        <label className="automation-switch automation-switch--labelled category-manager__autosort">
+          <input
+            type="checkbox"
+            checked={autosort}
+            onChange={(event) => setAutosort(event.target.checked)}
+            aria-label="Autosort categories by how often they are used"
+          />
+          <span aria-hidden="true" />
+          <strong>{autosort ? 'Autosort on' : 'Autosort off'}</strong>
+        </label>
       </div>
 
       <form className="category-manager__add" onSubmit={handleAdd}>
@@ -130,15 +152,15 @@ export default function CategoryManager({
         </div>
       </form>
 
-      {loading ? (
+      {loading && categories.length === 0 ? (
         <p className="category-manager__status">Loading categories...</p>
       ) : (
         <div className="category-manager__list">
-          {categories.map((category, index) => (
+          {orderedCategories.map((category, index) => (
             <div className="category-manager__item" key={category.id}>
               <div className="category-manager__order" aria-label={`Reorder ${category.name}`}>
-                <button type="button" onClick={() => moveCategory(index, -1)} disabled={isSaving || index === 0} aria-label={`Move ${category.name} up`}><AppIcon name="arrow-up" size={15} /></button>
-                <button type="button" onClick={() => moveCategory(index, 1)} disabled={isSaving || index === categories.length - 1} aria-label={`Move ${category.name} down`}><AppIcon name="arrow-down" size={15} /></button>
+                <button type="button" onClick={() => moveCategory(index, -1)} disabled={isSaving || autosort || index === 0} aria-label={`Move ${category.name} up`} title={autosort ? 'Turn autosort off to reorder by hand' : undefined}><AppIcon name="arrow-up" size={15} /></button>
+                <button type="button" onClick={() => moveCategory(index, 1)} disabled={isSaving || autosort || index === orderedCategories.length - 1} aria-label={`Move ${category.name} down`} title={autosort ? 'Turn autosort off to reorder by hand' : undefined}><AppIcon name="arrow-down" size={15} /></button>
               </div>
 
               {editingId === category.id ? (
@@ -165,11 +187,19 @@ export default function CategoryManager({
                   <span aria-hidden="true" />
                   <strong>{category.automation_enabled ? 'Automated' : 'Manual'}</strong>
                 </label>
-                <select className="neo-select category-manager__frequency" value={category.automation_frequency} onChange={(event) => updateAutomation(category, true, event.target.value === 'daily' || event.target.value === 'weekly' ? event.target.value : 'monthly')} disabled={isSaving || !category.automation_enabled} aria-label={`Default frequency for ${category.name}`}>
-                  <option value="daily">Every day</option>
-                  <option value="weekly">Every week</option>
-                  <option value="monthly">Every month</option>
-                </select>
+                <OptionSelect
+                  className="category-manager__frequency"
+                  dialogTitle={`Repeat ${category.name}`}
+                  ariaLabel={`Default frequency for ${category.name}`}
+                  value={category.automation_frequency}
+                  onChange={(value) => updateAutomation(category, true, value === 'daily' || value === 'weekly' ? value : 'monthly')}
+                  disabled={isSaving || !category.automation_enabled}
+                  options={[
+                    { value: 'daily', label: 'Every day' },
+                    { value: 'weekly', label: 'Every week' },
+                    { value: 'monthly', label: 'Every month' },
+                  ]}
+                />
               </div>
 
               <div className="category-manager__actions">

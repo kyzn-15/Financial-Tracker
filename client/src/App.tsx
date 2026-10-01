@@ -21,6 +21,7 @@ import { useCategories } from './hooks/useCategories';
 import { useFolders } from './hooks/useFolders';
 import { useRecycleBin } from './hooks/useRecycleBin';
 import { PrivacyModeProvider, PRIVACY_MODE_KEY, PRIVACY_ON_LOGIN_KEY } from './hooks/usePrivacyMode';
+import { CATEGORY_AUTOSORT_KEY } from './utils/categoryOrder';
 import * as api from './services/api';
 import AppIcon from './components/AppIcon';
 import type {
@@ -255,7 +256,6 @@ function AuthenticatedApp({ onLogout, onDeleteAccount, sessionExpiresAt, theme, 
 
   const categoryStore = useCategories();
   const folderStore = useFolders();
-  const categoryNames = categoryStore.categories.map((category) => category.name);
   const recurringStore = useRecurringExpenses();
 
   const {
@@ -520,6 +520,7 @@ function AuthenticatedApp({ onLogout, onDeleteAccount, sessionExpiresAt, theme, 
     window.localStorage.removeItem('financial-tracker-theme');
     window.localStorage.removeItem(PRIVACY_MODE_KEY);
     window.localStorage.removeItem(PRIVACY_ON_LOGIN_KEY);
+    window.localStorage.removeItem(CATEGORY_AUTOSORT_KEY);
     onThemeChange('light');
     await onLogout();
   };
@@ -588,6 +589,7 @@ function AuthenticatedApp({ onLogout, onDeleteAccount, sessionExpiresAt, theme, 
                 folders={folderStore.folders}
                 exchangeRate={exchangeRate}
                 onCreateFolder={folderStore.createFolder}
+                onRefreshCategories={categoryStore.refresh}
                 onSubmit={handleAddSubmit}
                 submitText="Add Expense"
               />
@@ -627,7 +629,7 @@ function AuthenticatedApp({ onLogout, onDeleteAccount, sessionExpiresAt, theme, 
                 </button>
               </div>
               <FilterBar
-                categories={categoryNames}
+                categories={categoryStore.categories}
                 folders={folderStore.folders}
                 filters={filters}
                 onChange={updateFilters}
@@ -719,6 +721,7 @@ function AuthenticatedApp({ onLogout, onDeleteAccount, sessionExpiresAt, theme, 
             folders={folderStore.folders}
             exchangeRate={exchangeRate}
             onCreateFolder={folderStore.createFolder}
+            onRefreshCategories={categoryStore.refresh}
             onSubmit={handleEditSubmit}
             initialData={editingExpense}
             submitText="Save Changes"

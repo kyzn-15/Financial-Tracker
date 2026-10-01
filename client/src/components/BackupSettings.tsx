@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import OptionSelect from './OptionSelect';
 import type { BackupPreferences } from '../types';
 import { getErrorMessage } from '../utils/errors';
 
@@ -75,17 +76,15 @@ export default function BackupSettings({ preferences, onSaveInterval, onResetLas
 
       <form className="backup-settings__form" onSubmit={handleSubmit}>
         <label className="neo-label" htmlFor="backup-reminder-interval">Remind me</label>
-        <select
+        <OptionSelect
           id="backup-reminder-interval"
-          className="neo-select"
-          value={selectedInterval}
-          onChange={(event) => setSelectedInterval(Number(event.target.value))}
+          dialogTitle="Remind me"
+          ariaLabel="Backup reminder interval"
+          value={String(selectedInterval)}
+          onChange={(value) => setSelectedInterval(Number(value))}
           disabled={isSaving}
-        >
-          {REMINDER_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
+          options={REMINDER_OPTIONS.map((option) => ({ value: String(option.value), label: option.label, icon: 'database' }))}
+        />
         <div className="backup-settings__actions">
           <button className="neo-btn neo-btn--primary" type="submit" disabled={isSaving}>
             {isSaving ? 'Saving...' : 'Save reminder'}

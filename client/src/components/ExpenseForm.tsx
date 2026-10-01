@@ -1,7 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import AppIcon from './AppIcon';
+import CategorySelect from './CategorySelect';
+import OptionSelect from './OptionSelect';
 import type { Category, Currency, ExchangeRate, Expense, ExpenseFolder, ExpenseInput, KursQuote, RecurrenceFrequency } from '../types';
+import { orderCategoriesByUse, useCategoryAutosort } from '../utils/categoryOrder';
 import { formatKursInput, invertKursQuote } from '../utils/currency';
 import { getErrorMessage } from '../utils/errors';
 import { usePrivacyMode } from '../hooks/usePrivacyMode';
@@ -11,6 +14,7 @@ interface ExpenseFormProps {
   folders?: ExpenseFolder[];
   exchangeRate?: ExchangeRate | null;
   onCreateFolder?: (name: string) => Promise<ExpenseFolder>;
+  onRefreshCategories?: () => Promise<unknown>;
   onSubmit: (data: ExpenseInput) => Promise<unknown>;
   initialData?: Expense;
   submitText?: string;
@@ -23,6 +27,7 @@ export default function ExpenseForm({
   folders = [],
   exchangeRate = null,
   onCreateFolder,
+  onRefreshCategories,
   onSubmit,
   initialData,
   submitText = 'Save Expense',
@@ -30,6 +35,13 @@ export default function ExpenseForm({
   onCancel,
 }: ExpenseFormProps) {
   const { isPrivacyMode } = usePrivacyMode();
+  const [autosort] = useCategoryAutosort();
+  const orderedCategories = useMemo(
+    () => (autosort ? orderCategoriesByUse(categories) : categories),
+    [autosort, categories],
+  );
+  const categoryPicked = useRef(false);
+  const appliedDefaultCategory = useRef('');
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [price, setPrice] = useState('');
@@ -93,19 +105,28 @@ export default function ExpenseForm({
       setNewFolderName('');
       setShowAdditionalDetails(false);
     }
+    categoryPicked.current = Boolean(initialData);
+    appliedDefaultCategory.current = '';
     setValidationError('');
   }, [initialData]);
 
   useEffect(() => {
-    if (!initialData && !category && categories.length > 0) {
-      const firstCategory = categories[0];
-      setCategory(firstCategory.name);
-      setRecurrenceEnabled(firstCategory.automation_enabled);
-      setRecurrenceFrequency(firstCategory.automation_frequency || 'monthly');
-    }
-  }, [categories, category, initialData]);
+    if (!onRefreshCategories) return;
+    onRefreshCategories().catch(() => {});
+  }, [onRefreshCategories]);
+
+  useEffect(() => {
+    if (initialData || categoryPicked.current || orderedCategories.length === 0) return;
+    const firstCategory = orderedCategories[0];
+    if (appliedDefaultCategory.current === firstCategory.name) return;
+    appliedDefaultCategory.current = firstCategory.name;
+    setCategory(firstCategory.name);
+    setRecurrenceEnabled(firstCategory.automation_enabled);
+    setRecurrenceFrequency(firstCategory.automation_frequency || 'monthly');
+  }, [orderedCategories, initialData]);
 
   const handleCategoryChange = (nextCategory: string) => {
+    categoryPicked.current = true;
     setCategory(nextCategory);
     if (initialData) return;
     const categorySettings = categories.find((item) => item.name === nextCategory);
@@ -248,20 +269,15 @@ export default function ExpenseForm({
       <div className="expense-form__row">
         <div className="neo-input-group">
           <label className="neo-label" htmlFor="expense-category">Category</label>
-          <select
+          <CategorySelect
             id="expense-category"
-            className="neo-select"
+            choices={orderedCategories.map((cat) => ({ name: cat.name, usageCount: cat.usage_count }))}
             value={category}
-            onChange={(e) => handleCategoryChange(e.target.value)}
-            required
-          >
-            <option value="" disabled>Select category</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.name}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
+            onChange={handleCategoryChange}
+            onOpen={onRefreshCategories}
+            placeholder="Select category"
+            ariaLabel="Category"
+          />
         </div>
 
         <div className="neo-input-group">
@@ -319,16 +335,18 @@ export default function ExpenseForm({
           {recurrenceEnabled && (
             <div className="neo-input-group">
               <label className="neo-label" htmlFor="expense-recurrence-frequency">Repeat every</label>
-              <select
+              <OptionSelect
                 id="expense-recurrence-frequency"
-                className="neo-select"
+                dialogTitle="Repeat every"
+                ariaLabel="Repeat every"
                 value={recurrenceFrequency}
-                onChange={(event) => setRecurrenceFrequency(event.target.value === 'daily' || event.target.value === 'weekly' ? event.target.value : 'monthly')}
-              >
-                <option value="daily">Day</option>
-                <option value="weekly">Week</option>
-                <option value="monthly">Month</option>
-              </select>
+                onChange={(value) => setRecurrenceFrequency(value === 'daily' || value === 'weekly' ? value : 'monthly')}
+                options={[
+                  { value: 'daily', label: 'Day', icon: 'refresh' },
+                  { value: 'weekly', label: 'Week', icon: 'refresh' },
+                  { value: 'monthly', label: 'Month', icon: 'refresh' },
+                ]}
+              />
               <p className="expense-recurrence__hint">This expense is the first occurrence. The next one follows after one interval.</p>
             </div>
           )}
@@ -418,19 +436,17 @@ export default function ExpenseForm({
 
             <div className="neo-input-group">
               <label className="neo-label" htmlFor="expense-folder">Folder</label>
-              <select
+              <OptionSelect
                 id="expense-folder"
-                className="neo-select"
+                dialogTitle="Choose folder"
+                ariaLabel="Folder"
                 value={folderId}
-                onChange={(e) => setFolderId(e.target.value)}
-              >
-                <option value="">No folder</option>
-                {folders.map((folder) => (
-                  <option key={folder.id} value={folder.id}>
-                    {folder.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setFolderId}
+                options={[
+                  { value: '', label: 'No folder', icon: 'folder' },
+                  ...folders.map((folder) => ({ value: String(folder.id), label: folder.name, icon: 'folder' })),
+                ]}
+              />
               {onCreateFolder && (
                 <div className="expense-form__folder-create">
                   <input

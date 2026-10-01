@@ -16,6 +16,8 @@ import { Doughnut, Line } from 'react-chartjs-2';
 import { convertMyrAmount, convertToMyrAmount } from '../utils/formatters';
 import { getChartTheme } from '../utils/chartTheme';
 import AppIcon from './AppIcon';
+import CategorySelect from './CategorySelect';
+import OptionSelect from './OptionSelect';
 import ChartCard from './ChartCard';
 import type {
   Currency,
@@ -192,16 +194,14 @@ export function EmergencySavingsSettingsPanel({ settingsPayload, onSave, saving,
 
         <div className="neo-input-group">
           <label className="neo-label" htmlFor="emergency-target-months">Target Months</label>
-          <select
+          <OptionSelect
             id="emergency-target-months"
-            className="neo-select"
-            value={form.target_months}
-            onChange={(event) => updateField('target_months', Number(event.target.value))}
-          >
-            {TARGET_OPTIONS.map((option) => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
+            dialogTitle="Target months"
+            ariaLabel="Target months"
+            value={String(form.target_months)}
+            onChange={(value) => updateField('target_months', Number(value))}
+            options={TARGET_OPTIONS.map((option) => ({ value: String(option), label: `${option} months` }))}
+          />
         </div>
       </div>
 
@@ -374,16 +374,14 @@ function GoalCard({ summary, planMonths, setPlanMonths, formatAmount }: GoalCard
       </div>
       <div className="emergency-plan">
         <label className="neo-label" htmlFor="emergency-plan-months">Reach Goal In</label>
-        <select
+        <OptionSelect
           id="emergency-plan-months"
-          className="neo-select"
-          value={planMonths}
-          onChange={(event) => setPlanMonths(Number(event.target.value))}
-        >
-          {PLAN_OPTIONS.map((option) => (
-            <option key={option} value={option}>{option} months</option>
-          ))}
-        </select>
+          dialogTitle="Reach goal in"
+          ariaLabel="Reach goal in"
+          value={String(planMonths)}
+          onChange={(value) => setPlanMonths(Number(value))}
+          options={PLAN_OPTIONS.map((option) => ({ value: String(option), label: `${option} months` }))}
+        />
         <div className="emergency-plan__result">
           <span>Monthly Saving Needed</span>
           <strong>{formatAmount(monthlyNeeded)}</strong>
@@ -548,30 +546,30 @@ function Simulator({ simulation, runSimulation, categoryAverages, currency, myrT
 
               <label className="simulation-field simulation-field--type">
                 <span>Type</span>
-                <select
-                  className="neo-select"
+                <OptionSelect
+                  dialogTitle="Adjustment type"
+                  ariaLabel={`Type for adjustment ${index + 1}`}
                   value={item.type}
-                  onChange={(event) => updateAdjustment(item.id, 'type', event.target.value === 'percent' ? 'percent' : 'amount')}
-                >
-                  <option value="amount">{currency} Change</option>
-                  <option value="percent">Category %</option>
-                </select>
+                  onChange={(value) => updateAdjustment(item.id, 'type', value === 'percent' ? 'percent' : 'amount')}
+                  options={[
+                    { value: 'amount', label: `${currency} Change`, icon: 'circle-dollar' },
+                    { value: 'percent', label: 'Category %', icon: 'chart' },
+                  ]}
+                />
               </label>
 
               {item.type === 'percent' ? (
                 <>
                   <label className="simulation-field simulation-field--category">
                     <span>Category</span>
-                    <select
-                      className="neo-select"
+                    <CategorySelect
+                      choices={categoryAverages.map((category) => ({ name: category.category }))}
                       value={item.baseCategory}
-                      onChange={(event) => updateAdjustment(item.id, 'baseCategory', event.target.value)}
-                    >
-                      {categoryAverages.length === 0 && <option value="">No categories</option>}
-                      {categoryAverages.map((category) => (
-                        <option key={category.category} value={category.category}>{category.category}</option>
-                      ))}
-                    </select>
+                      onChange={(name) => updateAdjustment(item.id, 'baseCategory', name)}
+                      placeholder="No categories"
+                      disabled={categoryAverages.length === 0}
+                      ariaLabel={`Category for adjustment ${index + 1}`}
+                    />
                   </label>
                   <label className="simulation-field simulation-field--value">
                     <span>Change %</span>
