@@ -5,6 +5,7 @@ import { maskFormattedCurrency, usePrivacyMode } from '../hooks/usePrivacyMode';
 import { getCategoryIconName } from '../utils/categoryIcons';
 import AppIcon from './AppIcon';
 import FolderSelect from './FolderSelect';
+import OptionSelect from './OptionSelect';
 import type { Currency, Expense, ExpenseFolder, ExpenseFilters, ExpenseSortColumn } from '../types';
 
 interface ExpenseListProps {
@@ -101,21 +102,23 @@ export default function ExpenseList({
           </div>
           <label className="pagination__size" htmlFor="expense-page-size">
             Rows per page
-            <select
+            <OptionSelect
               id="expense-page-size"
-              className="neo-select"
+              dialogTitle="Rows per page"
+              ariaLabel="Rows per page"
               value={pageSizeOption}
-              onChange={(event) => {
-                setPageSizeOption(event.target.value);
+              onChange={(value) => {
+                setPageSizeOption(value);
                 setCurrentPage(1);
               }}
-            >
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="100">100</option>
-              <option value="300">300</option>
-              <option value="all">All</option>
-            </select>
+              options={[
+                { value: '10', label: '10' },
+                { value: '20', label: '20' },
+                { value: '100', label: '100' },
+                { value: '300', label: '300' },
+                { value: 'all', label: 'All' },
+              ]}
+            />
           </label>
         </div>
       </>}
