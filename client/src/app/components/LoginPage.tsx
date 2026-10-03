@@ -3,18 +3,19 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { getSystemStatus } from '../services/api';
 import type { LoginCredentials } from '../types';
 import { getErrorMessage } from '../utils/errors';
-import appLogo from '../assets/logo.svg';
+import appLogo from '../../assets/logo.svg';
 
 interface LoginPageProps {
   onLogin: (credentials: LoginCredentials) => Promise<void>;
   onRegister: (credentials: LoginCredentials) => Promise<void>;
+  initialMode?: 'login' | 'register';
 }
 
 type LoginStep = 'username' | 'pin';
 type SystemStatus = 'checking' | 'operational' | 'issues';
 
-export default function LoginPage({ onLogin, onRegister }: LoginPageProps) {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+export default function LoginPage({ onLogin, onRegister, initialMode = 'login' }: LoginPageProps) {
+  const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [step, setStep] = useState<LoginStep>('username');
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');

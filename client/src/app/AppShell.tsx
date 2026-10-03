@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import './App.css';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -40,7 +41,9 @@ import { getErrorMessage, isAuthenticationError } from './utils/errors';
 
 const SESSION_HINT_KEY = 'financial-tracker-has-session';
 
-export default function App() {
+export default function AppShell() {
+  const [searchParams] = useSearchParams();
+  const initialAuthMode = searchParams.get('mode') === 'register' ? 'register' : 'login';
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [hasSessionHint] = useState(() => window.localStorage.getItem(SESSION_HINT_KEY) === 'true');
@@ -152,7 +155,7 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
-    return <LoginPage onLogin={handleLogin} onRegister={handleRegister} />;
+    return <LoginPage initialMode={initialAuthMode} onLogin={handleLogin} onRegister={handleRegister} />;
   }
 
   return <PrivacyModeProvider><AuthenticatedApp onLogout={handleLogout} onDeleteAccount={handleDeleteAccount} sessionExpiresAt={sessionExpiresAt} theme={theme} onThemeChange={setTheme} /></PrivacyModeProvider>;

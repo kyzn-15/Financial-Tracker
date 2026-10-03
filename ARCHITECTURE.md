@@ -20,20 +20,28 @@ The application supports MYR and IDR expenses, storing the entered currency, bot
 - Security and auth: bcrypt, signed HttpOnly cookie sessions, Helmet, credentialed CORS, origin checks, and rate limiting.
 - File and data interchange: Multer for receipt and workbook uploads; ExcelJS for portable XLSX database backups.
 
-`server/config/env.js` loads `server/.env` in development/test and `server/.env.production` in production. The client requires `VITE_API_URL`; `client/src/services/api.ts` normalizes an origin or `/api` URL into the API base URL. Server startup fails when required environment, origin, database, exchange-rate, or authentication settings are missing or unsafe.
+`server/config/env.js` loads `server/.env` in development/test and `server/.env.production` in production. The client requires `VITE_API_URL`; `client/src/app/services/api.ts` normalizes an origin or `/api` URL into the API base URL. Server startup fails when required environment, origin, database, exchange-rate, or authentication settings are missing or unsafe.
 
 ## Repository layout
 
 ```
 client/
   src/
-    components/       Presentational screens, forms, charts, dialogs, and controls (TSX)
-    hooks/            Feature state and API-refresh orchestration
-    services/api.ts   The sole client HTTP boundary
-    types.ts          Shared domain types for API payloads, stores, and component props
-    utils/            Formatting, chart theme, category icons, errors, and dashboard calculations
-    App.tsx           Authentication gate, tab shell, and feature composition
-    App.css,index.css Application theme and layout styles
+    main.tsx          Renders the router
+    router.tsx        Route table: `/` landing, `/app` product, other paths 404
+    paths.ts          Shared path constants used by the route table and landing links
+    styles/index.css  Shared neomorphic tokens and base styles
+    landing/          Public marketing page only. No finance API calls
+    app/
+      AppShell.tsx    Authentication gate, tab shell, and feature composition
+      App.css         Product layout styles
+      components/     Presentational screens, forms, charts, dialogs, and controls (TSX)
+      hooks/          Feature state and API-refresh orchestration
+      services/api.ts The sole client HTTP boundary
+      types.ts        Shared domain types for API payloads, stores, and component props
+      utils/          Formatting, chart theme, category icons, errors, and dashboard calculations
+    assets/           Logos shared by the landing page and the product
+  vercel.json         SPA fallback so `/` and `/app/*` serve index.html
   tsconfig.json       Strict TypeScript configuration
   vite.config.ts      Validates VITE_API_URL at build/start time
 server/
@@ -51,14 +59,16 @@ server/
 
 ## Frontend
 
-`main.tsx` renders `App`. `App.tsx` first calls `/api/auth/session`, then either renders `LoginPage` or the authenticated tabbed application. It retains only a local storage session hint for loading UI; the server cookie remains authoritative. It also owns the active tab, theme preference, toast/modal UI, and the cross-feature refreshes required after mutations.
+`main.tsx` renders the router in `router.tsx`. `/` renders the landing page only. `/app` and any deeper `/app/*` path render `AppShell`. Unknown paths render a landing-style 404 and do not mount the product shell. The landing page must not import `app/hooks`, `app/services/api`, or `app/components`, and it must not call finance APIs. Product code must not import `landing/`.
+
+`AppShell` first calls `/api/auth/session`, then either renders `LoginPage` or the authenticated tabbed application. It retains only a local storage session hint for loading UI; the server cookie remains authoritative. It also owns the active tab, theme preference, toast/modal UI, and the cross-feature refreshes required after mutations. Login and registration stay on `/app`. A `mode=register` query opens the create-account form.
 
 Feature hooks encapsulate client state and API calls:
 
 - `useExpenses` loads expenses, dashboard summary, and exchange-rate metadata; it owns history filters and CRUD refreshes.
 - `useCategories`, `useRecurringExpenses`, `useReceipts`, `useEmergencyFund`, and `useRecycleBin` own the analogous feature state. Receipt and emergency data are loaded on their relevant tabs; the Recycle Bin loads when its Settings section opens; recurring rules also refresh on focus and once per minute.
 
-Components implement the UI rather than direct HTTP access. `Dashboard` composes summary and chart components; `ExpenseForm` and `ExpenseList` handle expense entry/history; the remaining feature components cover categories, recurring payments, receipts, emergency-fund planning, settings, backup controls, the Recycle Bin inside Settings, navigation, and shared modal/toast/icon UI. `services/api.ts` sends credentialed requests and centralizes JSON error handling; multipart receipt and XLSX requests are the intentional exceptions to its JSON request helper. Shared domain types live in `client/src/types.ts`, and the build runs `tsc --noEmit` before bundling.
+Components implement the UI rather than direct HTTP access. `Dashboard` composes summary and chart components; `ExpenseForm` and `ExpenseList` handle expense entry/history; the remaining feature components cover categories, recurring payments, receipts, emergency-fund planning, settings, backup controls, the Recycle Bin inside Settings, navigation, and shared modal/toast/icon UI. `app/services/api.ts` sends credentialed requests and centralizes JSON error handling; multipart receipt and XLSX requests are the intentional exceptions to its JSON request helper. Shared domain types live in `client/src/app/types.ts`, and the build runs `tsc --noEmit` before bundling. The Express API remains under `/api`. The `/app` path is only a frontend route.
 
 ## Backend request flow and boundaries
 
@@ -67,7 +77,7 @@ Components implement the UI rather than direct HTTP access. `Dashboard` composes
 For a normal request the flow is:
 
 ```
-client component -> hook -> services/api.ts -> Express security middleware
+client component -> hook -> app/services/api.ts -> Express security middleware
 -> authenticated route -> service/database -> JSON, binary, or 204 response
 ```
 
@@ -139,7 +149,7 @@ Database export writes all database tables plus a schema manifest to XLSX; becau
 
 ## Architectural constraints
 
-- Keep client HTTP in `client/src/services/api.ts`; keep UI in TSX components, feature state in hooks, and shared types in `client/src/types.ts`.
+- Keep client HTTP in `client/src/app/services/api.ts`; keep product UI in `client/src/app` components, feature state in `client/src/app/hooks`, and shared types in `client/src/app/types.ts`. Keep the public page in `client/src/landing/` and do not let it call finance APIs.
 - Keep HTTP concerns in routes and shared business workflows in services; do not grow `server.js` beyond composition/startup.
 - Preserve the `/api` boundary and protect new data routes with `requireAuth` unless they are intentionally public.
 - Currency is limited to MYR/IDR and time values must remain UTC+8 ISO strings. Use the existing helpers rather than ad hoc conversion or date formatting.
