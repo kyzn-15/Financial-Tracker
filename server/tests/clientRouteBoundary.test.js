@@ -74,6 +74,13 @@ function topLevelRoutes(routerSource) {
   return routes;
 }
 
+test('landing canvas does not write the document theme attribute', () => {
+  const source = fs.readFileSync(path.join(clientSrc, 'landing', 'useLightCanvas.ts'), 'utf8');
+  assert.equal(source.includes('dataset.theme'), false);
+  assert.match(source, /classList\.add\('landing-root'\)/);
+  assert.match(source, /classList\.remove\('landing-root'\)/);
+});
+
 test('landing sources do not import product hooks, HTTP client, or product screens', () => {
   const landingDir = path.join(clientSrc, 'landing');
   const files = walkSources(landingDir);
