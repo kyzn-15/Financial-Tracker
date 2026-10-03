@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import AppIcon from './AppIcon';
+import CategorySelect from './CategorySelect';
+import OptionSelect from './OptionSelect';
 import { formatDateTime } from '../utils/formatters';
 import type { Category, Currency, RecurrenceFrequency, RecurringExpense, RecurringExpenseStore } from '../types';
 import { getErrorMessage } from '../utils/errors';
@@ -167,10 +169,10 @@ export default function RecurringPaymentsManager({ store, categories }: Recurrin
             <form className="recurring-manager__edit" key={rule.id} onSubmit={saveRule}>
               <div className="recurring-manager__edit-grid">
                 <label className="neo-input-group"><span className="neo-label">Payment</span><input className="neo-input" value={form.name} maxLength={160} onChange={(event) => updateForm({ name: event.target.value })} /></label>
-                <label className="neo-input-group"><span className="neo-label">Category</span><select className="neo-select" value={form.category} onChange={(event) => updateForm({ category: event.target.value })}>{categories.map((category) => <option key={category.id} value={category.name}>{category.name}</option>)}</select></label>
+                <label className="neo-input-group"><span className="neo-label">Category</span><CategorySelect choices={categories.map((category) => ({ name: category.name, usageCount: category.usage_count }))} value={form.category} onChange={(category) => updateForm({ category })} ariaLabel="Category" /></label>
                 <label className="neo-input-group"><span className="neo-label">Amount</span><input className="neo-input" type={isPrivacyMode ? 'password' : 'number'} inputMode="decimal" min="0.01" step="0.01" value={form.price} onChange={(event) => updateForm({ price: event.target.value })} /></label>
-                <label className="neo-input-group"><span className="neo-label">Currency</span><select className="neo-select" value={form.currency} onChange={(event) => updateForm({ currency: event.target.value === 'IDR' ? 'IDR' : 'MYR' })}><option value="MYR">MYR</option><option value="IDR">IDR</option></select></label>
-                <label className="neo-input-group"><span className="neo-label">Repeat</span><select className="neo-select" value={form.frequency} onChange={(event) => updateForm({ frequency: event.target.value === 'daily' || event.target.value === 'weekly' ? event.target.value : 'monthly' })}><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label>
+                <label className="neo-input-group"><span className="neo-label">Currency</span><OptionSelect dialogTitle="Currency" ariaLabel="Currency" value={form.currency} onChange={(currency) => updateForm({ currency: currency === 'IDR' ? 'IDR' : 'MYR' })} options={[{ value: 'MYR', label: 'MYR', icon: 'wallet' }, { value: 'IDR', label: 'IDR', icon: 'wallet' }]} /></label>
+                <label className="neo-input-group"><span className="neo-label">Repeat</span><OptionSelect dialogTitle="Repeat" ariaLabel="Repeat" value={form.frequency} onChange={(frequency) => updateForm({ frequency: frequency === 'daily' || frequency === 'weekly' ? frequency : 'monthly' })} options={[{ value: 'daily', label: 'Daily', icon: 'refresh' }, { value: 'weekly', label: 'Weekly', icon: 'refresh' }, { value: 'monthly', label: 'Monthly', icon: 'refresh' }]} /></label>
                 <label className="neo-input-group"><span className="neo-label">Next payment (UTC+8)</span><input className="neo-input" type="datetime-local" value={form.next_run_at} onChange={(event) => updateForm({ next_run_at: event.target.value })} /></label>
               </div>
               <div className="category-manager__actions"><button className="neo-btn neo-btn--primary neo-btn--sm" disabled={savingId === rule.id}>Save</button><button className="neo-btn neo-btn--secondary neo-btn--sm" type="button" onClick={() => setEditingId(null)} disabled={savingId === rule.id}>Cancel</button></div>

@@ -24,8 +24,6 @@ async function getEmergencyCategoryNames(userId = null) {
 }
 
 export async function listCategories(userId = null) {
-  const owner = ownerClause(userId, 'categories.user_id');
-  const expenseOwner = userId == null ? '' : ' AND expenses.user_id = categories.user_id';
   const result = await db.execute({
     sql: `SELECT categories.id,
                  categories.name,
@@ -37,11 +35,11 @@ export async function listCategories(userId = null) {
           LEFT JOIN category_automation_settings ON category_automation_settings.category_id = categories.id
           LEFT JOIN expenses
             ON expenses.category = categories.name COLLATE NOCASE
-           AND expenses.deleted_at IS NULL${expenseOwner}
+           AND expenses.deleted_at IS NULL${userId == null ? '' : ' AND expenses.user_id = categories.user_id'}
           ${userId == null ? '' : 'WHERE categories.user_id = ?'}
           GROUP BY categories.id, categories.name, categories.sort_order, category_automation_settings.enabled, category_automation_settings.frequency
           ORDER BY categories.sort_order ASC, categories.id ASC`,
-    args: owner.args,
+    args: userId == null ? [] : [userId],
   });
 
   return result.rows.map((row) => ({

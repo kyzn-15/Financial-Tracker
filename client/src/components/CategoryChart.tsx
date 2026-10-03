@@ -7,6 +7,7 @@ import { getCategoryBreakdown } from '../utils/dashboardAnalytics';
 import { getChartTheme } from '../utils/chartTheme';
 import type { CategoryTotal, Currency } from '../types';
 import { usePrivacyMode } from '../hooks/usePrivacyMode';
+import ChartCard from './ChartCard';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -73,21 +74,22 @@ export default function CategoryChart({ data = [], currency = 'MYR', myrToIdr = 
     },
   }), [chartTheme.surface, chartTheme.text, displayCategories, formatCurrency, privacy.isPrivacyMode]);
 
+  const expandedChartHeight = Math.min(1200, Math.max(640, 340 + displayCategories.length * 26));
+
   return (
-    <div className="chart-card">
-      <div className="chart-card__header">
-        <div>
-          <h3 className="chart-card__title">Spending by Category ({currency})</h3>
-          <p className="chart-card__subtitle">Amounts and share of total spending</p>
+    <ChartCard title={`Spending by Category (${currency})`} subtitle="Amounts and share of total spending">
+      {(expanded) => (
+        <div
+          className="chart-container"
+          style={expanded && displayCategories.length > 0 ? { height: `${expandedChartHeight}px` } : undefined}
+        >
+          {displayCategories.length === 0 ? (
+            <div className="chart-empty">No category spending recorded this month.</div>
+          ) : (
+            <Doughnut data={chartData} options={options} />
+          )}
         </div>
-      </div>
-      <div className="chart-container">
-        {displayCategories.length === 0 ? (
-          <div className="chart-empty">No category spending recorded this month.</div>
-        ) : (
-          <Doughnut data={chartData} options={options} />
-        )}
-      </div>
-    </div>
+      )}
+    </ChartCard>
   );
 }

@@ -5,6 +5,7 @@ import { maskFormattedCurrency, usePrivacyMode } from '../hooks/usePrivacyMode';
 import { getCategoryIconName } from '../utils/categoryIcons';
 import AppIcon from './AppIcon';
 import FolderSelect from './FolderSelect';
+import OptionSelect from './OptionSelect';
 import type { Currency, Expense, ExpenseFolder, ExpenseFilters, ExpenseSortColumn } from '../types';
 
 interface ExpenseListProps {
@@ -32,12 +33,13 @@ export default function ExpenseList({
 }: ExpenseListProps) {
   const { isPrivacyMode } = usePrivacyMode();
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [pageSizeOption, setPageSizeOption] = useState('10');
   const totalItems = expenses.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+  const pageSize = pageSizeOption === 'all' ? Math.max(totalItems, 1) : Number(pageSizeOption);
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
   const isMYR = currency === 'MYR';
   const priceColumn: ExpenseSortColumn = isMYR ? 'price_myr' : 'price_idr';
-  const paginatedExpenses = expenses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedExpenses = expenses.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   useEffect(() => setCurrentPage(1), [expenses]);
 
@@ -92,7 +94,33 @@ export default function ExpenseList({
             })}</tbody>
           </table>
         </div>
-        {totalPages > 1 && <div className="pagination"><button className="neo-btn neo-btn--secondary neo-btn--sm" disabled={currentPage === 1} onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}><AppIcon name="arrow-left" size={15} /> Prev</button><span className="pagination__info">Page {currentPage} of {totalPages}</span><button className="neo-btn neo-btn--secondary neo-btn--sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}>Next <AppIcon name="arrow-right" size={15} /></button></div>}
+        <div className="pagination">
+          <div className="pagination__pages">
+            <button className="neo-btn neo-btn--secondary neo-btn--sm" disabled={currentPage === 1} onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}><AppIcon name="arrow-left" size={15} /> Prev</button>
+            <span className="pagination__info">Page {currentPage} of {totalPages}</span>
+            <button className="neo-btn neo-btn--secondary neo-btn--sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}>Next <AppIcon name="arrow-right" size={15} /></button>
+          </div>
+          <label className="pagination__size" htmlFor="expense-page-size">
+            Rows per page
+            <OptionSelect
+              id="expense-page-size"
+              dialogTitle="Rows per page"
+              ariaLabel="Rows per page"
+              value={pageSizeOption}
+              onChange={(value) => {
+                setPageSizeOption(value);
+                setCurrentPage(1);
+              }}
+              options={[
+                { value: '10', label: '10' },
+                { value: '20', label: '20' },
+                { value: '100', label: '100' },
+                { value: '300', label: '300' },
+                { value: 'all', label: 'All' },
+              ]}
+            />
+          </label>
+        </div>
       </>}
     </div>
   );

@@ -72,6 +72,8 @@ test('security boundaries reject unsafe files and invalidate sessions', async ()
   await workbook.xlsx.load(buffer);
   const values = workbook.worksheets.flatMap((sheet) => sheet.getSheetValues().flat());
   assert.equal(values.includes(`__FINTRACKER_TEXT__:${formula}`), true);
+  assert.equal(values.includes(process.env.ADMIN_PIN_HASH), false);
+  assert.equal(values.includes(firstSession.sessionId), false);
   await assert.rejects(importDatabaseWorkbook(buffer), BackupValidationError);
 });
 

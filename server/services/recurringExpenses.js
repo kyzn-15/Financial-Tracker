@@ -42,9 +42,9 @@ export async function getRecurringRule(id, userId = null) {
 }
 
 export async function updateRecurringRule(id, input, userId = null) {
+  const owner = ownerClause(userId);
   const existing = await getRecurringRule(id, userId);
   if (!existing || existing.status === 'cancelled') return null;
-  const owner = ownerClause(userId);
   const updatedAt = nowUTC8();
   const scheduleChanged = input.frequency !== existing.frequency || input.next_run_at !== existing.next_run_at;
   const anchorTimestamp = scheduleChanged ? input.next_run_at : existing.anchor_timestamp;

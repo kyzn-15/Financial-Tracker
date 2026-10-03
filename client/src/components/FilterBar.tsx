@@ -1,9 +1,11 @@
 import type { ChangeEvent } from 'react';
 import AppIcon from './AppIcon';
-import type { ExpenseFilters, ExpenseFolder } from '../types';
+import CategorySelect from './CategorySelect';
+import OptionSelect from './OptionSelect';
+import type { Category, ExpenseFilters, ExpenseFolder } from '../types';
 
 interface FilterBarProps {
-  categories?: string[];
+  categories?: Category[];
   folders?: ExpenseFolder[];
   filters: ExpenseFilters;
   onChange: (filters: Partial<ExpenseFilters>) => void;
@@ -11,10 +13,6 @@ interface FilterBarProps {
 }
 
 export default function FilterBar({ categories = [], folders = [], filters, onChange, onClear }: FilterBarProps) {
-  const handleCategoryChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    onChange({ category: e.target.value });
-  };
-
   const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
     onChange({ name: e.target.value });
   };
@@ -25,10 +23,6 @@ export default function FilterBar({ categories = [], folders = [], filters, onCh
 
   const handleEndDateChange = (e: ChangeEvent<HTMLInputElement>) => {
     onChange({ endDate: e.target.value });
-  };
-
-  const handleFolderChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    onChange({ folderId: e.target.value });
   };
 
   const hasActiveFilters = filters.name || filters.category || filters.folderId || filters.startDate || filters.endDate;
@@ -49,37 +43,31 @@ export default function FilterBar({ categories = [], folders = [], filters, onCh
 
       <div className="filter-bar__group">
         <label className="filter-bar__label" htmlFor="filter-category">Category</label>
-        <select
+        <CategorySelect
           id="filter-category"
-          className="neo-select"
+          choices={categories.map((category) => ({ name: category.name, usageCount: category.usage_count }))}
           value={filters.category}
-          onChange={handleCategoryChange}
-        >
-          <option value="">All Categories</option>
-          {categories.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
-            </option>
-          ))}
-        </select>
+          onChange={(category) => onChange({ category })}
+          emptyLabel="All Categories"
+          dialogTitle="Filter by category"
+          ariaLabel="Filter by category"
+        />
       </div>
 
       <div className="filter-bar__group">
         <label className="filter-bar__label" htmlFor="filter-folder">Folder</label>
-        <select
+        <OptionSelect
           id="filter-folder"
-          className="neo-select"
+          dialogTitle="Filter by folder"
+          ariaLabel="Filter by folder"
           value={filters.folderId}
-          onChange={handleFolderChange}
-        >
-          <option value="">All Folders</option>
-          <option value="ungrouped">Ungrouped</option>
-          {folders.map((folder) => (
-            <option key={folder.id} value={String(folder.id)}>
-              {folder.name}
-            </option>
-          ))}
-        </select>
+          onChange={(folderId) => onChange({ folderId })}
+          options={[
+            { value: '', label: 'All Folders', icon: 'folder' },
+            { value: 'ungrouped', label: 'Ungrouped', icon: 'folder' },
+            ...folders.map((folder) => ({ value: String(folder.id), label: folder.name, icon: 'folder' })),
+          ]}
+        />
       </div>
 
       <div className="filter-bar__group">

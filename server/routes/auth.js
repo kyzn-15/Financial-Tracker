@@ -12,7 +12,8 @@ import {
   verifySessionToken,
 } from '../utils/auth.js';
 import { deleteAccount, getAccountById, registerAccount } from '../services/accounts.js';
-import { loginLimiter } from '../middleware/security.js';
+import { consumeDeleteIntent, createDeleteIntent } from '../services/resetIntent.js';
+import { loginLimiter, registerLimiter, resetLimiter } from '../middleware/security.js';
 
 const router = Router();
 const DUMMY_PIN_HASH = '$2b$10$Lv/mX1AfEEf4o4p.qXJAoewB5ll6TINgaMucGrefMhu/FKtoNBjRK';
@@ -23,7 +24,7 @@ function validateLoginInput(username, pin) {
     username.trim().length > 0 &&
     username.trim().length <= 80 &&
     typeof pin === 'string' &&
-    /^\d{4,12}$/.test(pin)
+    /^\d{6,12}$/.test(pin)
   );
 }
 
@@ -43,10 +44,10 @@ async function pinMatches(pin, passwordHash) {
   }
 }
 
-router.post('/register', loginLimiter, async (req, res) => {
+router.post('/register', registerLimiter, async (req, res) => {
   const { username, pin } = req.body ?? {};
   if (!validateLoginInput(username, pin)) {
-    return res.status(400).json({ error: 'Username must be 1 to 80 characters and PIN must be 4 to 12 digits.' });
+    return res.status(400).json({ error: 'Username must be 1 to 80 characters and PIN must be 6 to 12 digits.' });
   }
 
   try {
@@ -104,7 +105,22 @@ router.get('/session', async (req, res) => {
   }
 });
 
-router.delete('/account', async (req, res) => {
+router.post('/account/delete-intent', async (req, res) => {
+  try {
+    const session = await verifySessionToken(getCookie(req, SESSION_COOKIE_NAME));
+    if (!session) {
+      res.setHeader('Set-Cookie', createClearSessionCookie());
+      return res.status(401).json({ error: 'Authentication required.' });
+    }
+
+    return res.status(201).json(createDeleteIntent(session.sessionId));
+  } catch (err) {
+    console.error('POST /api/auth/account/delete-intent error:', err.message);
+    return res.status(500).json({ error: 'Could not prepare account deletion.' });
+  }
+});
+
+router.delete('/account', resetLimiter, async (req, res) => {
   try {
     const session = await verifySessionToken(getCookie(req, SESSION_COOKIE_NAME));
     if (!session) {
@@ -123,13 +139,27 @@ router.delete('/account', async (req, res) => {
       return res.status(404).json({ error: 'Account not found.' });
     }
 
-    if (typeof body.pin !== 'string' || !/^\d{4,12}$/.test(body.pin)) {
-      return res.status(400).json({ error: 'Current PIN is required.' });
+    const deleteToken = body.deleteToken;
+    if (
+      typeof body.pin !== 'string' ||
+      !/^\d{6,12}$/.test(body.pin) ||
+      typeof deleteToken !== 'string' ||
+      !/^[A-Za-z0-9_-]{43}$/.test(deleteToken)
+    ) {
+      return res.status(400).json({ error: 'Account deletion confirmation is required.' });
     }
 
     const account = await getAccountById(session.userId);
     if (!account || !await pinMatches(body.pin, account.password_hash)) {
       return res.status(401).json({ error: 'Current PIN is incorrect.' });
+    }
+
+    const intentStatus = consumeDeleteIntent(session.sessionId, deleteToken);
+    if (intentStatus === 'too_early') {
+      return res.status(425).json({ error: 'The account deletion safety delay has not finished.' });
+    }
+    if (intentStatus !== 'ready') {
+      return res.status(400).json({ error: 'Account deletion confirmation expired. Open the delete dialog again.' });
     }
 
     await deleteAccount(account.id);

@@ -15,6 +15,7 @@ import { convertMyrAmount, formatDate } from '../utils/formatters';
 import { getChartTheme } from '../utils/chartTheme';
 import type { Currency, TrendData, TrendPoint } from '../types';
 import { usePrivacyMode } from '../hooks/usePrivacyMode';
+import ChartCard from './ChartCard';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
@@ -126,16 +127,16 @@ export default function TrendChart({ trend, currency = 'MYR', myrToIdr = 4500 }:
   const hasTransactions = points.some((point) => point.transactions > 0);
 
   return (
-    <div className="chart-card chart-card--trend">
-      <div className="chart-card__header">
-        <div>
-          <h3 className="chart-card__title">Daily Trend (Last 30 Days)</h3>
-          <p className="chart-card__subtitle">Average line and highest/lowest spending-day markers included</p>
+    <ChartCard
+      className="chart-card--trend"
+      title="Daily Trend (Last 30 Days)"
+      subtitle="Average line and highest/lowest spending-day markers included"
+    >
+      {() => (
+        <div className="chart-container">
+          {hasTransactions ? <Line data={chartData} options={options} /> : <div className="chart-empty">No trend data available.</div>}
         </div>
-      </div>
-      <div className="chart-container">
-        {hasTransactions ? <Line data={chartData} options={options} /> : <div className="chart-empty">No trend data available.</div>}
-      </div>
-    </div>
+      )}
+    </ChartCard>
   );
 }

@@ -14,6 +14,7 @@ import type {
   ImportResult,
   Receipt,
   RecycleBinContents,
+  DeleteIntent,
   RecurrenceFrequency,
   RecurringExpense,
   RecurringExpenseInput,
@@ -78,10 +79,14 @@ export async function register(username: string, pin: string): Promise<{ authent
   });
 }
 
-export async function deleteAccount(pin: string): Promise<void> {
+export async function createDeleteIntent(): Promise<DeleteIntent> {
+  return request<DeleteIntent>('/auth/account/delete-intent', { method: 'POST' });
+}
+
+export async function deleteAccount(deleteToken: string, pin: string): Promise<void> {
   return request('/auth/account', {
     method: 'DELETE',
-    body: JSON.stringify({ pin }),
+    body: JSON.stringify({ deleteToken, pin }),
   }, true);
 }
 

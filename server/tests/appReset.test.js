@@ -15,7 +15,12 @@ process.env.EXCHANGE_RATE_API_URL = 'http://localhost.invalid/exchange-rate';
 
 const { default: db, initSchema, seedIfEmpty } = await import('../db/database.js');
 const { resetAppData } = await import('../services/appReset.js');
-const { consumeResetIntent, createResetIntent } = await import('../services/resetIntent.js');
+const {
+  consumeDeleteIntent,
+  consumeResetIntent,
+  createDeleteIntent,
+  createResetIntent,
+} = await import('../services/resetIntent.js');
 const {
   discardStagedReceiptFiles,
   stageReceiptFilesForReset,
@@ -30,6 +35,17 @@ test('reset intent is delayed, session-bound, and single-use', () => {
   assert.equal(consumeResetIntent('session-one', intent.token, now + 9_999), 'too_early');
   assert.equal(consumeResetIntent('session-one', intent.token, now + 10_000), 'ready');
   assert.equal(consumeResetIntent('session-one', intent.token, now + 10_000), 'invalid');
+});
+
+test('delete intent is delayed, session-bound, single-use, and not a reset token', () => {
+  const now = 2_000_000;
+  const intent = createDeleteIntent('session-one', now);
+
+  assert.equal(consumeDeleteIntent('session-two', intent.token, now + 10_000), 'invalid');
+  assert.equal(consumeDeleteIntent('session-one', intent.token, now + 9_999), 'too_early');
+  assert.equal(consumeResetIntent('session-one', intent.token, now + 10_000), 'invalid');
+  assert.equal(consumeDeleteIntent('session-one', intent.token, now + 10_000), 'ready');
+  assert.equal(consumeDeleteIntent('session-one', intent.token, now + 10_000), 'invalid');
 });
 
 test('reset removes user data and restores only clean defaults', async () => {

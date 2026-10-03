@@ -137,15 +137,14 @@ async function getCategoryTotalsForMonths(months, userId = null) {
 async function getCurrentMonthCategoryTotals(userId = null) {
   const monthKey = currentMonthKey();
   const nextMonthKey = addMonths(monthKey, 1);
-  const owner = ownerSql(userId);
   const result = await db.execute({
     sql: `SELECT substr(timestamp, 1, 7) AS month,
                  category,
                  COALESCE(SUM(price_myr), 0) AS total_myr
           FROM expenses
-          WHERE deleted_at IS NULL AND timestamp >= ? AND timestamp < ?${owner.sql}
+          WHERE deleted_at IS NULL AND timestamp >= ? AND timestamp < ?${ownerSql(userId).sql}
           GROUP BY month, category`,
-    args: [monthStartFromKey(monthKey), monthStartFromKey(nextMonthKey), ...owner.args],
+    args: [monthStartFromKey(monthKey), monthStartFromKey(nextMonthKey), ...ownerSql(userId).args],
   });
   return result.rows;
 }
@@ -348,7 +347,7 @@ async function buildInsights(core, userId = null) {
   return insights;
 }
 
-async function ensureEmergencySettings(userId = null) {
+async function loadEmergencyRow(userId = null) {
   if (userId == null) {
     let result = await db.execute({ sql: 'SELECT * FROM emergency_settings WHERE id = 1', args: [] });
     if (!result.rows[0]) {
@@ -379,9 +378,7 @@ async function ensureEmergencySettings(userId = null) {
 }
 
 export async function getEmergencySettings(userId = null) {
-  let result = { rows: [await ensureEmergencySettings(userId)] };
-  const row = result.rows[0];
-
+  const row = await loadEmergencyRow(userId);
   return mapEmergencySettings(row, await resolveConversionRate(row));
 }
 

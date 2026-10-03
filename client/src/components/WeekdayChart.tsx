@@ -6,6 +6,7 @@ import { convertMyrAmount } from '../utils/formatters';
 import { getChartTheme } from '../utils/chartTheme';
 import type { Currency, WeekdaySpending } from '../types';
 import { usePrivacyMode } from '../hooks/usePrivacyMode';
+import ChartCard from './ChartCard';
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
 
@@ -32,5 +33,20 @@ export default function WeekdayChart({ weekdaySpending, currency = 'MYR', myrToI
     },
   }), [chartTheme.grid, chartTheme.text, currency, formatCurrency, formatDisplayed, isPrivacyMode, myrToIdr]);
   const insight = weekdaySpending.highestDays.length ? `You tend to spend the most on ${weekdaySpending.highestDays.join(' and ')}.` : 'Add expenses to discover your weekday spending pattern.';
-  return <div className="chart-card chart-card--weekday"><div className="chart-card__header"><div><h3 className="chart-card__title">Spending by Weekday</h3><p className="chart-card__subtitle">Average daily spending across your recorded history</p></div></div><div className="chart-container">{weekdaySpending.highestValue === 0 ? <div className="chart-empty">No weekday spending data available.</div> : <Bar data={chartData} options={options} />}</div><p className="chart-card__insight">{insight}</p></div>;
+  return (
+    <ChartCard
+      className="chart-card--weekday"
+      title="Spending by Weekday"
+      subtitle="Average daily spending across your recorded history"
+    >
+      {() => (
+        <>
+          <div className="chart-container">
+            {weekdaySpending.highestValue === 0 ? <div className="chart-empty">No weekday spending data available.</div> : <Bar data={chartData} options={options} />}
+          </div>
+          <p className="chart-card__insight">{insight}</p>
+        </>
+      )}
+    </ChartCard>
+  );
 }

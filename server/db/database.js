@@ -90,8 +90,6 @@ async function uniqueIndexColumns(table) {
 /**
  * Databases created before accounts keep a global UNIQUE(name). Rebuild those
  * tables in place so each account can use the same category and folder names.
- * ALTER TABLE rewrites the stored CREATE statement, so the unique index itself
- * is what shows whether the old constraint is still in place.
  */
 async function rebuildOwnerTable(table, createSql, copySql, indexSql) {
   const groups = await uniqueIndexColumns(table);

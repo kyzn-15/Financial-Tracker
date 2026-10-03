@@ -201,221 +201,6 @@ async function selectExportRows(table, userId) {
   }
 }
 
-function recordsOf(table) {
-  if (!table) return [];
-  return table.rows.map((values) => {
-    const record = {};
-    table.columns.forEach((column, index) => {
-      record[column.name] = values[index];
-    });
-    return record;
-  });
-}
-
-async function insertMappedRow(transaction, sql, args, oldId, map) {
-  const inserted = await transaction.execute({ sql, args });
-  if (oldId != null) map.set(Number(oldId), Number(inserted.lastInsertRowid));
-}
-
-async function restoreOwnedTables(tables, userId) {
-  const account = await db.execute({
-    sql: 'SELECT username FROM accounts WHERE id = ?',
-    args: [userId],
-  });
-  const username = account.rows[0]?.username;
-  if (!username) {
-    throw new BackupValidationError('Backup data violates current database rules. No data was imported.');
-  }
-
-  const byName = new Map(tables.map((table) => [table.name, table]));
-  const timestamp = nowUTC8();
-  const transaction = await db.transaction('write');
-
-  try {
-    await transaction.execute('PRAGMA defer_foreign_keys = ON');
-    await transaction.batch([
-      {
-        sql: `DELETE FROM recurring_expense_occurrences
-              WHERE expense_id IN (SELECT id FROM expenses WHERE user_id = ?)
-                 OR rule_id IN (SELECT id FROM recurring_expense_rules WHERE user_id = ?)`,
-        args: [userId, userId],
-      },
-      { sql: 'DELETE FROM recurring_expense_rules WHERE user_id = ?', args: [userId] },
-      { sql: 'DELETE FROM expenses WHERE user_id = ?', args: [userId] },
-      { sql: 'DELETE FROM expense_folders WHERE user_id = ?', args: [userId] },
-      { sql: 'DELETE FROM receipts WHERE user_id = ?', args: [userId] },
-      {
-        sql: 'DELETE FROM category_automation_settings WHERE category_id IN (SELECT id FROM categories WHERE user_id = ?)',
-        args: [userId],
-      },
-      { sql: 'DELETE FROM categories WHERE user_id = ?', args: [userId] },
-      { sql: 'DELETE FROM emergency_settings WHERE user_id = ?', args: [userId] },
-      { sql: 'DELETE FROM backup_preferences WHERE username = ?', args: [username] },
-    ]);
-
-    const folderMap = new Map();
-    for (const row of recordsOf(byName.get('expense_folders'))) {
-      await insertMappedRow(
-        transaction,
-        'INSERT INTO expense_folders (user_id, name, created_at) VALUES (?, ?, ?)',
-        [userId, row.name, row.created_at || timestamp],
-        row.id,
-        folderMap,
-      );
-    }
-
-    const categoryMap = new Map();
-    for (const row of recordsOf(byName.get('categories'))) {
-      await insertMappedRow(
-        transaction,
-        'INSERT INTO categories (user_id, name, sort_order, created_at) VALUES (?, ?, ?, ?)',
-        [userId, row.name, Number(row.sort_order) || 0, row.created_at || timestamp],
-        row.id,
-        categoryMap,
-      );
-    }
-
-    for (const row of recordsOf(byName.get('category_automation_settings'))) {
-      const categoryId = categoryMap.get(Number(row.category_id));
-      if (!categoryId) continue;
-      await transaction.execute({
-        sql: `INSERT INTO category_automation_settings (category_id, enabled, frequency, updated_at)
-              VALUES (?, ?, ?, ?)`,
-        args: [categoryId, row.enabled ? 1 : 0, row.frequency || 'monthly', row.updated_at || timestamp],
-      });
-    }
-
-    const expenseMap = new Map();
-    for (const row of recordsOf(byName.get('expenses'))) {
-      const folderId = row.folder_id == null ? null : (folderMap.get(Number(row.folder_id)) ?? null);
-      await insertMappedRow(
-        transaction,
-        `INSERT INTO expenses (
-           user_id, name, category, price_myr, price_idr, original_currency, exchange_rate_used,
-           timestamp, created_at, deleted_at, folder_id
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          userId,
-          row.name,
-          row.category,
-          row.price_myr,
-          row.price_idr,
-          row.original_currency,
-          row.exchange_rate_used,
-          row.timestamp,
-          row.created_at || timestamp,
-          row.deleted_at ?? null,
-          folderId,
-        ],
-        row.id,
-        expenseMap,
-      );
-    }
-
-    const ruleMap = new Map();
-    for (const row of recordsOf(byName.get('recurring_expense_rules'))) {
-      const anchorId = row.anchor_expense_id == null ? null : (expenseMap.get(Number(row.anchor_expense_id)) ?? null);
-      await insertMappedRow(
-        transaction,
-        `INSERT INTO recurring_expense_rules (
-           user_id, anchor_expense_id, name, category, price, currency, frequency, anchor_timestamp,
-           next_run_at, status, created_at, updated_at
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          userId,
-          anchorId,
-          row.name,
-          row.category,
-          row.price,
-          row.currency,
-          row.frequency,
-          row.anchor_timestamp,
-          row.next_run_at,
-          row.status || 'active',
-          row.created_at || timestamp,
-          row.updated_at || timestamp,
-        ],
-        row.id,
-        ruleMap,
-      );
-    }
-
-    for (const row of recordsOf(byName.get('recurring_expense_occurrences'))) {
-      const ruleId = ruleMap.get(Number(row.rule_id));
-      const expenseId = expenseMap.get(Number(row.expense_id));
-      if (!ruleId || !expenseId) continue;
-      await transaction.execute({
-        sql: `INSERT INTO recurring_expense_occurrences (rule_id, scheduled_for, expense_id, created_at)
-              VALUES (?, ?, ?, ?)`,
-        args: [ruleId, row.scheduled_for, expenseId, row.created_at || timestamp],
-      });
-    }
-
-    for (const row of recordsOf(byName.get('receipts'))) {
-      await transaction.execute({
-        sql: `INSERT INTO receipts (user_id, filename, mime_type, uploaded_at, expires_at, deleted_at, image_data)
-              VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        args: [
-          userId,
-          row.filename,
-          row.mime_type,
-          row.uploaded_at,
-          row.expires_at,
-          row.deleted_at ?? null,
-          row.image_data ?? null,
-        ],
-      });
-    }
-
-    const emergency = recordsOf(byName.get('emergency_settings'))[0];
-    if (emergency) {
-      await transaction.execute({
-        sql: `INSERT INTO emergency_settings (
-                user_id, current_savings_myr, current_savings_idr, reserved_funds_myr, reserved_funds_idr,
-                original_currency, exchange_rate_used, target_months, essential_categories, updated_at
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [
-          userId,
-          emergency.current_savings_myr ?? null,
-          emergency.current_savings_idr ?? null,
-          emergency.reserved_funds_myr ?? 0,
-          emergency.reserved_funds_idr ?? 0,
-          emergency.original_currency || 'MYR',
-          emergency.exchange_rate_used ?? null,
-          emergency.target_months ?? 6,
-          emergency.essential_categories ?? null,
-          emergency.updated_at || timestamp,
-        ],
-      });
-    }
-
-    const preference = recordsOf(byName.get('backup_preferences'))[0];
-    if (preference) {
-      await transaction.execute({
-        sql: `INSERT INTO backup_preferences (username, reminder_interval_days, last_backup_at, updated_at)
-              VALUES (?, ?, ?, ?)`,
-        args: [
-          username,
-          preference.reminder_interval_days ?? 30,
-          preference.last_backup_at ?? null,
-          preference.updated_at || timestamp,
-        ],
-      });
-    }
-
-    await transaction.commit();
-  } catch (error) {
-    if (!transaction.closed) await transaction.rollback().catch(() => {});
-    if (error instanceof BackupValidationError) throw error;
-    if (isConstraintError(error)) {
-      throw new BackupValidationError('Backup data violates current database rules. No data was imported.');
-    }
-    throw error;
-  } finally {
-    if (!transaction.closed) transaction.close();
-  }
-}
-
 export async function buildDatabaseExportWorkbook(userId = null) {
   const schema = await getDatabaseSchema();
   const workbook = new ExcelJS.Workbook();
@@ -447,7 +232,11 @@ export async function buildDatabaseExportWorkbook(userId = null) {
 
     rowsResult.rows.forEach((row, index) => {
       sheet.addRow([
-        ...table.columns.map((column) => encodeCellValue(row[column.name])),
+        ...table.columns.map((column) => encodeCellValue(
+          table.name === 'accounts' && (column.name === 'password_hash' || column.name === 'active_session_id')
+            ? null
+            : row[column.name]
+        )),
         index + 1,
       ]);
     });
@@ -559,11 +348,11 @@ function decodeCellValue(cell, location) {
 function compareSchema(manifestTables, currentSchema) {
   const currentByName = new Map(currentSchema.map((table) => [table.name, table]));
   const manifestNames = new Set(manifestTables.map((table) => table.name));
-  const optionalTables = new Set(['accounts']);
 
   if (manifestNames.size !== manifestTables.length) {
     throw new BackupValidationError('Backup manifest contains duplicate table entries.');
   }
+  const optionalTables = new Set(['accounts']);
   const missingTables = currentSchema.filter((table) => !manifestNames.has(table.name) && !optionalTables.has(table.name));
   const extraTables = manifestTables.filter((table) => !currentByName.has(table.name));
   if (missingTables.length > 0 || extraTables.length > 0) {
@@ -645,7 +434,10 @@ function parseTableRows(workbook, manifestTables, currentSchema) {
           sheet.getCell(sheetRow, columnIndex + 1),
           `Table "${table.name}", row ${rowIndex + 1}, column "${column.name}"`
         );
-        if (value == null && (column.notNull || column.primaryKey > 0)) {
+        // Exports clear credential columns. Those cells stay blank, and import does not write them back.
+        const blankedCredential = table.name === 'accounts'
+          && (column.name === 'password_hash' || column.name === 'active_session_id');
+        if (value == null && !blankedCredential && (column.notNull || column.primaryKey > 0)) {
           throw new BackupValidationError(`Table "${table.name}" contains a missing required value in column "${column.name}".`);
         }
         return value;
@@ -719,6 +511,140 @@ async function restoreTables(tables) {
   } catch (error) {
     if (!transaction.closed) await transaction.rollback().catch(() => {});
     if (isConstraintError(error)) {
+      throw new BackupValidationError('Backup data violates current database rules. No data was imported.');
+    }
+    throw error;
+  } finally {
+    if (!transaction.closed) transaction.close();
+  }
+}
+
+function recordsOf(table) {
+  if (!table) return [];
+  return table.rows.map((values) => {
+    const record = {};
+    table.columns.forEach((column, index) => {
+      record[column.name] = values[index];
+    });
+    return record;
+  });
+}
+
+async function insertMappedRow(transaction, sql, args, oldId, map) {
+  const inserted = await transaction.execute({ sql, args });
+  if (oldId != null) map.set(Number(oldId), Number(inserted.lastInsertRowid));
+}
+
+async function restoreOwnedTables(tables, userId) {
+  const account = await db.execute({ sql: 'SELECT username FROM accounts WHERE id = ?', args: [userId] });
+  const username = account.rows[0]?.username;
+  if (!username) {
+    throw new BackupValidationError('Backup data violates current database rules. No data was imported.');
+  }
+
+  const byName = new Map(tables.map((table) => [table.name, table]));
+  const timestamp = nowUTC8();
+  const transaction = await db.transaction('write');
+  try {
+    await transaction.execute('PRAGMA defer_foreign_keys = ON');
+    await transaction.batch([
+      {
+        sql: `DELETE FROM recurring_expense_occurrences
+              WHERE expense_id IN (SELECT id FROM expenses WHERE user_id = ?)
+                 OR rule_id IN (SELECT id FROM recurring_expense_rules WHERE user_id = ?)`,
+        args: [userId, userId],
+      },
+      { sql: 'DELETE FROM recurring_expense_rules WHERE user_id = ?', args: [userId] },
+      { sql: 'DELETE FROM expenses WHERE user_id = ?', args: [userId] },
+      { sql: 'DELETE FROM expense_folders WHERE user_id = ?', args: [userId] },
+      { sql: 'DELETE FROM receipts WHERE user_id = ?', args: [userId] },
+      {
+        sql: 'DELETE FROM category_automation_settings WHERE category_id IN (SELECT id FROM categories WHERE user_id = ?)',
+        args: [userId],
+      },
+      { sql: 'DELETE FROM categories WHERE user_id = ?', args: [userId] },
+      { sql: 'DELETE FROM emergency_settings WHERE user_id = ?', args: [userId] },
+      { sql: 'DELETE FROM backup_preferences WHERE username = ?', args: [username] },
+    ]);
+
+    const folderMap = new Map();
+    for (const row of recordsOf(byName.get('expense_folders'))) {
+      await insertMappedRow(transaction,
+        'INSERT INTO expense_folders (user_id, name, created_at) VALUES (?, ?, ?)',
+        [userId, row.name, row.created_at || timestamp], row.id, folderMap);
+    }
+    const categoryMap = new Map();
+    for (const row of recordsOf(byName.get('categories'))) {
+      await insertMappedRow(transaction,
+        'INSERT INTO categories (user_id, name, sort_order, created_at) VALUES (?, ?, ?, ?)',
+        [userId, row.name, Number(row.sort_order) || 0, row.created_at || timestamp], row.id, categoryMap);
+    }
+    for (const row of recordsOf(byName.get('category_automation_settings'))) {
+      const categoryId = categoryMap.get(Number(row.category_id));
+      if (!categoryId) continue;
+      await transaction.execute({
+        sql: `INSERT INTO category_automation_settings (category_id, enabled, frequency, updated_at) VALUES (?, ?, ?, ?)`,
+        args: [categoryId, row.enabled ? 1 : 0, row.frequency || 'monthly', row.updated_at || timestamp],
+      });
+    }
+    const expenseMap = new Map();
+    for (const row of recordsOf(byName.get('expenses'))) {
+      const folderId = row.folder_id == null ? null : (folderMap.get(Number(row.folder_id)) ?? null);
+      await insertMappedRow(transaction,
+        `INSERT INTO expenses (
+           user_id, name, category, price_myr, price_idr, original_currency, exchange_rate_used,
+           timestamp, created_at, deleted_at, folder_id
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userId, row.name, row.category, row.price_myr, row.price_idr, row.original_currency, row.exchange_rate_used, row.timestamp, row.created_at || timestamp, row.deleted_at ?? null, folderId],
+        row.id, expenseMap);
+    }
+    const ruleMap = new Map();
+    for (const row of recordsOf(byName.get('recurring_expense_rules'))) {
+      const anchorId = row.anchor_expense_id == null ? null : (expenseMap.get(Number(row.anchor_expense_id)) ?? null);
+      await insertMappedRow(transaction,
+        `INSERT INTO recurring_expense_rules (
+           user_id, anchor_expense_id, name, category, price, currency, frequency, anchor_timestamp,
+           next_run_at, status, created_at, updated_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userId, anchorId, row.name, row.category, row.price, row.currency, row.frequency, row.anchor_timestamp, row.next_run_at, row.status || 'active', row.created_at || timestamp, row.updated_at || timestamp],
+        row.id, ruleMap);
+    }
+    for (const row of recordsOf(byName.get('recurring_expense_occurrences'))) {
+      const ruleId = ruleMap.get(Number(row.rule_id));
+      const expenseId = expenseMap.get(Number(row.expense_id));
+      if (!ruleId || !expenseId) continue;
+      await transaction.execute({
+        sql: `INSERT INTO recurring_expense_occurrences (rule_id, scheduled_for, expense_id, created_at) VALUES (?, ?, ?, ?)`,
+        args: [ruleId, row.scheduled_for, expenseId, row.created_at || timestamp],
+      });
+    }
+    for (const row of recordsOf(byName.get('receipts'))) {
+      await transaction.execute({
+        sql: `INSERT INTO receipts (user_id, filename, mime_type, uploaded_at, expires_at, deleted_at, image_data) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        args: [userId, row.filename, row.mime_type, row.uploaded_at, row.expires_at, row.deleted_at ?? null, row.image_data ?? null],
+      });
+    }
+    const emergency = recordsOf(byName.get('emergency_settings'))[0];
+    if (emergency) {
+      await transaction.execute({
+        sql: `INSERT INTO emergency_settings (
+                user_id, current_savings_myr, current_savings_idr, reserved_funds_myr, reserved_funds_idr,
+                original_currency, exchange_rate_used, target_months, essential_categories, updated_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [userId, emergency.current_savings_myr ?? null, emergency.current_savings_idr ?? null, emergency.reserved_funds_myr ?? 0, emergency.reserved_funds_idr ?? 0, emergency.original_currency || 'MYR', emergency.exchange_rate_used ?? null, emergency.target_months ?? 6, emergency.essential_categories ?? null, emergency.updated_at || timestamp],
+      });
+    }
+    const preference = recordsOf(byName.get('backup_preferences'))[0];
+    if (preference) {
+      await transaction.execute({
+        sql: `INSERT INTO backup_preferences (username, reminder_interval_days, last_backup_at, updated_at) VALUES (?, ?, ?, ?)`,
+        args: [username, preference.reminder_interval_days ?? 30, preference.last_backup_at ?? null, preference.updated_at || timestamp],
+      });
+    }
+    await transaction.commit();
+  } catch (error) {
+    if (!transaction.closed) await transaction.rollback().catch(() => {});
+    if (error instanceof BackupValidationError || isConstraintError(error)) {
       throw new BackupValidationError('Backup data violates current database rules. No data was imported.');
     }
     throw error;

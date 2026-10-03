@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { formatDate } from '../utils/formatters';
 import AppIcon from './AppIcon';
+import ChartCard from './ChartCard';
 import type { Currency, HeatmapDay } from '../types';
 import { usePrivacyMode } from '../hooks/usePrivacyMode';
 
@@ -41,46 +42,50 @@ export default function SpendingHeatmap({ days = [], currency = 'MYR', myrToIdr 
   const hasSpending = days.some((day) => day.total > 0);
   const formatCurrency = (amount: number) => formatMaskedCurrency(amount, currency, myrToIdr);
 
-  return (
-    <div className="chart-card heatmap-card">
-      <div className="chart-card__header">
-        <div>
-          <h3 className="chart-card__title">Spending Heatmap</h3>
-          <p className="chart-card__subtitle">Daily spending over the last 12 months</p>
+  const heatmap = (keyPrefix: string) => (
+    hasSpending ? (
+      <>
+        <HeatmapTooltip day={hoveredDay} formatCurrency={formatCurrency} onViewExpenses={onViewExpenses} />
+        <div className="heatmap-scroll" aria-label="Daily spending heatmap">
+          <div className="heatmap-grid">
+            {days.map((day) => (
+              <button
+                key={`${keyPrefix}-${day.date}`}
+                type="button"
+                className={`heatmap-day heatmap-day--${day.level}`}
+                aria-label={`${formatDate(`${day.date}T00:00:00+08:00`)}, ${formatCurrency(day.total)}, ${day.transactions} transactions`}
+                onMouseEnter={() => setHoveredDay(day)}
+                onFocus={() => setHoveredDay(day)}
+                onClick={() => day.transactions > 0 && onViewExpenses(day.date)}
+              />
+            ))}
+          </div>
         </div>
+        <div className="heatmap-legend" aria-label="Heatmap intensity legend">
+          <span>Low spending</span>
+          {[0, 1, 2, 3, 4].map((level) => <i key={`${keyPrefix}-legend-${level}`} className={`heatmap-day heatmap-day--${level}`} />)}
+          <span>High spending</span>
+        </div>
+      </>
+    ) : (
+      <div className="chart-empty">No spending recorded in the last 12 months.</div>
+    )
+  );
+
+  return (
+    <ChartCard
+      className="heatmap-card"
+      title="Spending Heatmap"
+      subtitle="Daily spending over the last 12 months"
+      headerAside={(
         <div className={`heatmap-streak ${streak > 0 ? 'heatmap-streak--active' : 'heatmap-streak--inactive'}`} title="Consecutive days with at least one expense recorded">
           <span className="heatmap-streak__fire"><AppIcon name="flame" size={17} /></span>
           <strong>{streak}</strong>
           <span className="heatmap-streak__label">day streak</span>
         </div>
-      </div>
-      {hasSpending ? (
-        <>
-          <HeatmapTooltip day={hoveredDay} formatCurrency={formatCurrency} onViewExpenses={onViewExpenses} />
-          <div className="heatmap-scroll" aria-label="Daily spending heatmap">
-            <div className="heatmap-grid">
-              {days.map((day) => (
-                <button
-                  key={day.date}
-                  type="button"
-                  className={`heatmap-day heatmap-day--${day.level}`}
-                  aria-label={`${formatDate(`${day.date}T00:00:00+08:00`)}, ${formatCurrency(day.total)}, ${day.transactions} transactions`}
-                  onMouseEnter={() => setHoveredDay(day)}
-                  onFocus={() => setHoveredDay(day)}
-                  onClick={() => day.transactions > 0 && onViewExpenses(day.date)}
-                />
-              ))}
-            </div>
-          </div>
-          <div className="heatmap-legend" aria-label="Heatmap intensity legend">
-            <span>Low spending</span>
-            {[0, 1, 2, 3, 4].map((level) => <i key={level} className={`heatmap-day heatmap-day--${level}`} />)}
-            <span>High spending</span>
-          </div>
-        </>
-      ) : (
-        <div className="chart-empty">No spending recorded in the last 12 months.</div>
       )}
-    </div>
+    >
+      {(expanded) => heatmap(expanded ? 'expanded' : 'card')}
+    </ChartCard>
   );
 }
