@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeftRight, Eye, EyeOff, FileSpreadsheet, Lock, Repeat, Shield } from 'lucide-react';
+import { ArrowLeftRight, EyeOff, FileSpreadsheet, Lock, Repeat, Shield } from 'lucide-react';
 import { appPath, registerPath } from '../paths';
+import { getPublicExchangeRate } from '../app/services/api';
 import { useLightCanvas } from './useLightCanvas';
 import logo from '../assets/logo.svg';
 import dashboardShot from '../../../docs/images/02-dashboard.png';
@@ -59,8 +60,8 @@ const features: Array<{
 
 export default function LandingPage() {
   useLightCanvas();
-  const [masked, setMasked] = useState(true);
   const [quoteMyr, setQuoteMyr] = useState(true);
+  const [exchangeRate, setExchangeRate] = useState<{ myrToIdr: number; idrToMyr: number } | null>(null);
 
   useEffect(() => {
     const root = document.querySelector('.landing');
@@ -82,6 +83,31 @@ export default function LandingPage() {
     nodes.forEach((node) => observer.observe(node));
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    getPublicExchangeRate()
+      .then((rate) => {
+        if (isActive) setExchangeRate(rate);
+      })
+      .catch(() => {
+        if (isActive) setExchangeRate(null);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const myrAmount = quoteMyr ? 1 : exchangeRate?.idrToMyr;
+  const idrAmount = quoteMyr ? exchangeRate?.myrToIdr : 1;
+  const formatAmount = (amount: number | undefined, fractionDigits: number) => (
+    amount == null ? '—' : amount.toLocaleString('en-US', {
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
+    })
+  );
 
   return (
     <div className="landing">
@@ -120,18 +146,6 @@ export default function LandingPage() {
             </div>
             <div className="landing-stage">
               <div className="landing-frame">
-                <div className="landing-frame__bar">
-                  <button
-                    className="landing-toggle"
-                    type="button"
-                    aria-pressed={masked}
-                    onClick={() => setMasked((value) => !value)}
-                  >
-                    {masked ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
-                    {masked ? 'Balances hidden' : 'Preview stays masked'}
-                  </button>
-                  <span className="landing-chip">MYR · IDR</span>
-                </div>
                 <img
                   src={dashboardShot}
                   alt="Dashboard with masked MYR balance and spending chart"
@@ -139,11 +153,6 @@ export default function LandingPage() {
                   height={750}
                 />
               </div>
-              <p className="landing-note" aria-live="polite">
-                {masked
-                  ? 'Balances are hidden in this preview.'
-                  : 'This public preview keeps amounts masked.'}
-              </p>
             </div>
           </div>
         </section>
@@ -175,15 +184,17 @@ export default function LandingPage() {
         <section className="landing-section landing-section--alt landing-features landing-reveal" id="features" aria-labelledby="features-title">
           <div className="landing-wrap">
             <h2 id="features-title">The ledger, in pieces you already use.</h2>
-            {features.map((feature, index) => (
-              <article className={index % 2 === 1 ? 'landing-split landing-split--flip' : 'landing-split'} key={feature.title}>
-                <div className="landing-copy">
-                  <h3>{feature.title}</h3>
-                  <p>{feature.body}</p>
-                </div>
-                <div className="landing-visual">{feature.visual}</div>
-              </article>
-            ))}
+            <div className="landing-features__grid">
+              {features.map((feature) => (
+                <article className="landing-feature" key={feature.title}>
+                  <div className="landing-copy">
+                    <h3>{feature.title}</h3>
+                    <p>{feature.body}</p>
+                  </div>
+                  <div className="landing-visual">{feature.visual}</div>
+                </article>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -197,22 +208,21 @@ export default function LandingPage() {
               <div className="landing-currency">
                 <div className="landing-field">
                   <span id="landing-myr-label">MYR</span>
-                  <output aria-labelledby="landing-myr-label">{quoteMyr ? '1.00' : '••••'}</output>
+                  <output aria-labelledby="landing-myr-label">{formatAmount(myrAmount, quoteMyr ? 2 : 6)}</output>
                 </div>
                 <button
                   className="landing-swap"
                   type="button"
-                  aria-label={quoteMyr ? 'Show the example amount on the IDR side' : 'Show the example amount on the MYR side'}
+                  aria-label={quoteMyr ? 'Show the IDR to MYR conversion' : 'Show the MYR to IDR conversion'}
                   onClick={() => setQuoteMyr((value) => !value)}
                 >
                   <ArrowLeftRight size={18} aria-hidden="true" />
                 </button>
                 <div className="landing-field">
                   <span id="landing-idr-label">IDR</span>
-                  <output aria-labelledby="landing-idr-label">{quoteMyr ? '••••' : '1.00'}</output>
+                  <output aria-labelledby="landing-idr-label">{formatAmount(idrAmount, 2)}</output>
                 </div>
               </div>
-              <p className="landing-note">Example only. Amounts here stay masked. Each saved expense keeps its own rate.</p>
             </div>
           </div>
         </section>
@@ -308,7 +318,7 @@ function RecurringPreview() {
 
 function BackupPreview() {
   return (
-    <div className="landing-widget" aria-hidden="true">
+    <div className="landing-widget landing-widget--backup" aria-hidden="true">
       <div className="landing-icon"><Shield size={20} /></div>
       <div className="landing-widget__row">
         <span className="landing-widget__name">ledger.xlsx</span>

@@ -279,40 +279,6 @@ html.landing-root {
   object-position: top left;
 }
 
-.landing-frame__bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  background: var(--surface);
-}
-
-.landing-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 8px 14px;
-  background: var(--surface);
-  color: var(--text-primary);
-  border-radius: var(--radius-full);
-  box-shadow: var(--neo-out-sm);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-}
-
-.landing-toggle[aria-pressed='true'] {
-  box-shadow: var(--neo-in);
-  color: var(--accent);
-}
-
-.landing-chip {
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: 500;
-}
-
 .landing-trust {
   display: flex;
   flex-wrap: wrap;
@@ -365,17 +331,26 @@ html.landing-root {
   box-shadow: var(--neo-out-sm);
 }
 
-.landing-split + .landing-split,
-.landing-features .landing-split {
-  margin-top: 64px;
-}
-
-.landing-features .landing-split:first-of-type {
+.landing-features__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
   margin-top: 40px;
 }
 
-.landing-split--flip .landing-visual {
-  order: 2;
+.landing-feature {
+  display: grid;
+  gap: 24px;
+  padding: 28px;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--neo-out);
+}
+
+.landing-feature:last-child {
+  grid-column: 1 / -1;
+  width: calc(50% - 16px);
+  justify-self: center;
 }
 
 .landing-widget {
@@ -383,6 +358,21 @@ html.landing-root {
   background: var(--surface);
   border-radius: var(--radius-xl);
   box-shadow: var(--neo-out-lg);
+}
+
+.landing-widget--backup {
+  text-align: center;
+}
+
+.landing-widget--backup .landing-icon {
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.landing-widget--backup .landing-widget__row {
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
 }
 
 .landing-widget__row {
@@ -588,16 +578,18 @@ html.landing-root {
 @media (max-width: 1023px) {
   .landing-hero__grid,
   .landing-split,
-  .landing-cards {
+  .landing-cards,
+  .landing-features__grid {
     grid-template-columns: 1fr;
-  }
-
-  .landing-split--flip .landing-visual {
-    order: 0;
   }
 
   .landing-hero h1 {
     max-width: none;
+  }
+
+  .landing-feature:last-child {
+    grid-column: auto;
+    width: auto;
   }
 }
 
