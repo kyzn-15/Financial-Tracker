@@ -233,6 +233,10 @@ export async function getExchangeRate(): Promise<ExchangeRate> {
   return request<ExchangeRate>('/exchange-rate');
 }
 
+export async function getPublicExchangeRate(): Promise<ExchangeRate> {
+  return request<ExchangeRate>('/public/exchange-rate');
+}
+
 export async function getReceipts(): Promise<Receipt[]> {
   return request<Receipt[]>('/receipts');
 }

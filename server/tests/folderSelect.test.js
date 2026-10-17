@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { FOLDER_NAME_DISPLAY_MAX, NEW_FOLDER_VALUE, folderSelectAfterChange, truncateFolderName } from '../../client/src/utils/folderSelect.js';
-import { unfilteredExpenseQuery } from '../../client/src/utils/expenseQueries.js';
+import { FOLDER_NAME_DISPLAY_MAX, NEW_FOLDER_VALUE, folderSelectAfterChange, truncateFolderName } from '../../client/src/app/utils/folderSelect.js';
+import { unfilteredExpenseQuery } from '../../client/src/app/utils/expenseQueries.js';
 
 test('leaving New folder clears creating even when picking the current folder', () => {
   const stayOnCurrent = folderSelectAfterChange(4, '4');

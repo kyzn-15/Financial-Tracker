@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://financial-tracker-pied-delta.vercel.app/"><img src="https://img.shields.io/badge/Live_Demo-Vercel-black?style=flat-square&logo=vercel" alt="Live demo"></a>
+  <a href="https://financial-tracker-pied-delta.vercel.app/app"><img src="https://img.shields.io/badge/Live_Demo-Vercel-black?style=flat-square&logo=vercel" alt="Live demo"></a>
   <img src="https://img.shields.io/badge/Frontend-React_19_%2B_Vite-61DAFB?style=flat-square&logo=react&logoColor=white" alt="React">
   <img src="https://img.shields.io/badge/Backend-Node.js_%2B_Express-339933?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node">
   <img src="https://img.shields.io/badge/Database-Turso_%2F_SQLite-4E8B4E?style=flat-square&logo=sqlite&logoColor=white" alt="Turso">
@@ -35,7 +35,7 @@ Financial Tracker is a full-stack personal finance app built around a **neomorph
 
 Accounts are **multi-user**: anyone can register a username + PIN, each account keeps its own records, and deleting an account removes only that account’s server data.
 
-**Live demo:** [financial-tracker-pied-delta.vercel.app](https://financial-tracker-pied-delta.vercel.app/)
+**Live app:** [financial-tracker-pied-delta.vercel.app/app](https://financial-tracker-pied-delta.vercel.app/app)
 
 > UI images below use **privacy masking** (`***`). Real balances are never required to evaluate the product.
 
@@ -211,6 +211,7 @@ TRUST_PROXY=1
 - Production loads `server/.env.production` and requires Turso settings.
 - Env files are gitignored — configure secrets in the host, never commit them.
 - Prefer HTTPS everywhere. For reliable cookie auth, put app and API on subdomains of the **same parent domain** (e.g. `app.example.com` + `api.example.com`).
+- The client is a single-page app. `/` is the public landing page and `/app` is the product. The host must serve `index.html` for `/`, `/app`, and `/app/*`. `client/vercel.json` does that. `/api` stays on the Express host. `VITE_API_URL` and `CLIENT_ORIGIN` stay origin-based.
 
 ## Database Schema
 

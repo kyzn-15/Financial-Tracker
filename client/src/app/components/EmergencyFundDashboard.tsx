@@ -34,9 +34,9 @@ import type {
 } from '../types';
 import { getErrorMessage } from '../utils/errors';
 import { usePrivacyMode } from '../hooks/usePrivacyMode';
-import angryStatusLogo from '../assets/financial_tracker_icon_angry_red.svg';
-import neutralStatusLogo from '../assets/financial_tracker_icon_neutral_yellow.svg';
-import defaultStatusLogo from '../assets/logo.svg';
+import angryStatusLogo from '../../assets/financial_tracker_icon_angry_red.svg';
+import neutralStatusLogo from '../../assets/financial_tracker_icon_neutral_yellow.svg';
+import defaultStatusLogo from '../../assets/logo.svg';
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 

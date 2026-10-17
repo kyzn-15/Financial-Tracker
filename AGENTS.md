@@ -10,7 +10,7 @@ Before changes that depend on project structure, module boundaries, data flow, o
 
 - Keep diffs minimal, match existing patterns, and do not add abstractions for one-off use.
 - ES modules everywhere; async/await; small single-purpose functions
-- Client HTTP only through `services/api.js`; server logic in routes/services, not `server.js`
+- Client HTTP only through `client/src/app/services/api.ts`; server logic in routes/services, not `server.js`
 - Keep API routes under `/api`; apply `requireAuth` to new protected routes and return JSON errors shaped as `{ error | message }`.
 - Use the exported database client with parameter arguments; do not interpolate untrusted values into SQL.
 - Support only MYR and IDR. Use the exchange-rate and UTC+8 helpers for new monetary records and timestamps.

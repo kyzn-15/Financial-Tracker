@@ -5,6 +5,7 @@ import express from 'express';
 import cors from 'cors';
 import { initSchema, seedIfEmpty } from './db/database.js';
 import authRouter, { requireAuth } from './routes/auth.js';
+import publicRouter from './routes/public.js';
 import expensesRouter from './routes/expenses.js';
 import summaryRouter from './routes/summary.js';
 import receiptsRouter from './routes/receipts.js';
@@ -59,6 +60,7 @@ app.get('/api/health', (req, res) => {
 
 // ─── Mount routes ────────────────────────────────────────────────────────────
 app.use('/api/auth', authRouter);
+app.use('/api/public', publicRouter);
 app.use('/api/expenses', requireAuth, expensesRouter);
 app.use('/api/receipts', requireAuth, receiptsRouter);
 app.use('/api/emergency', requireAuth, emergencyRouter);

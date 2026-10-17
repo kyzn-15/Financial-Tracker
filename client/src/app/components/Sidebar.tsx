@@ -1,5 +1,5 @@
 import AppIcon from './AppIcon';
-import appLogo from '../assets/logo.svg';
+import appLogo from '../../assets/logo.svg';
 import type { AppTab } from '../types';
 
 interface SidebarProps {

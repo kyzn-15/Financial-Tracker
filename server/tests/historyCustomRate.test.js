@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { selectStoredExpenseAmount } from '../../client/src/utils/historyAmount.js';
+import { selectStoredExpenseAmount } from '../../client/src/app/utils/historyAmount.js';
 
 test('history display uses stored counterpart amounts, not a live rate', () => {
   const customKurs = 3210;
