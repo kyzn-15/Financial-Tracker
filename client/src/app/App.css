@@ -24,6 +24,10 @@
   padding: var(--space-lg) var(--space-xl);
   padding-bottom: calc(var(--space-2xl) * 2); /* Buffer for mobile nav */
   position: relative;
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(74, 139, 194, 0.07), transparent 38%),
+    radial-gradient(ellipse at 88% 8%, rgba(79, 226, 161, 0.06), transparent 34%),
+    var(--bg);
 }
 
 /* ---- LOGIN ---- */
@@ -1273,7 +1277,7 @@
   justify-content: space-between;
   padding: var(--space-md) var(--space-lg);
   margin-bottom: var(--space-xl);
-  background: var(--glass-bg);
+  background: var(--app-header-glass-bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius-lg);
